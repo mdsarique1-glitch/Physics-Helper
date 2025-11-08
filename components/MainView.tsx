@@ -1,7 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { PHYSICS_CATEGORIES, PHYSICS_HELPER_MESSAGES } from '../constants';
-import { getFeedbackResponse } from '../services/geminiService';
 import type { SoloQuizConfig } from '../types';
 import LoadingSpinner from './LoadingSpinner';
 import CertificateShowcase from './CertificateShowcase';
@@ -15,20 +14,21 @@ const MainView: React.FC<{
     // Solo & Group state
     const [studentName, setStudentName] = useState('');
     const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-    
+    const [syllabusLevel, setSyllabusLevel] = useState<'core' | 'extended'>('extended');
+
     // Solo Config
-    const [soloQuizConfig, setSoloQuizConfig] = useState<Omit<SoloQuizConfig, 'categories' | 'seed'>>({ questionCount: 15, timerEnabled: false, timeLimit: 15 });
+    const [soloQuizConfig, setSoloQuizConfig] = useState<Omit<SoloQuizConfig, 'categories' | 'seed' | 'syllabusLevel'>>({ questionCount: 15, timerEnabled: false, timeLimit: 15 });
     
     // Group Challenge State
     const [organizerName, setOrganizerName] = useState('');
     const [joinCode, setJoinCode] = useState('');
     const [generatedChallengeCode, setGeneratedChallengeCode] = useState('');
-    const [groupQuizConfig, setGroupQuizConfig] = useState<Omit<SoloQuizConfig, 'categories' | 'seed'>>({ questionCount: 10, timerEnabled: true, timeLimit: 10 });
+    const [groupQuizConfig, setGroupQuizConfig] = useState<Omit<SoloQuizConfig, 'categories' | 'seed' | 'syllabusLevel'>>({ questionCount: 10, timerEnabled: true, timeLimit: 10 });
     const [challengeTitle, setChallengeTitle] = useState('');
 
     // Common state
+    const [feedbackName, setFeedbackName] = useState('');
     const [feedbackText, setFeedbackText] = useState('');
-    const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
     const [feedbackResponse, setFeedbackResponse] = useState('');
     const [feedbackError, setFeedbackError] = useState('');
     const [helperMessage, setHelperMessage] = useState('');
@@ -39,7 +39,7 @@ const MainView: React.FC<{
 
     const handleStartSoloQuizClick = () => {
         if (studentName && selectedCategories.length > 0) {
-            const config: SoloQuizConfig = { ...soloQuizConfig, categories: selectedCategories };
+            const config: SoloQuizConfig = { ...soloQuizConfig, categories: selectedCategories, syllabusLevel };
             onStartQuiz(studentName, config);
         } else {
             alert("Please enter your name and select at least one category.");
@@ -58,7 +58,8 @@ const MainView: React.FC<{
             q: groupQuizConfig.questionCount,
             t: groupQuizConfig.timeLimit,
             i: groupQuizConfig.timerEnabled,
-            l: challengeTitle
+            l: challengeTitle,
+            s: syllabusLevel,
         };
 
         try {
@@ -91,6 +92,7 @@ const MainView: React.FC<{
                 questionCount: decodedConfig.q,
                 timeLimit: decodedConfig.t,
                 timerEnabled: decodedConfig.i,
+                syllabusLevel: decodedConfig.s || 'extended',
                 seed: seed
             };
             onStartQuiz(studentName, config);
@@ -112,6 +114,7 @@ const MainView: React.FC<{
                 questionCount: decodedConfig.q,
                 timeLimit: decodedConfig.t,
                 timerEnabled: decodedConfig.i,
+                syllabusLevel: decodedConfig.s || 'extended',
                 seed: seed
             };
             onStartQuiz(organizerName, config);
@@ -121,28 +124,32 @@ const MainView: React.FC<{
     }
 
 
-    const handleFeedbackSubmit = async (e: React.FormEvent) => {
+    const handleFeedbackSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (!feedbackText.trim()) return;
-
-        // Use mailto link
-        const subject = encodeURIComponent("Feedback for Physics Helper App");
-        const body = encodeURIComponent(feedbackText);
-        const developerEmail = "sarique.mohammed_@outlook.com"; // Replace with actual developer email
-        window.location.href = `mailto:${developerEmail}?subject=${subject}&body=${body}`;
-
-        setIsSubmittingFeedback(true);
-        setFeedbackError('');
-        setFeedbackResponse('');
-        try {
-            const response = await getFeedbackResponse(feedbackText);
-            setFeedbackResponse(response);
-            setFeedbackText('');
-        } catch (err) {
-            setFeedbackError('Could not generate an AI response, but your email app should be open.');
-        } finally {
-            setIsSubmittingFeedback(false);
+        if (!feedbackName.trim() || !feedbackText.trim()) {
+            setFeedbackError("Please provide both your name and feedback.");
+            setFeedbackResponse('');
+            return;
         }
+        
+        // User's Google Form: https://forms.gle/xKgKkbSVfC2kLcJC8
+        const formId = "1FAIpQLScXQ-e818r-n4g1FDKP-pY6j2i9jXn8v_wB_zG9hA-kG9sP9w";
+        const nameEntryId = "entry.2005620554";
+        const feedbackEntryId = "entry.1065046570";
+
+        const encodedName = encodeURIComponent(feedbackName);
+        const encodedFeedback = encodeURIComponent(feedbackText);
+        
+        const googleFormUrl = `https://docs.google.com/forms/d/e/${formId}/viewform?usp=pp_url&${nameEntryId}=${encodedName}&${feedbackEntryId}=${encodedFeedback}`;
+
+        // Open the pre-filled form in a new tab
+        window.open(googleFormUrl, '_blank', 'noopener,noreferrer');
+
+        // Reset the form and show a confirmation message
+        setFeedbackName('');
+        setFeedbackText('');
+        setFeedbackResponse("Your feedback form is ready in a new tab. Just hit 'Submit' there!");
+        setFeedbackError('');
     };
     
     const renderContent = () => {
@@ -197,6 +204,21 @@ const MainView: React.FC<{
                                     </div>
                                 </div>
                             </div>
+                            
+                            <div className="p-4 border rounded-lg">
+                                <label className="block text-lg font-medium text-gray-700 mb-2">Syllabus Level:</label>
+                                <div className="flex flex-col sm:flex-row sm:items-center sm:space-x-6 space-y-2 sm:space-y-0">
+                                    <label className="flex items-center cursor-pointer">
+                                        <input type="radio" name="syllabusLevelSolo" value="extended" checked={syllabusLevel === 'extended'} onChange={() => setSyllabusLevel('extended')} className="h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-gray-300" />
+                                        <span className="ml-2 text-gray-700">Extended (Core + Supplement)</span>
+                                    </label>
+                                    <label className="flex items-center cursor-pointer">
+                                        <input type="radio" name="syllabusLevelSolo" value="core" checked={syllabusLevel === 'core'} onChange={() => setSyllabusLevel('core')} className="h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-gray-300" />
+                                        <span className="ml-2 text-gray-700">Core Only</span>
+                                    </label>
+                                </div>
+                            </div>
+
 
                             <button onClick={handleStartSoloQuizClick} disabled={!studentName || selectedCategories.length === 0} className="w-full px-8 py-4 bg-indigo-600 text-white font-bold text-lg rounded-lg shadow-md hover:bg-indigo-700 disabled:bg-indigo-300 disabled:cursor-not-allowed transition-transform transform hover:scale-105">
                                 Start Quiz!
@@ -244,9 +266,22 @@ const MainView: React.FC<{
                                     {[5, 10, 15, 20, 25].map(n => <option key={n} value={n}>{n}</option>)}
                                 </select>
                             </div>
+                             <div className="mt-2">
+                                <label className="block font-medium text-gray-700 mb-1">Syllabus Level:</label>
+                                <div className="flex items-center space-x-4">
+                                    <label className="flex items-center">
+                                        <input type="radio" name="syllabusLevelGroup" value="extended" checked={syllabusLevel === 'extended'} onChange={() => setSyllabusLevel('extended')} className="h-4 w-4 text-indigo-600"/>
+                                        <span className="ml-2 text-sm text-gray-700">Extended</span>
+                                    </label>
+                                    <label className="flex items-center">
+                                        <input type="radio" name="syllabusLevelGroup" value="core" checked={syllabusLevel === 'core'} onChange={() => setSyllabusLevel('core')} className="h-4 w-4 text-indigo-600"/>
+                                        <span className="ml-2 text-sm text-gray-700">Core</span>
+                                    </label>
+                                </div>
+                            </div>
                             <div>
                                 <label className="block font-medium text-gray-700 mb-2">Categories:</label>
-                                <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto">
+                                <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto p-2 border rounded-md">
                                     {PHYSICS_CATEGORIES.map(category => (
                                         <label key={category.name} className="flex items-center text-sm">
                                             <input type="checkbox" checked={selectedCategories.includes(category.name)} onChange={() => setSelectedCategories(c => c.includes(category.name) ? c.filter(cat => cat !== category.name) : [...c, category.name])} className="h-4 w-4 rounded border-gray-300 text-indigo-600" />
@@ -310,19 +345,28 @@ const MainView: React.FC<{
                             Your suggestions help improve Physics Helper for everyone!
                         </p>
                         <form onSubmit={handleFeedbackSubmit}>
+                            <input
+                                type="text"
+                                value={feedbackName}
+                                onChange={(e) => setFeedbackName(e.target.value)}
+                                placeholder="Your Name"
+                                className="w-full p-2 mb-2 bg-white border border-gray-300 rounded-lg text-sm"
+                                aria-label="Your Name for Feedback"
+                            />
                             <textarea
                                 value={feedbackText}
                                 onChange={(e) => setFeedbackText(e.target.value)}
                                 rows={3}
                                 placeholder="Your experience, suggestions..."
                                 className="w-full p-2 bg-white border border-gray-300 rounded-lg text-sm"
+                                aria-label="Your Feedback"
                             ></textarea>
                             <button
                                 type="submit"
-                                disabled={isSubmittingFeedback || !feedbackText.trim()}
+                                disabled={!feedbackName.trim() || !feedbackText.trim()}
                                 className="mt-2 w-full py-2 bg-gray-700 text-white font-semibold rounded-lg hover:bg-gray-800 disabled:bg-gray-400 transition text-sm"
                             >
-                                {isSubmittingFeedback ? 'Submitting...' : 'Send Feedback'}
+                                Send via Google Form
                             </button>
                         </form>
                         {feedbackError && <p className="mt-2 text-center text-red-500 text-xs">{feedbackError}</p>}

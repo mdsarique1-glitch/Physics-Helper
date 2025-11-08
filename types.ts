@@ -34,6 +34,7 @@ export interface SoloQuizConfig {
     timerEnabled: boolean;
     timeLimit: number; // in minutes
     categories: string[];
+    syllabusLevel: 'core' | 'extended';
     seed?: number;
 }
 

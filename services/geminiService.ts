@@ -24,21 +24,25 @@ const quizQuestionsSchema = {
     }
 };
 
-export const generateQuizQuestions = async (topics: string[], questionCount: number, seed?: number): Promise<QuizQuestion[]> => {
+export const generateQuizQuestions = async (indicators: Indicator[], questionCount: number, seed?: number): Promise<QuizQuestion[]> => {
     const baseDifficultyCount = Math.floor(questionCount / 3);
     const remainder = questionCount % 3;
     const numEasy = baseDifficultyCount + (remainder > 0 ? 1 : 0);
     const numMedium = baseDifficultyCount + (remainder > 1 ? 1 : 0);
     const numHard = baseDifficultyCount;
 
-    const prompt = `Generate ${questionCount} unique, multiple-choice quiz questions for an IGCSE Physics student. The questions must strictly adhere to the Cambridge IGCSE Physics (0625) syllabus for exams in 2026-2028 and be based on the core content found in the official syllabus guide for these topics: ${topics.join(', ')}.
-    IMPORTANT:
-    1.  The questions must be conceptually focused. Ensure they cover a mix of definitions, formulas (in terms of variable relationships), units, and both core and supplementary concepts as outlined in the syllabus.
+    const prompt = `Generate ${questionCount} unique, multiple-choice quiz questions for an IGCSE Physics student.
+    The questions must be strictly and exclusively based on the following Cambridge IGCSE Physics (0625) syllabus points. Do not include any topics or concepts not explicitly mentioned in this list:
+    ${indicators.map(i => `- ${i.name}`).join('\n')}
+
+    IMPORTANT RULES:
+    1.  The questions must be conceptually focused.
     2.  Absolutely NO calculation questions.
-    3.  Distribute the questions as evenly as possible across all the provided topics.
-    4.  Generate exactly ${numEasy} easy, ${numMedium} medium, and ${numHard} hard questions.
-    5.  Provide 4 distinct options and one correct answer for each question. Ensure the options are plausible and relevant.
-    6.  Do not repeat questions.`;
+    3.  Distribute the questions as evenly as possible across all the provided syllabus points.
+    4.  Generate exactly ${numEasy} easy, ${numMedium}, and ${numHard} hard questions.
+    5.  Provide 4 distinct and plausible options and one correct answer for each question.
+    6.  Do not repeat questions.
+    7.  Do not create questions about topics outside of the provided list. For example, do not ask about 'demagnetization' if it is not in the list of syllabus points provided above.`;
 
     try {
         const response = await ai.models.generateContent({
@@ -128,19 +132,6 @@ export const getSoloImprovementReport = async (studentName: string, correctAnswe
     } catch (error) {
         console.error("Error getting solo improvement report:", error);
         throw new Error("Failed to get solo improvement report from Gemini API.");
-    }
-};
-
-
-export const getFeedbackResponse = async (feedbackText: string): Promise<string> => {
-    const prompt = `A user of the "Physics Helper" app provided this feedback: "${feedbackText}". Generate a short, polite, and encouraging thank you message acknowledging their feedback was received and will be considered for their email.`;
-    
-    try {
-        const response = await ai.models.generateContent({ model: 'gemini-flash-lite-latest', contents: prompt });
-        return response.text.trim();
-    } catch (error) {
-        console.error("Error getting feedback response:", error);
-        return "Thank you for your feedback! We've received it successfully.";
     }
 };
 
