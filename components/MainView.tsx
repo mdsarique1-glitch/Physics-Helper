@@ -6,6 +6,59 @@ import LoadingSpinner from './LoadingSpinner';
 import CertificateShowcase from './CertificateShowcase';
 import QuickRevisionView from './QuickRevisionView';
 
+const decodeChallengeCode = (code: string): SoloQuizConfig | null => {
+    try {
+        const [seedStr, encodedConfig] = code.split('-');
+        if (!seedStr || !encodedConfig) throw new Error("Invalid code format.");
+
+        const seed = parseInt(seedStr, 10);
+        if (isNaN(seed)) throw new Error("Invalid seed in code.");
+
+        const packed = parseInt(encodedConfig, 36);
+        if (isNaN(packed)) throw new Error("Invalid config in code.");
+
+        // Decode syllabus level (1 bit)
+        const syllabusLevel = (packed & 1) === 1 ? 'extended' : 'core';
+
+        // Decode time limit (2 bits)
+        const timeValue = (packed >> 1) & 3; // 0b11
+        const groupTimeOptions = [0, 5, 10, 15];
+        const timeLimit = groupTimeOptions[timeValue] || 0;
+        const timerEnabled = timeLimit > 0;
+
+        // Decode question count (3 bits)
+        const questionValue = (packed >> 3) & 7; // 0b111
+        const questionOptions = [5, 10, 15, 20, 25];
+        const questionCount = questionOptions[questionValue] || 10;
+
+        // Decode categories (6 bits)
+        const categoryBitmask = (packed >> 6) & 63; // 0b111111
+        const categoryIndices: number[] = [];
+        for (let i = 0; i < PHYSICS_CATEGORIES.length; i++) {
+            if ((categoryBitmask >> i) & 1) {
+                categoryIndices.push(i);
+            }
+        }
+        const categories = categoryIndices.map(i => PHYSICS_CATEGORIES[i]?.name).filter((name): name is string => !!name);
+
+        if (categories.length === 0) {
+            throw new Error("No categories found in challenge code.");
+        }
+
+        return {
+            categories,
+            questionCount,
+            timeLimit,
+            timerEnabled,
+            syllabusLevel,
+            seed
+        };
+    } catch (error) {
+        console.error("Failed to decode challenge code:", error);
+        return null;
+    }
+};
+
 const MainView: React.FC<{ 
     onStartQuiz: (name: string, config: SoloQuizConfig) => void;
 }> = ({ onStartQuiz }) => {
@@ -23,14 +76,10 @@ const MainView: React.FC<{
     const [organizerName, setOrganizerName] = useState('');
     const [joinCode, setJoinCode] = useState('');
     const [generatedChallengeCode, setGeneratedChallengeCode] = useState('');
-    const [groupQuizConfig, setGroupQuizConfig] = useState<Omit<SoloQuizConfig, 'categories' | 'seed' | 'syllabusLevel'>>({ questionCount: 10, timerEnabled: true, timeLimit: 10 });
+    const [groupQuizConfig, setGroupQuizConfig] = useState<Omit<SoloQuizConfig, 'categories' | 'seed' | 'syllabusLevel'>>({ questionCount: 10, timerEnabled: false, timeLimit: 10 });
     const [challengeTitle, setChallengeTitle] = useState('');
 
     // Common state
-    const [feedbackName, setFeedbackName] = useState('');
-    const [feedbackText, setFeedbackText] = useState('');
-    const [feedbackResponse, setFeedbackResponse] = useState('');
-    const [feedbackError, setFeedbackError] = useState('');
     const [helperMessage, setHelperMessage] = useState('');
 
     useEffect(() => {
@@ -51,26 +100,37 @@ const MainView: React.FC<{
             alert("Please provide your name, a challenge title, and select at least one category.");
             return;
         }
-        
-        const seed = Math.floor(Math.random() * 1000000);
-        const configToEncode = {
-            c: selectedCategories,
-            q: groupQuizConfig.questionCount,
-            t: groupQuizConfig.timeLimit,
-            i: groupQuizConfig.timerEnabled,
-            l: challengeTitle,
-            s: syllabusLevel,
-        };
-
-        try {
-            const configString = JSON.stringify(configToEncode);
-            const encodedConfig = btoa(configString);
-            const code = `${seed}-${encodedConfig}`;
-            setGeneratedChallengeCode(code);
-        } catch (error) {
-            console.error("Failed to create challenge code:", error);
-            alert("Could not create challenge code.");
-        }
+    
+        const seed = Math.floor(100000 + Math.random() * 900000);
+        const categoryIndices = selectedCategories.map(name =>
+            PHYSICS_CATEGORIES.findIndex(cat => cat.name === name)
+        ).filter(index => index !== -1);
+    
+        // Start packing data into a single number
+        let packed = 0;
+    
+        // 1. Syllabus level (1 bit)
+        const syllabusValue = syllabusLevel === 'extended' ? 1 : 0;
+        packed |= syllabusValue;
+    
+        // 2. Time limit (2 bits)
+        const groupTimeOptions = [0, 5, 10, 15];
+        const timeIndex = groupTimeOptions.indexOf(groupQuizConfig.timerEnabled ? groupQuizConfig.timeLimit : 0);
+        packed |= ((timeIndex > -1 ? timeIndex : 0) << 1);
+    
+        // 3. Question count (3 bits)
+        const questionOptions = [5, 10, 15, 20, 25];
+        const questionIndex = questionOptions.indexOf(groupQuizConfig.questionCount);
+        packed |= ((questionIndex > -1 ? questionIndex : 0) << 3);
+    
+        // 4. Categories (6 bits)
+        const categoryBitmask = categoryIndices.reduce((acc, index) => acc | (1 << index), 0);
+        packed |= (categoryBitmask << 6);
+    
+        // Convert the packed number to a short base-36 string
+        const encodedConfig = packed.toString(36);
+        const code = `${seed}-${encodedConfig}`;
+        setGeneratedChallengeCode(code);
     };
 
     const handleJoinChallenge = () => {
@@ -78,78 +138,27 @@ const MainView: React.FC<{
             alert("Please enter your name and a challenge code.");
             return;
         }
-
-        try {
-            const [seedStr, encodedConfig] = joinCode.split('-');
-            if (!seedStr || !encodedConfig) throw new Error("Invalid code format.");
-
-            const seed = parseInt(seedStr, 10);
-            const configString = atob(encodedConfig);
-            const decodedConfig = JSON.parse(configString);
-
-            const config: SoloQuizConfig = {
-                categories: decodedConfig.c,
-                questionCount: decodedConfig.q,
-                timeLimit: decodedConfig.t,
-                timerEnabled: decodedConfig.i,
-                syllabusLevel: decodedConfig.s || 'extended',
-                seed: seed
-            };
+        const config = decodeChallengeCode(joinCode);
+        if (config) {
             onStartQuiz(studentName, config);
-
-        } catch (error) {
-            console.error("Failed to join challenge:", error);
+        } else {
             alert("Invalid or corrupted challenge code. Please check the code and try again.");
         }
     };
     
     const startChallengeForOrganizer = () => {
-        try {
-             const [seedStr, encodedConfig] = generatedChallengeCode.split('-');
-             const seed = parseInt(seedStr, 10);
-             const configString = atob(encodedConfig);
-             const decodedConfig = JSON.parse(configString);
-             const config: SoloQuizConfig = {
-                categories: decodedConfig.c,
-                questionCount: decodedConfig.q,
-                timeLimit: decodedConfig.t,
-                timerEnabled: decodedConfig.i,
-                syllabusLevel: decodedConfig.s || 'extended',
-                seed: seed
-            };
+        const config = decodeChallengeCode(generatedChallengeCode);
+        if (config) {
             onStartQuiz(organizerName, config);
-        } catch (e) {
+        } else {
             alert("Could not start the challenge due to an error.")
         }
     }
 
 
-    const handleFeedbackSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!feedbackName.trim() || !feedbackText.trim()) {
-            setFeedbackError("Please provide both your name and feedback.");
-            setFeedbackResponse('');
-            return;
-        }
-        
-        // User's Google Form: https://forms.gle/xKgKkbSVfC2kLcJC8
-        const formId = "1FAIpQLScXQ-e818r-n4g1FDKP-pY6j2i9jXn8v_wB_zG9hA-kG9sP9w";
-        const nameEntryId = "entry.2005620554";
-        const feedbackEntryId = "entry.1065046570";
-
-        const encodedName = encodeURIComponent(feedbackName);
-        const encodedFeedback = encodeURIComponent(feedbackText);
-        
-        const googleFormUrl = `https://docs.google.com/forms/d/e/${formId}/viewform?usp=pp_url&${nameEntryId}=${encodedName}&${feedbackEntryId}=${encodedFeedback}`;
-
-        // Open the pre-filled form in a new tab
+    const handleFeedbackClick = () => {
+        const googleFormUrl = "https://docs.google.com/forms/d/e/1FAIpQLSeRIKIvWDqOG3PKJptjlhSgnUDObjenE8V6ILvH5Y9wcereCQ/viewform?usp=dialog";
         window.open(googleFormUrl, '_blank', 'noopener,noreferrer');
-
-        // Reset the form and show a confirmation message
-        setFeedbackName('');
-        setFeedbackText('');
-        setFeedbackResponse("Your feedback form is ready in a new tab. Just hit 'Submit' there!");
-        setFeedbackError('');
     };
     
     const renderContent = () => {
@@ -246,6 +255,7 @@ const MainView: React.FC<{
                         </div>
                     );
                 }
+                 const groupTimeOptions = [5, 10, 15];
                  return (
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                         {/* Create Group Challenge Card */}
@@ -265,6 +275,31 @@ const MainView: React.FC<{
                                 <select value={groupQuizConfig.questionCount} onChange={e => setGroupQuizConfig(c => ({...c, questionCount: Number(e.target.value)}))} className="w-full mt-1 p-2 bg-white border border-gray-300 rounded">
                                     {[5, 10, 15, 20, 25].map(n => <option key={n} value={n}>{n}</option>)}
                                 </select>
+                            </div>
+                             <div>
+                                <label className="block font-medium text-gray-700">Timer:</label>
+                                <div className="flex items-center space-x-4 mt-1">
+                                    <label className="flex items-center cursor-pointer">
+                                        <input 
+                                            type="checkbox" 
+                                            checked={groupQuizConfig.timerEnabled} 
+                                            onChange={e => setGroupQuizConfig(c => ({...c, timerEnabled: e.target.checked}))} 
+                                            className="h-4 w-4 rounded border-gray-300 text-indigo-600" 
+                                        />
+                                        <span className="ml-2 text-sm text-gray-700">Enable</span>
+                                    </label>
+                                    {groupQuizConfig.timerEnabled && (
+                                        <select 
+                                            value={groupQuizConfig.timeLimit} 
+                                            onChange={e => setGroupQuizConfig(c => ({...c, timeLimit: Number(e.target.value)}))} 
+                                            className="flex-grow p-2 bg-white border border-gray-300 rounded text-sm"
+                                        >
+                                            {groupTimeOptions.map(time => (
+                                                <option key={time} value={time}>{time} mins</option>
+                                            ))}
+                                        </select>
+                                    )}
+                                </div>
                             </div>
                              <div className="mt-2">
                                 <label className="block font-medium text-gray-700 mb-1">Syllabus Level:</label>
@@ -340,37 +375,12 @@ const MainView: React.FC<{
                 </div>
                 <div className="md:col-span-3 order-2 md:order-2">
                     <div className="p-4 bg-white rounded-lg shadow-md sticky top-20">
-                         <h3 className="text-xl font-bold text-gray-800 mb-4">Have Feedback?</h3>
-                        <p className="text-gray-600 mb-4 text-sm">
-                            Your suggestions help improve Physics Helper for everyone!
-                        </p>
-                        <form onSubmit={handleFeedbackSubmit}>
-                            <input
-                                type="text"
-                                value={feedbackName}
-                                onChange={(e) => setFeedbackName(e.target.value)}
-                                placeholder="Your Name"
-                                className="w-full p-2 mb-2 bg-white border border-gray-300 rounded-lg text-sm"
-                                aria-label="Your Name for Feedback"
-                            />
-                            <textarea
-                                value={feedbackText}
-                                onChange={(e) => setFeedbackText(e.target.value)}
-                                rows={3}
-                                placeholder="Your experience, suggestions..."
-                                className="w-full p-2 bg-white border border-gray-300 rounded-lg text-sm"
-                                aria-label="Your Feedback"
-                            ></textarea>
-                            <button
-                                type="submit"
-                                disabled={!feedbackName.trim() || !feedbackText.trim()}
-                                className="mt-2 w-full py-2 bg-gray-700 text-white font-semibold rounded-lg hover:bg-gray-800 disabled:bg-gray-400 transition text-sm"
-                            >
-                                Send via Google Form
-                            </button>
-                        </form>
-                        {feedbackError && <p className="mt-2 text-center text-red-500 text-xs">{feedbackError}</p>}
-                        {feedbackResponse && <p className="mt-2 text-center text-green-600 text-xs">{feedbackResponse}</p>}
+                        <button
+                            onClick={handleFeedbackClick}
+                            className="w-full py-2 bg-gray-700 text-white font-semibold rounded-lg hover:bg-gray-800 transition text-sm"
+                        >
+                            Send Feedback via Google Form
+                        </button>
                         
                         <div className="mt-4 p-3 bg-blue-50 border-l-4 border-blue-400 rounded-r-lg">
                             <h4 className="font-bold text-blue-800">A Message from Physics Helper</h4>
