@@ -132,3 +132,9 @@ export interface RevisionNote {
     subTopicHeading: string;
     points: RevisionPoint[];
 }
+
+export interface ConceptExplanation {
+    description: string;
+    formula: string;
+    siUnit: string;
+}

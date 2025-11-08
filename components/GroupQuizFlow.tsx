@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import type { QuizQuestion, QuizResult, CertificateData, View, GroupQuiz, Participant, GroupQuizReport, SoloImprovementReport } from '../types';
 import { generateGroupQuizReport, getCertificateData, getSoloImprovementReport } from '../services/geminiService';
@@ -22,7 +23,8 @@ const QuizLobby: React.FC<{
     quiz: GroupQuiz;
     isOrganizer: boolean;
     onQuizStart: (quiz: GroupQuiz) => void;
-}> = ({ quiz, isOrganizer, onQuizStart }) => {
+    onGoBack?: () => void;
+}> = ({ quiz, isOrganizer, onQuizStart, onGoBack }) => {
     const [participants, setParticipants] = useState(quiz.participants);
 
     useEffect(() => {
@@ -46,12 +48,21 @@ const QuizLobby: React.FC<{
         }
         const updatedQuiz = { ...quiz, status: 'inprogress' as 'inprogress', startTime: Date.now() };
         localStorage.setItem(`group-quiz-${quiz.code}`, JSON.stringify(updatedQuiz));
+        localStorage.removeItem('organizer-active-quiz');
         onQuizStart(updatedQuiz);
     };
 
     return (
-        <div className="max-w-2xl mx-auto p-8 bg-white rounded-2xl shadow-2xl text-center">
-            <h2 className="text-3xl font-bold text-indigo-700">Group Quiz Lobby</h2>
+        <div className="max-w-2xl mx-auto p-8 bg-white rounded-2xl shadow-2xl text-center relative">
+            {isOrganizer && onGoBack && (
+                <button onClick={onGoBack} className="absolute top-4 left-4 text-indigo-600 hover:text-indigo-800 font-semibold flex items-center p-2 rounded-lg hover:bg-indigo-50 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+                    </svg>
+                    Back to Setup
+                </button>
+            )}
+            <h2 className="text-3xl font-bold text-indigo-700 mt-8 md:mt-0">Group Quiz Lobby</h2>
             <p className="text-lg mt-2 text-gray-600">{quiz.config.title}</p>
             <div className="mt-6 p-4 bg-indigo-50 rounded-lg">
                 <p className="text-gray-800">Share this code with participants:</p>
@@ -607,12 +618,13 @@ interface GroupQuizFlowProps {
     onQuizStart: (quiz: GroupQuiz) => void;
     onQuizComplete: (quiz: GroupQuiz) => void;
     onReset: () => void;
+    onGoBack?: () => void;
 }
 
-const GroupQuizFlow: React.FC<GroupQuizFlowProps> = ({ initialView, groupQuiz, participantId, isOrganizer, onQuizStart, onQuizComplete, onReset }) => {
+const GroupQuizFlow: React.FC<GroupQuizFlowProps> = ({ initialView, groupQuiz, participantId, isOrganizer, onQuizStart, onQuizComplete, onReset, onGoBack }) => {
     switch (initialView) {
         case 'group_quiz_lobby':
-            return <QuizLobby quiz={groupQuiz} isOrganizer={isOrganizer} onQuizStart={onQuizStart} />;
+            return <QuizLobby quiz={groupQuiz} isOrganizer={isOrganizer} onQuizStart={onQuizStart} onGoBack={onGoBack} />;
         case 'group_quiz':
             if (isOrganizer) {
                 return <OrganizerQuizInProgressView quiz={groupQuiz} onQuizComplete={onQuizComplete} />;

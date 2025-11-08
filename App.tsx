@@ -30,6 +30,8 @@ const App: React.FC = () => {
   const [isOrganizer, setIsOrganizer] = useState<boolean>(false);
   const [participantId, setParticipantId] = useState<string>('');
 
+  const goToMainView = () => setView(View.MAIN);
+
 
   const startSoloQuiz = (name: string, topics: string[], config: SoloQuizConfig) => {
     setStudentName(name);
@@ -114,6 +116,7 @@ const App: React.FC = () => {
                   onQuizStart={startGroupQuiz}
                   onQuizComplete={showGroupQuizResults}
                   onReset={resetApp}
+                  onGoBack={goToMainView}
               />
           );
       case View.MAIN:
