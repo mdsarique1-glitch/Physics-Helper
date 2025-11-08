@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { PHYSICS_CATEGORIES } from '../constants';
-import { generateRevisionNotes } from '../services/geminiService';
-import type { Topic, RevisionNote, RevisionPoint } from '../types';
-import LoadingSpinner from './LoadingSpinner';
+import type { RevisionPoint } from '../types';
+import { REVISION_NOTES } from '../data/revisionNotes';
 
 const CollapsibleSection: React.FC<{
     title: string;
@@ -93,52 +92,6 @@ const RevisionPointCard: React.FC<{ point: RevisionPoint }> = ({ point }) => (
     </div>
 );
 
-
-const RevisionTopicView: React.FC<{ topic: Topic }> = ({ topic }) => {
-    const [notes, setNotes] = useState<RevisionNote[] | null>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
-
-    React.useEffect(() => {
-        const fetchNotes = async () => {
-            setIsLoading(true);
-            setError(null);
-            try {
-                const fetchedNotes = await generateRevisionNotes(topic);
-                setNotes(fetchedNotes);
-            } catch (err) {
-                setError('Failed to load revision notes. Please try again later.');
-            } finally {
-                setIsLoading(false);
-            }
-        };
-        fetchNotes();
-    }, [topic]);
-
-    return (
-        <div className="p-4 md:p-6 bg-slate-50">
-            {isLoading && <div className="flex justify-center items-center py-8"><LoadingSpinner /></div>}
-            {error && <p className="text-red-500 text-center py-4">{error}</p>}
-            {notes && (
-                <div className="space-y-8">
-                    {notes.map(note => (
-                        <div key={note.subTopicHeading}>
-                            <h4 className="font-extrabold text-2xl md:text-3xl text-indigo-800 mb-4 p-3 bg-indigo-100 rounded-lg border-l-8 border-indigo-500 shadow">
-                                {note.subTopicHeading}
-                            </h4>
-                            <div className="space-y-4 pl-2">
-                                {note.points.map((point, index) => (
-                                    <RevisionPointCard key={index} point={point} />
-                                ))}
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            )}
-        </div>
-    );
-};
-
 const QuickRevisionView: React.FC = () => {
     const [openCategory, setOpenCategory] = useState<string | null>(null);
 
@@ -160,15 +113,37 @@ const QuickRevisionView: React.FC = () => {
                             onHeaderClick={() => setOpenCategory(current => current === category.name ? null : category.name)}
                         >
                             <div className="divide-y divide-gray-200">
-                                {category.topics.map(topic => (
-                                    <CollapsibleSection
-                                        key={topic.name}
-                                        title={topic.name}
-                                        titleClassName="text-lg font-semibold text-gray-800 pl-8"
-                                    >
-                                        <RevisionTopicView topic={topic} />
-                                    </CollapsibleSection>
-                                ))}
+                                {category.topics.map(topic => {
+                                    const notes = REVISION_NOTES[topic.name];
+                                    return (
+                                        <CollapsibleSection
+                                            key={topic.name}
+                                            title={topic.name}
+                                            titleClassName="text-lg font-semibold text-gray-800 pl-8"
+                                        >
+                                            <div className="p-4 md:p-6 bg-slate-50">
+                                                {notes ? (
+                                                     <div className="space-y-8">
+                                                        {notes.map(note => (
+                                                            <div key={note.subTopicHeading}>
+                                                                <h4 className="font-extrabold text-2xl md:text-3xl text-indigo-800 mb-4 p-3 bg-indigo-100 rounded-lg border-l-8 border-indigo-500 shadow">
+                                                                    {note.subTopicHeading}
+                                                                </h4>
+                                                                <div className="space-y-4 pl-2">
+                                                                    {note.points.map((point, index) => (
+                                                                        <RevisionPointCard key={index} point={point} />
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <p className="text-center text-gray-500 py-4">Revision notes for this topic are coming soon!</p>
+                                                )}
+                                            </div>
+                                        </CollapsibleSection>
+                                    )
+                                })}
                             </div>
                         </CollapsibleSection>
                     </div>

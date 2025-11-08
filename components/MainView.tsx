@@ -23,6 +23,8 @@ const MainView: React.FC<{
     const [joinCode, setJoinCode] = useState('');
     const [groupQuizConfig, setGroupQuizConfig] = useState({ title: '', questionCount: 10, timeLimit: 10, categories: [] as string[] });
     const [isCreatingGroup, setIsCreatingGroup] = useState(false);
+    const [createError, setCreateError] = useState('');
+    const [joinError, setJoinError] = useState('');
     
     // Common state
     const [feedbackText, setFeedbackText] = useState('');
@@ -49,8 +51,9 @@ const MainView: React.FC<{
     };
     
     const handleCreateGroupQuiz = async () => {
+        setCreateError('');
         if (!organizerName.trim() || !groupQuizConfig.title.trim() || groupQuizConfig.categories.length === 0) {
-            alert("Please provide your name, a quiz title, and select at least one category.");
+            setCreateError("Please provide your name, a quiz title, and select at least one category.");
             return;
         }
         setIsCreatingGroup(true);
@@ -79,29 +82,30 @@ const MainView: React.FC<{
 
         } catch (error) {
             console.error("Failed to create group quiz:", error);
-            alert("An error occurred while creating the group quiz. Please try again.");
+            setCreateError("An error occurred while creating the quiz. Please try again.");
         } finally {
             setIsCreatingGroup(false);
         }
     };
 
     const handleJoinGroupQuiz = () => {
+        setJoinError('');
         if (!studentName.trim() || !joinCode.trim()) {
-            alert("Please enter your name and a group code.");
+            setJoinError("Please enter your name and a group code.");
             return;
         }
         const quizData = localStorage.getItem(`group-quiz-${joinCode.toUpperCase()}`);
         if (!quizData) {
-            alert("Invalid group code. Please check the code and try again.");
+            setJoinError("Invalid group code. Please check the code and try again.");
             return;
         }
         const quiz: GroupQuiz = JSON.parse(quizData);
         if (quiz.participants.length >= 15) {
-            alert("This group is full.");
+            setJoinError("This group is full.");
             return;
         }
         if (quiz.status !== 'lobby') {
-            alert("This quiz is no longer in the lobby.");
+            setJoinError("This quiz has already started and cannot be joined.");
             return;
         }
 
@@ -233,6 +237,7 @@ const MainView: React.FC<{
                                     ))}
                                 </div>
                             </div>
+                            {createError && <p className="text-sm text-center text-red-600 bg-red-100 p-2 rounded-lg">{createError}</p>}
                             <button onClick={handleCreateGroupQuiz} disabled={isCreatingGroup} className="w-full py-3 bg-green-500 text-white font-bold rounded-lg hover:bg-green-600 disabled:bg-green-300">
                                 {isCreatingGroup ? <LoadingSpinner/> : 'Create Group'}
                             </button>
@@ -249,6 +254,7 @@ const MainView: React.FC<{
                                 <label className="block font-medium text-gray-700">Group Code:</label>
                                 <input type="text" value={joinCode} onChange={e => setJoinCode(e.target.value)} placeholder="Enter 6-digit code" className="w-full mt-1 p-2 border rounded uppercase" />
                             </div>
+                             {joinError && <p className="text-sm text-center text-red-600 bg-red-100 p-2 rounded-lg">{joinError}</p>}
                              <button onClick={handleJoinGroupQuiz} className="w-full py-3 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700">
                                 Join Quiz
                             </button>

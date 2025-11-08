@@ -40,6 +40,10 @@ const QuizLobby: React.FC<{
     }, [quiz.code, onQuizStart]);
 
     const handleStartQuiz = () => {
+        if (participants.length === 0) {
+            alert("Please wait for participants to join before starting the quiz.");
+            return;
+        }
         const updatedQuiz = { ...quiz, status: 'inprogress' as 'inprogress', startTime: Date.now() };
         localStorage.setItem(`group-quiz-${quiz.code}`, JSON.stringify(updatedQuiz));
         onQuizStart(updatedQuiz);
@@ -57,7 +61,7 @@ const QuizLobby: React.FC<{
             <CertificateShowcase />
 
             <div className="mt-6">
-                <h3 className="text-xl font-semibold text-gray-800">Participants ({participants.length + 1}/15)</h3>
+                <h3 className="text-xl font-semibold text-gray-800">Participants ({participants.length}/15)</h3>
                 <ul className="mt-4 space-y-2 text-left max-h-60 overflow-y-auto p-4 bg-gray-50 rounded-lg">
                     <li className="p-2 bg-yellow-100 rounded shadow-sm font-bold">{quiz.organizerName} (Organizer)</li>
                     {participants.map(p => (
@@ -67,9 +71,16 @@ const QuizLobby: React.FC<{
             </div>
             <div className="mt-8">
                 {isOrganizer ? (
-                    <button onClick={handleStartQuiz} className="w-full py-4 bg-green-500 text-white font-bold text-lg rounded-lg shadow-md hover:bg-green-600">
-                        Start Quiz for Everyone
-                    </button>
+                    <div>
+                        <button 
+                            onClick={handleStartQuiz} 
+                            disabled={participants.length === 0}
+                            className="w-full py-4 bg-green-500 text-white font-bold text-lg rounded-lg shadow-md hover:bg-green-600 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                        >
+                            Start Quiz for Everyone
+                        </button>
+                        {participants.length === 0 && <p className="text-sm text-gray-500 mt-2">Waiting for participants to join...</p>}
+                    </div>
                 ) : (
                     <div className="flex flex-col items-center">
                         <LoadingSpinner />
@@ -86,38 +97,55 @@ const OrganizerQuizInProgressView: React.FC<{
     onQuizComplete: (quiz: GroupQuiz) => void;
 }> = ({ quiz, onQuizComplete }) => {
     const [participants, setParticipants] = useState(quiz.participants);
+    const [timeLeft, setTimeLeft] = useState(() => {
+        const endTime = quiz.startTime! + quiz.config.timeLimit * 60 * 1000;
+        return Math.max(0, Math.floor((endTime - Date.now()) / 1000));
+    });
+
     const totalParticipants = participants.length;
     const finishedParticipants = participants.filter(p => p.isFinished).length;
 
     useEffect(() => {
-        const interval = setInterval(() => {
+        const timer = setInterval(() => {
+            setTimeLeft(t => Math.max(0, t - 1));
+        }, 1000);
+        return () => clearInterval(timer);
+    }, []);
+
+
+    useEffect(() => {
+        const pollInterval = setInterval(() => {
             const updatedQuizData = localStorage.getItem(`group-quiz-${quiz.code}`);
             if (updatedQuizData) {
                 const updatedQuiz: GroupQuiz = JSON.parse(updatedQuizData);
                 setParticipants(updatedQuiz.participants);
 
                 const allFinished = updatedQuiz.participants.length > 0 && updatedQuiz.participants.every(p => p.isFinished);
-                if (allFinished) {
+                
+                if (allFinished || timeLeft <= 0) {
                     updatedQuiz.status = 'finished';
                     localStorage.setItem(`group-quiz-${quiz.code}`, JSON.stringify(updatedQuiz));
-                    clearInterval(interval);
+                    clearInterval(pollInterval);
                     onQuizComplete(updatedQuiz);
                 }
             }
         }, 2000);
-        return () => clearInterval(interval);
-    }, [quiz.code, onQuizComplete]);
+        return () => clearInterval(pollInterval);
+    }, [quiz.code, onQuizComplete, timeLeft]);
 
     return (
         <div className="max-w-2xl mx-auto p-8 bg-white rounded-2xl shadow-2xl text-center">
             <h2 className="text-3xl font-bold text-indigo-700">Quiz in Progress...</h2>
+             <div className="my-4 flex justify-center">
+                <Timer seconds={timeLeft} />
+            </div>
             <p className="text-lg mt-2 text-gray-600">{quiz.config.title}</p>
             <div className="my-8">
                 <LoadingSpinner />
                 <p className="mt-4 text-xl font-semibold text-gray-800">
                     {finishedParticipants} / {totalParticipants} participants have finished.
                 </p>
-                <p className="text-gray-600 mt-2">The results will be shown once everyone is done.</p>
+                <p className="text-gray-600 mt-2">The results will be shown once everyone is done or the timer ends.</p>
             </div>
             <div className="mt-6">
                 <h3 className="text-xl font-semibold text-gray-800">Live Status</h3>
