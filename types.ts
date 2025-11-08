@@ -53,6 +53,9 @@ export interface QuizResult {
   totalQuestions: number;
   rank?: number;
   error?: boolean;
+  certificateData?: CertificateData;
+  improvementReport?: SoloImprovementReport;
+  categories?: string[];
 }
 
 export interface CertificateData {

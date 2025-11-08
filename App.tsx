@@ -4,13 +4,16 @@ import Layout from './components/Layout';
 import MainView from './components/MainView';
 import QuizFlow from './components/QuizFlow';
 import GroupQuizFlow from './components/GroupQuizFlow';
-import type { QuizResult, GroupQuiz, GroupQuizConfig } from './types';
+import type { QuizResult, GroupQuiz, CertificateData, SoloImprovementReport } from './types';
 import { View } from './types';
+import { getCertificateData, getSoloImprovementReport } from './services/geminiService';
+
 
 export interface SoloQuizConfig {
     questionCount: number;
     timerEnabled: boolean;
     timeLimit: number; // in minutes
+    categories: string[];
 }
 
 const App: React.FC = () => {
@@ -19,7 +22,7 @@ const App: React.FC = () => {
   
   // Solo Quiz State
   const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
-  const [soloQuizConfig, setSoloQuizConfig] = useState<SoloQuizConfig>({ questionCount: 15, timerEnabled: false, timeLimit: 15 });
+  const [soloQuizConfig, setSoloQuizConfig] = useState<SoloQuizConfig>({ questionCount: 15, timerEnabled: false, timeLimit: 15, categories: [] });
   const [quizResult, setQuizResult] = useState<QuizResult | null>(null);
 
   // Group Quiz State
@@ -36,7 +39,23 @@ const App: React.FC = () => {
     setView(View.QUIZ);
   };
 
-  const showCertificate = (result: QuizResult) => {
+  const showCertificate = async (result: QuizResult) => {
+    const accuracy = result.totalQuestions > 0 ? (result.correctAnswers / result.totalQuestions) * 100 : 0;
+    const hasCertificate = accuracy >= 70 && !result.error;
+
+    try {
+        if (hasCertificate) {
+            const data = await getCertificateData(studentName, result.correctAnswers, result.totalQuestions, soloQuizConfig.categories);
+            result.certificateData = data;
+        } else if (!result.error) {
+            const report = await getSoloImprovementReport(studentName, result.correctAnswers, result.totalQuestions, soloQuizConfig.categories);
+            result.improvementReport = report;
+        }
+    } catch (e) {
+        console.error("Failed to fetch certificate/report data:", e);
+    }
+    
+    result.categories = soloQuizConfig.categories;
     setQuizResult(result);
     setView(View.CERTIFICATE);
   };

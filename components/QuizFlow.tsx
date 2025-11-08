@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import type { QuizQuestion, QuizResult, CertificateData, View, SoloImprovementReport } from '../types';
+import { View, type QuizQuestion, type QuizResult } from '../types';
 import type { SoloQuizConfig } from '../App';
-import { generateQuizQuestions, getFeedbackMessage, getCertificateData, getSoloImprovementReport } from '../services/geminiService';
+import { generateQuizQuestions } from '../services/geminiService';
+import { MOTIVATIONAL_QUOTES } from '../constants';
 import LoadingSpinner from './LoadingSpinner';
 
 declare var html2canvas: any;
@@ -29,7 +30,6 @@ const QuizView: React.FC<{
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
     const [correctAnswers, setCorrectAnswers] = useState(0);
     const [incorrectAnswers, setIncorrectAnswers] = useState(0);
-    const [feedback, setFeedback] = useState<{ message: string; isCorrect: boolean } | null>(null);
     const [isAnswered, setIsAnswered] = useState(false);
     const [timeLeft, setTimeLeft] = useState(config.timeLimit * 60);
     
@@ -85,16 +85,13 @@ const QuizView: React.FC<{
         return () => clearInterval(timer);
     }, [config.timerEnabled, loading, correctAnswers, incorrectAnswers, config.questionCount, completeQuiz]);
 
-    const handleAnswer = async (selectedOption: string) => {
+    const handleAnswer = (selectedOption: string) => {
         if (isAnswered || questions.length === 0) return;
         
         const currentQuestion = questions[currentQuestionIndex];
         setIsAnswered(true);
 
         const isCorrect = selectedOption === currentQuestion.correctAnswer;
-        
-        const feedbackMessage = await getFeedbackMessage(isCorrect, studentName);
-        setFeedback({ message: feedbackMessage, isCorrect });
         
         const updatedCorrect = correctAnswers + (isCorrect ? 1 : 0);
         const updatedIncorrect = incorrectAnswers + (isCorrect ? 0 : 1);
@@ -106,14 +103,13 @@ const QuizView: React.FC<{
         }
         
         setTimeout(() => {
-            setFeedback(null);
             setIsAnswered(false);
             if (currentQuestionIndex + 1 >= config.questionCount) {
                 completeQuiz(updatedCorrect, updatedIncorrect);
             } else {
                 setCurrentQuestionIndex(i => i + 1);
             }
-        }, 2000);
+        }, 1500);
     };
 
     if (loading) return <div className="flex flex-col items-center justify-center h-64"><LoadingSpinner /><p className="mt-4 text-lg text-gray-600">Generating your personalized quiz...</p></div>;
@@ -155,227 +151,223 @@ const QuizView: React.FC<{
                     );
                 })}
             </div>
-            
-            {feedback && (
-                <div className={`mt-6 p-4 rounded-lg text-center text-white text-lg animate-fade-in ${feedback.isCorrect ? 'bg-green-500' : 'bg-red-500'}`}>
-                    {feedback.message}
-                </div>
-            )}
+
         </div>
     );
 };
 
-const Badge: React.FC<{ type: 'Gold' | 'Silver' | 'Bronze' }> = ({ type }) => {
+
+const CertificateBadge: React.FC<{ type: 'Gold' | 'Silver' | 'Bronze' }> = ({ type }) => {
     const config = {
-        Gold: { medalColor: "gold", ribbonColor: "#ffbf00", textColor: "text-amber-600" },
-        Silver: { medalColor: "#c0c0c0", ribbonColor: "#a9a9a9", textColor: "text-slate-600" },
-        Bronze: { medalColor: "#cd7f32", ribbonColor: "#a0522d", textColor: "text-orange-800" },
+        Gold: {
+            gradient: "url(#gold-gradient)",
+            shadow: "drop-shadow(0 5px 8px rgba(255, 215, 0, 0.5))",
+            textColor: "text-amber-700",
+            title: "Gold Achievement"
+        },
+        Silver: {
+            gradient: "url(#silver-gradient)",
+            shadow: "drop-shadow(0 5px 8px rgba(192, 192, 192, 0.5))",
+            textColor: "text-slate-700",
+            title: "Silver Achievement"
+        },
+        Bronze: {
+            gradient: "url(#bronze-gradient)",
+            shadow: "drop-shadow(0 5px 8px rgba(205, 127, 50, 0.5))",
+            textColor: "text-orange-800",
+            title: "Bronze Achievement"
+        },
     };
-    const { medalColor, ribbonColor, textColor } = config[type];
+    const { gradient, shadow, textColor, title } = config[type];
 
     return (
-        <div className="flex flex-col items-center mb-4 animate-fade-in">
-            <svg width="100" height="100" viewBox="0 0 100 100" className="drop-shadow-lg">
-                <path d="M 20 0 L 80 0 L 70 25 L 30 25 Z" fill={ribbonColor} />
-                <path d="M 20 0 L 50 0 L 70 25 L 50 25 Z" fill={ribbonColor} style={{filter: 'brightness(0.9)'}} />
-                <circle cx="50" cy="62" r="35" fill={medalColor} />
-                <circle cx="50" cy="62" r="30" fill="none" stroke="white" strokeWidth="2" style={{opacity: 0.5}} />
-                <polygon points="50,47 58,62 75,62 62,72 67,87 50,77 33,87 38,72 25,62 42,62" fill="white" />
+        <div className="flex flex-col items-center gap-4 mb-6">
+            <svg width="120" height="120" viewBox="0 0 120 120" style={{ filter: shadow }}>
+                <defs>
+                    <radialGradient id="gold-gradient" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+                        <stop offset="0%" stopColor="#FFF7B0" />
+                        <stop offset="100%" stopColor="#FFD700" />
+                    </radialGradient>
+                    <radialGradient id="silver-gradient" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+                        <stop offset="0%" stopColor="#F5F5F5" />
+                        <stop offset="100%" stopColor="#B0B0B0" />
+                    </radialGradient>
+                    <radialGradient id="bronze-gradient" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
+                        <stop offset="0%" stopColor="#F0D1B3" />
+                        <stop offset="100%" stopColor="#CD7F32" />
+                    </radialGradient>
+                </defs>
+                <path d="M60 2 L75.45 31.18 L108.51 35.21 L84.26 58.82 L90.9 91.82 L60 76.5 L29.1 91.82 L35.74 58.82 L11.49 35.21 L44.55 31.18 Z" fill={gradient}/>
+                <path d="M60 48 L62.83 54.06 L69.42 54.06 L64.3 57.94 L65.66 64.31 L60 60.94 L54.34 64.31 L55.7 57.94 L50.58 54.06 L57.17 54.06 Z" fill="white" opacity="0.9"/>
             </svg>
-            <p className={`text-2xl font-bold mt-2 ${textColor}`}>{type} Achievement</p>
+            <h3 className={`text-3xl font-bold ${textColor}`}>{title}</h3>
         </div>
     );
 };
 
-const ImprovementReport: React.FC<{
+const CertificateView: React.FC<{
     studentName: string;
     result: QuizResult;
-    topics: string[];
     onReset: () => void;
-}> = ({ studentName, result, topics, onReset }) => {
-    const [report, setReport] = useState<SoloImprovementReport | null>(null);
-    const [loading, setLoading] = useState(true);
+}> = ({ studentName, result, onReset }) => {
+    const certRef = useRef<HTMLDivElement>(null);
+    const certData = result.certificateData;
+    const loading = !certData;
 
-    const accuracy = result.totalQuestions > 0 ? ((result.correctAnswers / result.totalQuestions) * 100).toFixed(0) : 0;
-
-    useEffect(() => {
-        const fetchReport = async () => {
-            try {
-                const data = await getSoloImprovementReport(studentName, result.correctAnswers, result.totalQuestions, topics);
-                setReport(data);
-            } catch (error) {
-                console.error(error);
-                setReport({
-                    improvementAreas: ["Reviewing the topics covered is a great next step."],
-                    motivationalMessage: "Don't give up! A little more practice and you'll master these concepts."
-                });
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchReport();
-    }, [studentName, result, topics]);
-
-    return (
-        <div className="max-w-3xl mx-auto p-8 bg-white rounded-xl shadow-xl border-2 border-amber-200 text-center">
-            <h2 className="text-3xl font-bold text-gray-800">Quiz Report for {studentName}</h2>
-            <p className="mt-4 text-lg text-gray-600">You're on the right track! Here's a quick summary to help you improve.</p>
-
-            <div className="my-8">
-                <p className="text-5xl font-bold text-amber-600">{accuracy}%</p>
-                <p className="text-gray-600">Your Score</p>
-            </div>
-            
-            {loading ? <LoadingSpinner /> : (
-                <div className="text-left space-y-4 my-6 bg-amber-50 p-6 rounded-lg">
-                    <div>
-                        <h4 className="font-bold text-lg text-gray-800">Areas for Improvement:</h4>
-                        <ul className="list-disc list-inside mt-2 text-gray-700">
-                            {report?.improvementAreas.map((area, index) => <li key={index}>{area}</li>)}
-                        </ul>
-                    </div>
-                     <div>
-                        <h4 className="font-bold text-lg text-gray-800 mt-4">A Quick Note:</h4>
-                        <p className="text-gray-700 mt-2 italic">"{report?.motivationalMessage}"</p>
-                    </div>
-                </div>
-            )}
-
-            <p className="text-lg text-gray-800 mt-8">
-                Keep pushing! Score 70% or higher on your next attempt to earn a personalized certificate.
-            </p>
-            
-            <button onClick={onReset} className="mt-8 px-8 py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700">
-                Try Again
-            </button>
-        </div>
-    );
-};
-
-const Certificate: React.FC<{
-    studentName: string;
-    topics: string[];
-    result: QuizResult;
-    onReset: () => void;
-}> = ({ studentName, topics, result, onReset }) => {
-    if (result.error) {
-        return (
-            <div className="max-w-3xl mx-auto p-8 bg-white rounded-xl shadow-xl border-2 border-red-200 text-center">
-                <h2 className="text-3xl font-bold text-red-700">Quiz Interrupted</h2>
-                <p className="mt-4 text-lg text-gray-600">
-                    We're sorry for the inconvenience. The quiz was stopped due to a technical error and your results could not be recorded.
-                </p>
-                <p className="mt-2 text-gray-500">Please try again later.</p>
-                <button onClick={onReset} className="mt-8 px-8 py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700">
-                    Back to Home
-                </button>
-            </div>
-        );
-    }
-
-    const accuracy = result.totalQuestions > 0 ? ((result.correctAnswers / result.totalQuestions) * 100) : 0;
+    const motivationalQuote = MOTIVATIONAL_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)];
     
-    if (accuracy < 70 && result.totalQuestions > 0) {
-        return <ImprovementReport studentName={studentName} result={result} topics={topics} onReset={onReset} />;
-    }
+    const accuracy = result.totalQuestions > 0 ? (result.correctAnswers / result.totalQuestions) * 100 : 0;
+    const tier = accuracy === 100 ? 'Gold' : accuracy >= 90 ? 'Silver' : 'Bronze';
 
-    const certificateRef = useRef<HTMLDivElement>(null);
-    const [certificateData, setCertificateData] = useState<CertificateData | null>(null);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        const fetchCertData = async () => {
-            if (result.totalQuestions > 0) {
-                try {
-                    const data = await getCertificateData(studentName, result.correctAnswers, result.totalQuestions, topics);
-                    setCertificateData(data);
-                } catch (error) {
-                    console.error(error);
-                    setCertificateData({ summary: "You showed great effort!", improvementAreas: "Reviewing topics is a great next step." });
-                }
-            } else {
-                 setCertificateData({ summary: "The quiz ended before any questions were answered.", improvementAreas: "Try the quiz again to test your knowledge!" });
-            }
-            setLoading(false);
-        };
-        fetchCertData();
-    }, [studentName, topics, result]);
+    const theme = {
+        Gold: { bg: 'bg-gradient-to-br from-yellow-50 via-amber-100 to-yellow-200', border: 'border-amber-400' },
+        Silver: { bg: 'bg-gradient-to-br from-slate-100 via-gray-200 to-slate-300', border: 'border-slate-400' },
+        Bronze: { bg: 'bg-gradient-to-br from-orange-100 via-amber-200 to-orange-200', border: 'border-orange-400' },
+    };
+    
+    const { bg, border } = theme[tier];
 
     const handleDownload = async () => {
-        if (!certificateRef.current) return;
-        const canvas = await html2canvas(certificateRef.current, { scale: 2 });
+        if (!certRef.current) return;
+        const canvas = await html2canvas(certRef.current, { scale: 2, backgroundColor: null }); // Use null for transparent bg on canvas
         const imgData = canvas.toDataURL('image/png');
         const { jsPDF } = jspdf;
         const pdf = new jsPDF({ orientation: 'landscape', unit: 'px', format: [canvas.width, canvas.height] });
         pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
         pdf.save(`Physics-Helper-Certificate-${studentName}.pdf`);
     };
-    
-    const getBadge = () => {
-        if (result.totalQuestions === 0) return null;
-        const accuracy = (result.correctAnswers / result.totalQuestions) * 100;
-        if (accuracy === 100) return <Badge type="Gold" />;
-        if (accuracy >= 90) return <Badge type="Silver" />;
-        if (accuracy >= 70) return <Badge type="Bronze" />;
-        return null;
+
+    const handleShare = () => {
+        const shareUrl = 'https://ai.google.dev/gemini-api/docs/models/gemini';
+        if (navigator.share) {
+            navigator.share({
+                title: 'I earned a certificate on Physics Helper!',
+                text: `I just earned a ${tier} certificate on the Physics Helper app with a score of ${accuracy.toFixed(0)}%! I was tested on ${result.categories?.join(', ')}.`,
+                url: shareUrl,
+            }).catch(console.error);
+        } else {
+            alert('Share feature is not supported on this browser.');
+        }
     };
 
-    const accuracyString = result.totalQuestions > 0 ? ((result.correctAnswers / result.totalQuestions) * 100).toFixed(0) : 0;
-
     return (
-        <div className="max-w-4xl mx-auto text-center">
-            <div ref={certificateRef} className="bg-white p-8 md:p-12 rounded-xl shadow-2xl border-4 border-blue-200" style={{ backgroundImage: "url(\"data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23dbeafe' fill-opacity='0.4'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E\")" }}>
-                {getBadge()}
-                <h1 className="text-3xl md:text-4xl font-bold text-indigo-700 mb-2">Certificate of Achievement</h1>
-                <p className="text-lg text-gray-600 mb-6">Physics Helper by Mohammed Sarique</p>
-                <p className="text-xl my-4">This certificate is proudly presented to</p>
-                <p className="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-purple-600 my-4">{studentName}</p>
-                <p className="text-lg my-4">for successfully completing the quiz on {new Date().toLocaleDateString()}</p>
+        <div className="max-w-4xl mx-auto p-4">
+            <div ref={certRef} className={`p-8 md:p-12 rounded-2xl shadow-2xl border-4 ${bg} ${border} text-center`}>
+                <CertificateBadge type={tier} />
 
-                <div className="my-6 p-4 bg-indigo-50 rounded-lg">
-                    <h3 className="text-lg font-semibold text-indigo-800">Topics Covered</h3>
-                    <p className="text-gray-700 text-sm md:text-base">{topics.join(', ')}</p>
-                </div>
+                <p className="text-xl text-gray-600 my-2">This certificate is proudly presented to</p>
+                <h1 className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-blue-500 my-4 tracking-tight">
+                    {studentName}
+                </h1>
+                <p className="text-lg text-gray-700">for outstanding performance in the IGCSE Physics Quiz on {new Date().toLocaleDateString()}.</p>
                 
-                <div className={`grid ${result.rank ? 'grid-cols-3' : 'grid-cols-2'} gap-4 my-8 text-center`}>
-                    <div>
-                        <p className="text-3xl font-bold text-green-600">{result.correctAnswers}/{result.totalQuestions}</p>
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-8 text-center max-w-md mx-auto">
+                    <div className="p-4 bg-white/50 rounded-lg">
+                        <p className="text-4xl font-bold text-green-600">{result.correctAnswers}/{result.totalQuestions}</p>
                         <p className="text-gray-600">Correct Answers</p>
                     </div>
-                     {result.rank && (
-                        <div>
-                            <p className="text-3xl font-bold text-purple-600">#{result.rank}</p>
-                            <p className="text-gray-600">Group Rank</p>
+                    <div className="p-4 bg-white/50 rounded-lg">
+                        <p className="text-4xl font-bold text-blue-600">{accuracy.toFixed(0)}%</p>
+                        <p className="text-gray-600">Score</p>
+                    </div>
+                </div>
+
+                {loading ? <div className="py-4"><LoadingSpinner/></div> : (
+                    <div className="text-left space-y-4 my-6 bg-white/60 p-6 rounded-lg">
+                        <div className="mb-4">
+                            <h4 className="font-bold text-lg text-gray-800">Quiz Categories:</h4>
+                            <p className="text-gray-700">{result.categories?.join(', ')}</p>
                         </div>
-                    )}
-                    <div>
-                        <p className="text-3xl font-bold text-blue-600">{accuracyString}%</p>
-                        <p className="text-gray-600">Accuracy</p>
+                        <h4 className="font-bold text-lg text-gray-800">Performance Summary:</h4>
+                        <p className="text-gray-700">{certData?.summary}</p>
+                        <h4 className="font-bold text-lg text-gray-800">Areas for Improvement:</h4>
+                        <p className="text-gray-700">{certData?.improvementAreas}</p>
                     </div>
-                </div>
-
-                {loading ? <LoadingSpinner/> : (
-                <div className="text-left space-y-4 my-6">
-                    <div>
-                        <h4 className="font-bold text-gray-800">Performance Summary:</h4>
-                        <p className="text-gray-700">{certificateData?.summary}</p>
-                    </div>
-                     <div>
-                        <h4 className="font-bold text-gray-800">Areas for Improvement:</h4>
-                        <p className="text-gray-700">{certificateData?.improvementAreas}</p>
-                    </div>
-                </div>
                 )}
-                
-                <div className="mt-8 border-t-2 border-dashed border-gray-300 pt-6">
-                    <p className="text-lg italic text-gray-800">“Well done, {studentName}! Your hard work in Physics will take you far. Keep learning!”</p>
-                    <p className="font-bold mt-2 text-indigo-600">- Mohammed Sarique</p>
-                </div>
+                <p className="mt-8 text-gray-500 italic">"{motivationalQuote}"</p>
             </div>
+            <div className="mt-8 flex justify-center flex-wrap gap-4">
+                <button onClick={handleDownload} className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition">Download PDF</button>
+                <button onClick={handleShare} className="px-6 py-3 bg-teal-500 text-white font-semibold rounded-lg shadow-md hover:bg-teal-600 transition">Share</button>
+                <button onClick={onReset} className="px-6 py-3 bg-gray-600 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700 transition">Back to Home</button>
+            </div>
+        </div>
+    );
+};
 
-            <div className="mt-8 flex justify-center gap-4">
-                <button onClick={handleDownload} className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700">Download Certificate</button>
-                <button onClick={onReset} className="px-6 py-3 bg-gray-600 text-white rounded-lg font-semibold hover:bg-gray-700">Try Another Quiz</button>
+const ImprovementReportView: React.FC<{
+    studentName: string;
+    result: QuizResult;
+    onReset: () => void;
+}> = ({ studentName, result, onReset }) => {
+    const reportRef = useRef<HTMLDivElement>(null);
+    const report = result.improvementReport;
+    const loading = !report;
+    const motivationalQuote = MOTIVATIONAL_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)];
+
+    const accuracy = result.totalQuestions > 0 ? (result.correctAnswers / result.totalQuestions) * 100 : 0;
+
+    const handleDownload = async () => {
+        if (!reportRef.current) return;
+        const canvas = await html2canvas(reportRef.current, { scale: 2 });
+        const imgData = canvas.toDataURL('image/png');
+        const { jsPDF } = jspdf;
+        const pdf = new jsPDF({ orientation: 'portrait', unit: 'px', format: [canvas.width, canvas.height] });
+        pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+        pdf.save(`Physics-Helper-Report-${studentName}.pdf`);
+    };
+
+    const handleShare = () => {
+        const shareUrl = 'https://ai.google.dev/gemini-api/docs/models/gemini';
+        if (navigator.share) {
+            navigator.share({
+                title: 'My Physics Quiz Report',
+                text: `I just took a quiz on Physics Helper! My score was ${accuracy.toFixed(0)}%. Time to review and improve!`,
+                url: shareUrl,
+            }).catch(console.error);
+        } else {
+            alert('Share feature is not supported on this browser.');
+        }
+    };
+
+    return (
+        <div className="max-w-3xl mx-auto text-center p-4">
+            <div ref={reportRef} className="p-8 bg-white rounded-xl shadow-xl text-center border-t-8 border-indigo-500">
+                <h2 className="text-4xl font-bold text-gray-800">Quiz Report for {studentName}</h2>
+                <p className="text-gray-600 mt-2">Quiz Date: {new Date().toLocaleDateString()}</p>
+                
+                <div className="my-4 text-center">
+                    <p className="font-bold text-gray-700">Quiz Categories:</p>
+                    <p className="text-gray-600">{result.categories?.join(', ')}</p>
+                </div>
+
+                <div className="my-8 flex justify-center items-center gap-4">
+                    <div className="text-right">
+                        <p className="text-5xl font-bold text-red-500">{accuracy.toFixed(0)}%</p>
+                        <p className="text-gray-600">Your Score</p>
+                    </div>
+                    <div className="text-left">
+                        <p className="text-2xl font-bold text-gray-700">{result.correctAnswers} / {result.totalQuestions}</p>
+                        <p className="text-gray-600">Correct Answers</p>
+                    </div>
+                </div>
+
+                {loading ? <LoadingSpinner /> : (
+                    <div className="text-left my-6 bg-indigo-50 p-6 rounded-lg border-l-4 border-indigo-400">
+                        <h4 className="font-bold text-lg text-indigo-800">Focus Areas for Improvement:</h4>
+                        <ul className="list-disc list-inside mt-2 text-indigo-900 space-y-1">
+                            {report?.improvementAreas.map((area, i) => <li key={i}>{area}</li>)}
+                        </ul>
+                        <h4 className="font-bold text-lg text-indigo-800 mt-6">A Quick Note:</h4>
+                        <p className="italic text-indigo-900 mt-1">"{report?.motivationalMessage}"</p>
+                    </div>
+                )}
+                <p className="mt-8 text-gray-500 italic">"{motivationalQuote}"</p>
+            </div>
+            <div className="mt-8 flex justify-center flex-wrap gap-4">
+                <button onClick={handleDownload} className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition">Download Report</button>
+                <button onClick={handleShare} className="px-6 py-3 bg-teal-500 text-white font-semibold rounded-lg shadow-md hover:bg-teal-600 transition">Share</button>
+                <button onClick={onReset} className="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition">Try Again</button>
             </div>
         </div>
     );
@@ -386,23 +378,31 @@ interface QuizFlowProps {
   studentName: string;
   selectedTopics: string[];
   quizConfig: SoloQuizConfig;
-  onQuizComplete: (result: QuizResult) => void;
   quizResult: QuizResult | null;
+  onQuizComplete: (result: QuizResult) => void;
   onReset: () => void;
 }
 
-const QuizFlow: React.FC<QuizFlowProps> = ({ initialView, studentName, selectedTopics, quizConfig, onQuizComplete, quizResult, onReset }) => {
+const QuizFlow: React.FC<QuizFlowProps> = ({ initialView, studentName, selectedTopics, quizConfig, quizResult, onQuizComplete, onReset }) => {
+    const accuracy = quizResult && quizResult.totalQuestions > 0 ? (quizResult.correctAnswers / quizResult.totalQuestions) * 100 : 0;
+    const hasCertificate = quizResult && accuracy >= 70 && !quizResult.error;
+
     switch (initialView) {
-        case 'quiz':
+        case View.QUIZ:
             return <QuizView studentName={studentName} topics={selectedTopics} config={quizConfig} onComplete={onQuizComplete} />;
-        case 'certificate':
+        case View.CERTIFICATE:
             if (!quizResult) {
-                return <div className="text-center"><p>No quiz result found.</p><button onClick={onReset}>Go Home</button></div>
+                return <p>An error occurred displaying the results.</p>;
             }
-            return <Certificate studentName={studentName} topics={selectedTopics} result={quizResult} onReset={onReset} />;
+             if (quizResult.error) {
+                 return <div className="text-center"><p className="text-red-500 text-lg mb-4">We're sorry, but an error occurred while generating your quiz.</p><button onClick={onReset} className="px-6 py-3 bg-indigo-600 text-white rounded-lg">Back to Home</button></div>;
+            }
+            return hasCertificate 
+                ? <CertificateView studentName={studentName} result={quizResult} onReset={onReset} />
+                : <ImprovementReportView studentName={studentName} result={quizResult} onReset={onReset} />;
         default:
             return null;
     }
-}
+};
 
 export default QuizFlow;

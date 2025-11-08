@@ -61,20 +61,6 @@ export const generateQuizQuestions = async (topics: string[], questionCount: num
     }
 };
 
-export const getFeedbackMessage = async (isCorrect: boolean, studentName: string): Promise<string> => {
-    const prompt = isCorrect 
-        ? `Generate a very short, personalized, and encouraging message for ${studentName} who answered a physics question correctly.`
-        : `Generate a very short, personalized, and motivational message for ${studentName} who answered incorrectly. Encourage them to keep going.`;
-    
-    try {
-        const response = await ai.models.generateContent({ model: 'gemini-flash-lite-latest', contents: prompt });
-        return response.text.trim();
-    } catch (error) {
-        console.error("Error getting feedback message:", error);
-        return isCorrect ? "Great job!" : "Keep trying!";
-    }
-};
-
 const certificateDataSchema = {
     type: Type.OBJECT,
     properties: {

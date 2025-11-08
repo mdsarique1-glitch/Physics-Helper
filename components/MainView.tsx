@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
-import { PHYSICS_CATEGORIES } from '../constants';
+import React, { useState, useEffect } from 'react';
+import { PHYSICS_CATEGORIES, PHYSICS_HELPER_MESSAGES } from '../constants';
 import { getFeedbackResponse, generateQuizQuestions } from '../services/geminiService';
 import type { GroupQuiz } from '../types';
 import type { SoloQuizConfig } from '../App';
 import LoadingSpinner from './LoadingSpinner';
 import QuickRevisionView from './QuickRevisionView';
+import CertificateShowcase from './CertificateShowcase';
 
 const MainView: React.FC<{ 
     onStartSoloQuiz: (name: string, topics: string[], config: SoloQuizConfig) => void;
@@ -15,7 +16,7 @@ const MainView: React.FC<{
     // Solo Quiz state
     const [studentName, setStudentName] = useState('');
     const [selectedCategoriesForQuiz, setSelectedCategoriesForQuiz] = useState<string[]>([]);
-    const [soloQuizConfig, setSoloQuizConfig] = useState<SoloQuizConfig>({ questionCount: 15, timerEnabled: false, timeLimit: 15 });
+    const [soloQuizConfig, setSoloQuizConfig] = useState<Omit<SoloQuizConfig, 'categories'>>({ questionCount: 15, timerEnabled: false, timeLimit: 15 });
     
     // Group Quiz state
     const [organizerName, setOrganizerName] = useState('');
@@ -28,6 +29,11 @@ const MainView: React.FC<{
     const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
     const [feedbackResponse, setFeedbackResponse] = useState('');
     const [feedbackError, setFeedbackError] = useState('');
+    const [helperMessage, setHelperMessage] = useState('');
+
+    useEffect(() => {
+        setHelperMessage(PHYSICS_HELPER_MESSAGES[Math.floor(Math.random() * PHYSICS_HELPER_MESSAGES.length)]);
+    }, []);
 
     const handleStartSoloQuizClick = () => {
         const topicsForQuiz = PHYSICS_CATEGORIES
@@ -35,7 +41,8 @@ const MainView: React.FC<{
             .flatMap(category => category.topics.map(topic => topic.name));
 
         if (studentName && topicsForQuiz.length > 0) {
-            onStartSoloQuiz(studentName, topicsForQuiz, soloQuizConfig);
+            const configWithCategories: SoloQuizConfig = { ...soloQuizConfig, categories: selectedCategoriesForQuiz };
+            onStartSoloQuiz(studentName, topicsForQuiz, configWithCategories);
         } else {
             alert("Please enter your name and select at least one category.");
         }
@@ -63,7 +70,7 @@ const MainView: React.FC<{
                 organizerName,
                 config: groupQuizConfig,
                 questions,
-                participants: [{ id: 'organizer', name: organizerName, score: 0, isFinished: false }],
+                participants: [],
                 status: 'lobby'
             };
 
@@ -142,10 +149,7 @@ const MainView: React.FC<{
                                     <input id="studentName" type="text" value={studentName} onChange={(e) => setStudentName(e.target.value)} placeholder="e.g., Albert Einstein" className="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                                 </div>
 
-                                <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-lg text-center">
-                                    <h3 className="font-bold text-indigo-800">How to Earn a Certificate</h3>
-                                    <p className="text-indigo-700 text-sm">Score 70% or higher to receive a certificate of achievement. If you score below 70%, you'll get a helpful report with areas for improvement. Good luck!</p>
-                                </div>
+                                <CertificateShowcase />
                                 
                                 <div className="mb-4">
                                     <p className="text-lg font-medium text-gray-700 mb-2">Select quiz categories:</p>
@@ -298,6 +302,11 @@ const MainView: React.FC<{
                         </form>
                         {feedbackError && <p className="mt-2 text-center text-red-500 text-xs">{feedbackError}</p>}
                         {feedbackResponse && <p className="mt-2 text-center text-green-600 text-xs">{feedbackResponse}</p>}
+                        
+                        <div className="mt-4 p-3 bg-blue-50 border-l-4 border-blue-400 rounded-r-lg">
+                            <h4 className="font-bold text-blue-800">A Message from Physics Helper</h4>
+                            <p className="text-sm text-blue-700 italic mt-1">"{helperMessage}"</p>
+                        </div>
                     </div>
                 </div>
                 {renderModeContent()}

@@ -763,3 +763,12 @@ export const MOTIVATIONAL_QUOTES: string[] = [
     "The science of today is the technology of tomorrow. - Edward Teller",
     "Every great advance in science has issued from a new audacity of imagination. - John Dewey"
 ];
+
+export const PHYSICS_HELPER_MESSAGES: string[] = [
+    "Did you know? The concept of inertia was first described by Galileo Galilei.",
+    "Quick tip: Always write down the formula before substituting values. It helps avoid errors!",
+    "Remember, vectors have both magnitude and direction, while scalars only have magnitude.",
+    "Having trouble with a topic? Try drawing a diagram. Visualizing the problem can make it much clearer.",
+    "Practice makes perfect! The more problems you solve, the more confident you'll become.",
+    "A moment is the turning effect of a force. Think of using a spanner to tighten a nut!",
+];
