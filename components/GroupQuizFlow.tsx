@@ -12,6 +12,22 @@ declare global {
     }
 }
 
+const waitForHtml2Canvas = (timeout = 3000): Promise<any> => {
+    return new Promise((resolve, reject) => {
+        const startTime = Date.now();
+        const check = () => {
+            if (typeof window.html2canvas !== 'undefined') {
+                resolve(window.html2canvas);
+            } else if (Date.now() - startTime > timeout) {
+                reject(new Error("html2canvas library failed to load in time."));
+            } else {
+                setTimeout(check, 100);
+            }
+        };
+        check();
+    });
+};
+
 const Timer: React.FC<{ seconds: number }> = ({ seconds }) => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
@@ -341,12 +357,8 @@ const GroupCertificateView: React.FC<{
         const handleDownload = async () => {
             if (!reportRef.current) return;
             try {
-                // FIX: Access html2canvas via the window object to fix TypeScript errors.
-                if (typeof window.html2canvas === 'undefined') {
-                    alert("Image generation library not loaded. Please check your internet connection and refresh.");
-                    return;
-                }
-                const canvas = await window.html2canvas(reportRef.current, { scale: 2, useCORS: true, backgroundColor: null });
+                const html2canvas = await waitForHtml2Canvas();
+                const canvas = await html2canvas(reportRef.current, { scale: 2, useCORS: true, backgroundColor: null });
                 const image = canvas.toDataURL('image/jpeg', 0.95);
                 
                 const link = document.createElement('a');
@@ -358,7 +370,7 @@ const GroupCertificateView: React.FC<{
 
             } catch (error) {
                 console.error("Failed to download report as Image:", error);
-                alert("Sorry, an error occurred while creating the image. Please try again.");
+                alert("Sorry, we couldn't generate the image. Please check your internet connection, disable any ad-blockers, and try again.");
             }
         };
 
@@ -433,12 +445,8 @@ const GroupCertificateView: React.FC<{
         const handleDownload = async () => { 
             if (!certRef.current) return;
             try {
-                // FIX: Access html2canvas via the window object to fix TypeScript errors.
-                if (typeof window.html2canvas === 'undefined') {
-                    alert("Image generation library not loaded. Please check your internet connection and refresh.");
-                    return;
-                }
-                const canvas = await window.html2canvas(certRef.current, { scale: 2, useCORS: true, backgroundColor: null }); 
+                const html2canvas = await waitForHtml2Canvas();
+                const canvas = await html2canvas(certRef.current, { scale: 2, useCORS: true, backgroundColor: null }); 
                 const imgData = canvas.toDataURL('image/jpeg', 0.95);
                 
                 const link = document.createElement('a');
@@ -450,7 +458,7 @@ const GroupCertificateView: React.FC<{
 
             } catch (error) {
                 console.error("Failed to download certificate as Image:", error);
-                alert("Sorry, an error occurred while creating the image. Please try again.");
+                alert("Sorry, we couldn't generate the image. Please check your internet connection, disable any ad-blockers, and try again.");
             }
         };
         
@@ -532,12 +540,8 @@ const GroupResultsView: React.FC<{
     const handleDownloadReport = async () => {
         if (!reportRef.current) return;
         try {
-            // FIX: Access html2canvas via the window object to fix TypeScript errors.
-            if (typeof window.html2canvas === 'undefined') {
-                alert("Image generation library not loaded. Please check your internet connection and refresh.");
-                return;
-            }
-            const canvas = await window.html2canvas(reportRef.current, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+            const html2canvas = await waitForHtml2Canvas();
+            const canvas = await html2canvas(reportRef.current, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
             const imgData = canvas.toDataURL('image/jpeg', 0.95);
             
             const link = document.createElement('a');
@@ -549,7 +553,7 @@ const GroupResultsView: React.FC<{
 
         } catch (error) {
             console.error("Failed to download report as Image:", error);
-            alert("Sorry, an error occurred while creating the image. Please try again.");
+            alert("Sorry, we couldn't generate the image. Please check your internet connection, disable any ad-blockers, and try again.");
         }
     };
 
