@@ -24,7 +24,7 @@ const quizQuestionsSchema = {
     }
 };
 
-export const generateQuizQuestions = async (topics: string[], questionCount: number = 25): Promise<QuizQuestion[]> => {
+export const generateQuizQuestions = async (topics: string[], questionCount: number = 15): Promise<QuizQuestion[]> => {
     const prompt = `Generate ${questionCount} unique, multiple-choice quiz questions strictly based on the Cambridge IGCSE Physics (0625) syllabus for exams in 2026, 2027 and 2028 for these topics: ${topics.join(', ')}.
     IMPORTANT:
     1.  Questions must be conceptual and test the understanding of definitions, formulas (in terms of the relationships between variables), units, and core concepts for the IGCSE exam.
@@ -44,49 +44,14 @@ export const generateQuizQuestions = async (topics: string[], questionCount: num
             },
         });
         const parsed = JSON.parse(response.text);
+        if (!Array.isArray(parsed)) {
+            console.error("Gemini API did not return an array for quiz questions:", parsed);
+            throw new Error("Invalid format for quiz questions received from API.");
+        }
         return parsed.map((q: any) => ({ ...q, options: q.options.slice(0, 4) }));
     } catch (error) {
         console.error("Error generating quiz questions:", error);
         throw new Error("Failed to generate quiz questions from Gemini API.");
-    }
-};
-
-const quizQuestionSchema = {
-    type: Type.OBJECT,
-    properties: {
-        question: { type: Type.STRING },
-        options: { type: Type.ARRAY, items: { type: Type.STRING } },
-        correctAnswer: { type: Type.STRING },
-        difficulty: { type: Type.STRING, enum: ['easy', 'medium', 'hard'] }
-    },
-    required: ['question', 'options', 'correctAnswer', 'difficulty']
-};
-
-export const generateSingleQuizQuestion = async (topics: string[], difficulty: 'easy' | 'medium' | 'hard', askedQuestions: string[]): Promise<QuizQuestion> => {
-    const prompt = `Generate a single, unique, multiple-choice quiz question with a difficulty level of '${difficulty}'. The question must be strictly based on the Cambridge IGCSE Physics (0625) syllabus for exams in 2026, 2027 and 2028 for these topics: ${topics.join(', ')}.
-
-    IMPORTANT CONSTRAINTS:
-    1.  **Uniqueness:** The generated question MUST NOT be similar to any of the following already asked questions:
-        ${askedQuestions.map(q => `- ${q}`).join('\n')}
-    2.  **No Calculations:** The question must be conceptual and test understanding of definitions, formulas (as relationships between variables), units, and core principles. It must NOT require any mathematical calculations to solve.
-    3.  **Syllabus Alignment:** Use the language and terminology of the syllabus strictly.
-    4.  **Format:** Provide 4 distinct options and one correct answer.
-    5.  **Difficulty:** The question's complexity must match the requested '${difficulty}' level.`;
-
-    try {
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-flash',
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: quizQuestionSchema,
-            },
-        });
-        const parsed = JSON.parse(response.text);
-        return { ...parsed, options: parsed.options.slice(0, 4) };
-    } catch (error) {
-        console.error(`Error generating single quiz question (difficulty: ${difficulty}):`, error);
-        throw new Error("Failed to generate a quiz question from Gemini API.");
     }
 };
 
@@ -150,7 +115,7 @@ const soloImprovementReportSchema = {
 
 export const getSoloImprovementReport = async (studentName: string, correctAnswers: number, totalQuestions: number, topics: string[]): Promise<SoloImprovementReport> => {
     const accuracy = ((correctAnswers / totalQuestions) * 100).toFixed(0);
-    const prompt = `An IGCSE Physics student named ${studentName} completed a quiz on the topics: ${topics.join(', ')}. They scored ${correctAnswers} out of ${totalQuestions} (${accuracy}%), which is below the 60% pass mark. 
+    const prompt = `An IGCSE Physics student named ${studentName} completed a quiz on the topics: ${topics.join(', ')}. They scored ${correctAnswers} out of ${totalQuestions} (${accuracy}%), which is below the 70% pass mark. 
     
     Generate a constructive report that includes:
     1. A list of 2-3 key areas for improvement, based on the topics they were tested on. Be specific (e.g., "Understanding the difference between speed and velocity", "Applying the principle of moments").

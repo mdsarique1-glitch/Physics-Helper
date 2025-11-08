@@ -52,6 +52,7 @@ export interface QuizResult {
   incorrectAnswers: number;
   totalQuestions: number;
   rank?: number;
+  error?: boolean;
 }
 
 export interface CertificateData {

@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import type { QuizQuestion, QuizResult, CertificateData, View, SoloImprovementReport } from '../types';
-import { generateSingleQuizQuestion, getFeedbackMessage, getCertificateData, getSoloImprovementReport } from '../services/geminiService';
+import { generateQuizQuestions, getFeedbackMessage, getCertificateData, getSoloImprovementReport } from '../services/geminiService';
 import LoadingSpinner from './LoadingSpinner';
-import { MOTIVATIONAL_QUOTES } from '../constants';
 
 declare var html2canvas: any;
 declare var jspdf: any;
@@ -12,8 +11,7 @@ const QuizView: React.FC<{
     topics: string[];
     onComplete: (result: QuizResult) => void;
 }> = ({ studentName, topics, onComplete }) => {
-    const [currentQuestion, setCurrentQuestion] = useState<QuizQuestion | null>(null);
-    const [askedQuestions, setAskedQuestions] = useState<string[]>([]);
+    const [questions, setQuestions] = useState<QuizQuestion[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -21,87 +19,83 @@ const QuizView: React.FC<{
     const [incorrectAnswers, setIncorrectAnswers] = useState(0);
     const [feedback, setFeedback] = useState<{ message: string; isCorrect: boolean } | null>(null);
     const [isAnswered, setIsAnswered] = useState(false);
-    const [currentDifficulty, setCurrentDifficulty] = useState<'easy' | 'medium' | 'hard'>('easy');
     
     const TOTAL_QUESTIONS = 15;
-
-    const endQuiz = useCallback(() => {
-        onComplete({
-            correctAnswers,
-            incorrectAnswers,
-            totalQuestions: TOTAL_QUESTIONS,
-        });
-    }, [correctAnswers, incorrectAnswers, onComplete]);
-
-    const fetchNextQuestion = useCallback(async (difficulty: 'easy' | 'medium' | 'hard', alreadyAsked: string[]) => {
-        setLoading(true);
-        setError(null);
-        setCurrentQuestion(null);
-        try {
-            const nextQuestion = await generateSingleQuizQuestion(topics, difficulty, alreadyAsked);
-            setCurrentQuestion(nextQuestion);
-            setAskedQuestions(prev => [...prev, nextQuestion.question]);
-        } catch (err) {
-            setError("Failed to load the next question. The quiz will end now.");
-            setTimeout(() => onComplete({ correctAnswers, incorrectAnswers, totalQuestions: currentQuestionIndex }), 3000);
-        } finally {
-            setLoading(false);
-        }
-    }, [topics, onComplete, correctAnswers, incorrectAnswers, currentQuestionIndex]);
+    const isCompletedRef = useRef(false);
 
     useEffect(() => {
-        fetchNextQuestion('easy', []);
-    }, [fetchNextQuestion]);
+        const fetchQuestions = async () => {
+            try {
+                const fetchedQuestions = await generateQuizQuestions(topics, TOTAL_QUESTIONS);
+                if (fetchedQuestions.length < TOTAL_QUESTIONS) {
+                    throw new Error("Could not generate a full set of quiz questions.");
+                }
+                setQuestions(fetchedQuestions);
+            } catch (err) {
+                setError("Failed to start the quiz. An error occurred while generating questions.");
+                if (!isCompletedRef.current) {
+                    isCompletedRef.current = true;
+                    onComplete({ correctAnswers: 0, incorrectAnswers: 0, totalQuestions: 0, error: true });
+                }
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchQuestions();
+    }, [topics, onComplete]);
 
     const handleAnswer = async (selectedOption: string) => {
-        if (isAnswered || !currentQuestion) return;
+        if (isAnswered || questions.length === 0) return;
+        
+        const currentQuestion = questions[currentQuestionIndex];
         setIsAnswered(true);
 
         const isCorrect = selectedOption === currentQuestion.correctAnswer;
         
         const feedbackMessage = await getFeedbackMessage(isCorrect, studentName);
         setFeedback({ message: feedbackMessage, isCorrect });
-
-        let nextDifficulty = currentDifficulty;
+        
         if (isCorrect) {
             setCorrectAnswers(c => c + 1);
-            if (currentDifficulty === 'easy') nextDifficulty = 'medium';
-            else if (currentDifficulty === 'medium') nextDifficulty = 'hard';
         } else {
             setIncorrectAnswers(i => i + 1);
-            if (currentDifficulty === 'hard') nextDifficulty = 'medium';
-            else if (currentDifficulty === 'medium') nextDifficulty = 'easy';
         }
         
         setTimeout(() => {
             setFeedback(null);
             setIsAnswered(false);
             if (currentQuestionIndex + 1 >= TOTAL_QUESTIONS) {
-                endQuiz();
+                if (!isCompletedRef.current) {
+                    isCompletedRef.current = true;
+                    onComplete({
+                        correctAnswers: correctAnswers + (isCorrect ? 1 : 0),
+                        incorrectAnswers: incorrectAnswers + (isCorrect ? 0 : 1),
+                        totalQuestions: TOTAL_QUESTIONS,
+                    });
+                }
             } else {
                 setCurrentQuestionIndex(i => i + 1);
-                setCurrentDifficulty(nextDifficulty);
-                fetchNextQuestion(nextDifficulty, askedQuestions);
             }
         }, 2000);
     };
 
-    if (loading) return <div className="flex flex-col items-center justify-center h-64"><LoadingSpinner /><p className="mt-4 text-lg text-gray-600">{currentQuestionIndex > 0 ? 'Generating next question...' : MOTIVATIONAL_QUOTES[Math.floor(Math.random()*MOTIVATIONAL_QUOTES.length)]}</p></div>;
+    if (loading) return <div className="flex flex-col items-center justify-center h-64"><LoadingSpinner /><p className="mt-4 text-lg text-gray-600">Generating your personalized quiz...</p></div>;
     if (error) return <p className="text-center text-red-500 text-lg">{error}</p>;
-    if (!currentQuestion) return <p className="text-center text-gray-600 text-lg">No questions available.</p>;
+    if (questions.length === 0 && !loading) return <p className="text-center text-gray-600 text-lg">No questions available.</p>;
 
+    const currentQuestion = questions[currentQuestionIndex];
     const questionNumber = currentQuestionIndex + 1;
 
     return (
         <div className="max-w-3xl mx-auto p-4 md:p-8 bg-white rounded-2xl shadow-2xl">
             <div className="flex justify-between items-center mb-6">
                 <div className="text-xl font-semibold text-gray-700">Correct: <span className="text-green-500">{correctAnswers}</span></div>
-                 <div className="text-xl font-semibold text-gray-700">Incorrect: <span className="text-red-500">{incorrectAnswers}</span></div>
+                <div className="text-xl font-semibold text-gray-700">Incorrect: <span className="text-red-500">{incorrectAnswers}</span></div>
             </div>
 
             <div className="mb-6 flex justify-between items-center">
-                 <div className={`text-sm font-bold uppercase px-3 py-1 rounded-full ${currentDifficulty === 'easy' ? 'bg-green-100 text-green-800' : currentDifficulty === 'medium' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}`}>
-                    {currentDifficulty}
+                <div className={`text-sm font-bold uppercase px-3 py-1 rounded-full ${currentQuestion.difficulty === 'easy' ? 'bg-green-100 text-green-800' : currentQuestion.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}`}>
+                    {currentQuestion.difficulty}
                 </div>
                 <div className="text-right text-sm text-gray-500">Question {questionNumber} of {TOTAL_QUESTIONS}</div>
             </div>
@@ -210,7 +204,7 @@ const ImprovementReport: React.FC<{
             )}
 
             <p className="text-lg text-gray-800 mt-8">
-                Keep pushing! Score 60% or higher on your next attempt to earn a personalized certificate.
+                Keep pushing! Score 70% or higher on your next attempt to earn a personalized certificate.
             </p>
             
             <button onClick={onReset} className="mt-8 px-8 py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700">
@@ -226,9 +220,24 @@ const Certificate: React.FC<{
     result: QuizResult;
     onReset: () => void;
 }> = ({ studentName, topics, result, onReset }) => {
+    if (result.error) {
+        return (
+            <div className="max-w-3xl mx-auto p-8 bg-white rounded-xl shadow-xl border-2 border-red-200 text-center">
+                <h2 className="text-3xl font-bold text-red-700">Quiz Interrupted</h2>
+                <p className="mt-4 text-lg text-gray-600">
+                    We're sorry for the inconvenience. The quiz was stopped due to a technical error and your results could not be recorded.
+                </p>
+                <p className="mt-2 text-gray-500">Please try again later.</p>
+                <button onClick={onReset} className="mt-8 px-8 py-3 bg-indigo-600 text-white rounded-lg font-semibold hover:bg-indigo-700">
+                    Back to Home
+                </button>
+            </div>
+        );
+    }
+
     const accuracy = result.totalQuestions > 0 ? ((result.correctAnswers / result.totalQuestions) * 100) : 0;
     
-    if (accuracy < 60 && result.totalQuestions > 0) {
+    if (accuracy < 70 && result.totalQuestions > 0) {
         return <ImprovementReport studentName={studentName} result={result} topics={topics} onReset={onReset} />;
     }
 
