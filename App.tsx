@@ -7,12 +7,19 @@ import GroupQuizFlow from './components/GroupQuizFlow';
 import type { QuizResult, GroupQuiz, GroupQuizConfig } from './types';
 import { View } from './types';
 
+export interface SoloQuizConfig {
+    questionCount: number;
+    timerEnabled: boolean;
+    timeLimit: number; // in minutes
+}
+
 const App: React.FC = () => {
   const [view, setView] = useState<View>(View.MAIN);
   const [studentName, setStudentName] = useState<string>('');
   
   // Solo Quiz State
   const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
+  const [soloQuizConfig, setSoloQuizConfig] = useState<SoloQuizConfig>({ questionCount: 15, timerEnabled: false, timeLimit: 15 });
   const [quizResult, setQuizResult] = useState<QuizResult | null>(null);
 
   // Group Quiz State
@@ -21,9 +28,10 @@ const App: React.FC = () => {
   const [participantId, setParticipantId] = useState<string>('');
 
 
-  const startSoloQuiz = (name: string, topics: string[]) => {
+  const startSoloQuiz = (name: string, topics: string[], config: SoloQuizConfig) => {
     setStudentName(name);
     setSelectedTopics(topics);
+    setSoloQuizConfig(config);
     setQuizResult(null);
     setView(View.QUIZ);
   };
@@ -32,10 +40,7 @@ const App: React.FC = () => {
     setQuizResult(result);
     setView(View.CERTIFICATE);
   };
-
-  // FIX: The onQuizStart prop expects a function with a single `quiz` argument.
-  // The participantId and isOrganizer states are already set when the user enters the lobby,
-  // so they don't need to be set again when the quiz starts.
+  
   const startGroupQuiz = (quiz: GroupQuiz) => {
       setGroupQuiz(quiz);
       setView(View.GROUP_QUIZ);
@@ -72,6 +77,7 @@ const App: React.FC = () => {
             initialView={view}
             studentName={studentName}
             selectedTopics={selectedTopics}
+            quizConfig={soloQuizConfig}
             onQuizComplete={showCertificate}
             quizResult={quizResult}
             onReset={resetApp}

@@ -1,16 +1,28 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import type { QuizQuestion, QuizResult, CertificateData, View, SoloImprovementReport } from '../types';
+import type { SoloQuizConfig } from '../App';
 import { generateQuizQuestions, getFeedbackMessage, getCertificateData, getSoloImprovementReport } from '../services/geminiService';
 import LoadingSpinner from './LoadingSpinner';
 
 declare var html2canvas: any;
 declare var jspdf: any;
 
+const Timer: React.FC<{ seconds: number }> = ({ seconds }) => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return (
+        <div className="text-2xl font-bold text-indigo-600 bg-white px-4 py-2 rounded-lg shadow">
+            {String(minutes).padStart(2, '0')}:{String(remainingSeconds).padStart(2, '0')}
+        </div>
+    );
+};
+
 const QuizView: React.FC<{
     studentName: string;
     topics: string[];
+    config: SoloQuizConfig;
     onComplete: (result: QuizResult) => void;
-}> = ({ studentName, topics, onComplete }) => {
+}> = ({ studentName, topics, config, onComplete }) => {
     const [questions, setQuestions] = useState<QuizQuestion[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -19,15 +31,26 @@ const QuizView: React.FC<{
     const [incorrectAnswers, setIncorrectAnswers] = useState(0);
     const [feedback, setFeedback] = useState<{ message: string; isCorrect: boolean } | null>(null);
     const [isAnswered, setIsAnswered] = useState(false);
+    const [timeLeft, setTimeLeft] = useState(config.timeLimit * 60);
     
-    const TOTAL_QUESTIONS = 15;
     const isCompletedRef = useRef(false);
+    
+    const completeQuiz = useCallback((finalCorrect: number, finalIncorrect: number) => {
+        if (!isCompletedRef.current) {
+            isCompletedRef.current = true;
+            onComplete({
+                correctAnswers: finalCorrect,
+                incorrectAnswers: finalIncorrect,
+                totalQuestions: config.questionCount,
+            });
+        }
+    }, [onComplete, config.questionCount]);
 
     useEffect(() => {
         const fetchQuestions = async () => {
             try {
-                const fetchedQuestions = await generateQuizQuestions(topics, TOTAL_QUESTIONS);
-                if (fetchedQuestions.length < TOTAL_QUESTIONS) {
+                const fetchedQuestions = await generateQuizQuestions(topics, config.questionCount);
+                if (fetchedQuestions.length < config.questionCount) {
                     throw new Error("Could not generate a full set of quiz questions.");
                 }
                 setQuestions(fetchedQuestions);
@@ -42,7 +65,25 @@ const QuizView: React.FC<{
             }
         };
         fetchQuestions();
-    }, [topics, onComplete]);
+    }, [topics, config.questionCount, onComplete]);
+
+     useEffect(() => {
+        if (!config.timerEnabled || loading) return;
+
+        const timer = setInterval(() => {
+            setTimeLeft(t => {
+                if (t <= 1) {
+                    clearInterval(timer);
+                    // Quiz ends, calculate results with remaining unanswered as incorrect
+                    const unanswered = config.questionCount - (correctAnswers + incorrectAnswers);
+                    completeQuiz(correctAnswers, incorrectAnswers + unanswered);
+                    return 0;
+                }
+                return t - 1;
+            });
+        }, 1000);
+        return () => clearInterval(timer);
+    }, [config.timerEnabled, loading, correctAnswers, incorrectAnswers, config.questionCount, completeQuiz]);
 
     const handleAnswer = async (selectedOption: string) => {
         if (isAnswered || questions.length === 0) return;
@@ -55,24 +96,20 @@ const QuizView: React.FC<{
         const feedbackMessage = await getFeedbackMessage(isCorrect, studentName);
         setFeedback({ message: feedbackMessage, isCorrect });
         
+        const updatedCorrect = correctAnswers + (isCorrect ? 1 : 0);
+        const updatedIncorrect = incorrectAnswers + (isCorrect ? 0 : 1);
+
         if (isCorrect) {
-            setCorrectAnswers(c => c + 1);
+            setCorrectAnswers(updatedCorrect);
         } else {
-            setIncorrectAnswers(i => i + 1);
+            setIncorrectAnswers(updatedIncorrect);
         }
         
         setTimeout(() => {
             setFeedback(null);
             setIsAnswered(false);
-            if (currentQuestionIndex + 1 >= TOTAL_QUESTIONS) {
-                if (!isCompletedRef.current) {
-                    isCompletedRef.current = true;
-                    onComplete({
-                        correctAnswers: correctAnswers + (isCorrect ? 1 : 0),
-                        incorrectAnswers: incorrectAnswers + (isCorrect ? 0 : 1),
-                        totalQuestions: TOTAL_QUESTIONS,
-                    });
-                }
+            if (currentQuestionIndex + 1 >= config.questionCount) {
+                completeQuiz(updatedCorrect, updatedIncorrect);
             } else {
                 setCurrentQuestionIndex(i => i + 1);
             }
@@ -90,6 +127,7 @@ const QuizView: React.FC<{
         <div className="max-w-3xl mx-auto p-4 md:p-8 bg-white rounded-2xl shadow-2xl">
             <div className="flex justify-between items-center mb-6">
                 <div className="text-xl font-semibold text-gray-700">Correct: <span className="text-green-500">{correctAnswers}</span></div>
+                {config.timerEnabled && <Timer seconds={timeLeft} />}
                 <div className="text-xl font-semibold text-gray-700">Incorrect: <span className="text-red-500">{incorrectAnswers}</span></div>
             </div>
 
@@ -97,7 +135,7 @@ const QuizView: React.FC<{
                 <div className={`text-sm font-bold uppercase px-3 py-1 rounded-full ${currentQuestion.difficulty === 'easy' ? 'bg-green-100 text-green-800' : currentQuestion.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}`}>
                     {currentQuestion.difficulty}
                 </div>
-                <div className="text-right text-sm text-gray-500">Question {questionNumber} of {TOTAL_QUESTIONS}</div>
+                <div className="text-right text-sm text-gray-500">Question {questionNumber} of {config.questionCount}</div>
             </div>
 
             <div className="bg-gray-50 p-6 rounded-lg mb-6 min-h-[100px]">
@@ -299,11 +337,17 @@ const Certificate: React.FC<{
                     <p className="text-gray-700 text-sm md:text-base">{topics.join(', ')}</p>
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4 my-8 text-center">
+                <div className={`grid ${result.rank ? 'grid-cols-3' : 'grid-cols-2'} gap-4 my-8 text-center`}>
                     <div>
                         <p className="text-3xl font-bold text-green-600">{result.correctAnswers}/{result.totalQuestions}</p>
                         <p className="text-gray-600">Correct Answers</p>
                     </div>
+                     {result.rank && (
+                        <div>
+                            <p className="text-3xl font-bold text-purple-600">#{result.rank}</p>
+                            <p className="text-gray-600">Group Rank</p>
+                        </div>
+                    )}
                     <div>
                         <p className="text-3xl font-bold text-blue-600">{accuracyString}%</p>
                         <p className="text-gray-600">Accuracy</p>
@@ -341,15 +385,16 @@ interface QuizFlowProps {
   initialView: View;
   studentName: string;
   selectedTopics: string[];
+  quizConfig: SoloQuizConfig;
   onQuizComplete: (result: QuizResult) => void;
   quizResult: QuizResult | null;
   onReset: () => void;
 }
 
-const QuizFlow: React.FC<QuizFlowProps> = ({ initialView, studentName, selectedTopics, onQuizComplete, quizResult, onReset }) => {
+const QuizFlow: React.FC<QuizFlowProps> = ({ initialView, studentName, selectedTopics, quizConfig, onQuizComplete, quizResult, onReset }) => {
     switch (initialView) {
         case 'quiz':
-            return <QuizView studentName={studentName} topics={selectedTopics} onComplete={onQuizComplete} />;
+            return <QuizView studentName={studentName} topics={selectedTopics} config={quizConfig} onComplete={onQuizComplete} />;
         case 'certificate':
             if (!quizResult) {
                 return <div className="text-center"><p>No quiz result found.</p><button onClick={onReset}>Go Home</button></div>

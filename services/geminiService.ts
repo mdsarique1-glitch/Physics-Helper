@@ -24,15 +24,21 @@ const quizQuestionsSchema = {
     }
 };
 
-export const generateQuizQuestions = async (topics: string[], questionCount: number = 15): Promise<QuizQuestion[]> => {
+export const generateQuizQuestions = async (topics: string[], questionCount: number): Promise<QuizQuestion[]> => {
+    const baseDifficultyCount = Math.floor(questionCount / 3);
+    const remainder = questionCount % 3;
+    const numEasy = baseDifficultyCount + (remainder > 0 ? 1 : 0);
+    const numMedium = baseDifficultyCount + (remainder > 1 ? 1 : 0);
+    const numHard = baseDifficultyCount;
+
     const prompt = `Generate ${questionCount} unique, multiple-choice quiz questions strictly based on the Cambridge IGCSE Physics (0625) syllabus for exams in 2026, 2027 and 2028 for these topics: ${topics.join(', ')}.
     IMPORTANT:
-    1.  Questions must be conceptual and test the understanding of definitions, formulas (in terms of the relationships between variables), units, and core concepts for the IGCSE exam.
-    2.  Absolutely NO calculation questions are allowed. The questions must not require any mathematical steps to solve.
-    3.  Use the language and terminology of the syllabus strictly.
-    4.  Ensure questions cover all subtopics and learning objectives for the given topics thoroughly.
-    5.  Provide 4 distinct options and one correct answer for each question.
-    6.  Distribute difficulty levels appropriately (easy, medium, hard).`;
+    1.  The questions must be conceptually focused, testing understanding of definitions, formulas (in terms of variable relationships), units, and core principles.
+    2.  Absolutely NO calculation questions.
+    3.  Distribute the questions as evenly as possible across all the provided topics.
+    4.  Generate exactly ${numEasy} easy, ${numMedium} medium, and ${numHard} hard questions.
+    5.  Provide 4 distinct options and one correct answer for each question. Ensure the options are plausible and relevant.
+    6.  Do not repeat questions.`;
 
     try {
         const response = await ai.models.generateContent({
@@ -73,13 +79,15 @@ const certificateDataSchema = {
     type: Type.OBJECT,
     properties: {
         summary: { type: Type.STRING, description: "A short, positive performance summary." },
-        improvementAreas: { type: Type.STRING, description: "One or two key areas for improvement, phrased constructively." }
+        improvementAreas: { type: Type.STRING, description: "One or two clear, specific, and actionable areas for improvement, phrased constructively." }
     },
     required: ["summary", "improvementAreas"]
 };
 
 export const getCertificateData = async (studentName: string, correctAnswers: number, totalQuestions: number, topics: string[]): Promise<CertificateData> => {
-    const prompt = `An IGCSE Physics student named ${studentName} just completed a quiz on the topics: ${topics.join(', ')}. They scored ${correctAnswers} out of ${totalQuestions}. Based on this, generate a short performance summary and identify potential areas for improvement, phrased constructively.`;
+    const prompt = `An IGCSE Physics student named ${studentName} just completed a quiz on the topics: ${topics.join(', ')}. They scored ${correctAnswers} out of ${totalQuestions}. Based on this, generate:
+    1.  A short, positive performance summary.
+    2.  One or two clear, specific, and actionable areas for improvement, phrased constructively. For example, instead of 'review motion,' suggest 'focus on differentiating between distance-time and speed-time graphs.'`;
 
     try {
         const response = await ai.models.generateContent({

@@ -2,11 +2,12 @@ import React, { useState } from 'react';
 import { PHYSICS_CATEGORIES } from '../constants';
 import { getFeedbackResponse, generateQuizQuestions } from '../services/geminiService';
 import type { GroupQuiz } from '../types';
+import type { SoloQuizConfig } from '../App';
 import LoadingSpinner from './LoadingSpinner';
 import QuickRevisionView from './QuickRevisionView';
 
 const MainView: React.FC<{ 
-    onStartSoloQuiz: (name: string, topics: string[]) => void;
+    onStartSoloQuiz: (name: string, topics: string[], config: SoloQuizConfig) => void;
     onStartGroupQuizLobby: (quiz: GroupQuiz, participantId: string, isOrganizer: boolean) => void;
 }> = ({ onStartSoloQuiz, onStartGroupQuizLobby }) => {
     const [mode, setMode] = useState<'revision' | 'solo-quiz' | 'group-quiz'>('revision');
@@ -14,6 +15,7 @@ const MainView: React.FC<{
     // Solo Quiz state
     const [studentName, setStudentName] = useState('');
     const [selectedCategoriesForQuiz, setSelectedCategoriesForQuiz] = useState<string[]>([]);
+    const [soloQuizConfig, setSoloQuizConfig] = useState<SoloQuizConfig>({ questionCount: 15, timerEnabled: false, timeLimit: 15 });
     
     // Group Quiz state
     const [organizerName, setOrganizerName] = useState('');
@@ -33,7 +35,7 @@ const MainView: React.FC<{
             .flatMap(category => category.topics.map(topic => topic.name));
 
         if (studentName && topicsForQuiz.length > 0) {
-            onStartSoloQuiz(studentName, topicsForQuiz);
+            onStartSoloQuiz(studentName, topicsForQuiz, soloQuizConfig);
         } else {
             alert("Please enter your name and select at least one category.");
         }
@@ -139,6 +141,11 @@ const MainView: React.FC<{
                                     <label htmlFor="studentName" className="block text-lg font-medium text-gray-700 mb-2">Enter your name:</label>
                                     <input id="studentName" type="text" value={studentName} onChange={(e) => setStudentName(e.target.value)} placeholder="e.g., Albert Einstein" className="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                                 </div>
+
+                                <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-lg text-center">
+                                    <h3 className="font-bold text-indigo-800">How to Earn a Certificate</h3>
+                                    <p className="text-indigo-700 text-sm">Score 70% or higher to receive a certificate of achievement. If you score below 70%, you'll get a helpful report with areas for improvement. Good luck!</p>
+                                </div>
                                 
                                 <div className="mb-4">
                                     <p className="text-lg font-medium text-gray-700 mb-2">Select quiz categories:</p>
@@ -151,6 +158,32 @@ const MainView: React.FC<{
                                         ))}
                                     </div>
                                 </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 border rounded-lg">
+                                     <div>
+                                        <label htmlFor="questionCount" className="block text-lg font-medium text-gray-700 mb-2">Number of Questions:</label>
+                                        <select id="questionCount" value={soloQuizConfig.questionCount} onChange={e => setSoloQuizConfig(c => ({...c, questionCount: Number(e.target.value)}))} className="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                            {Array.from({length: 16}, (_, i) => i + 15).map(n => <option key={n} value={n}>{n} Questions</option>)}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label htmlFor="timerEnabled" className="block text-lg font-medium text-gray-700 mb-2">Timer:</label>
+                                        <div className="flex items-center space-x-4">
+                                            <label className="flex items-center cursor-pointer">
+                                                <input type="checkbox" checked={soloQuizConfig.timerEnabled} onChange={e => setSoloQuizConfig(c => ({...c, timerEnabled: e.target.checked}))} className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                                                <span className="ml-2 text-gray-700">Enable Timer</span>
+                                            </label>
+                                            {soloQuizConfig.timerEnabled && (
+                                                <select value={soloQuizConfig.timeLimit} onChange={e => setSoloQuizConfig(c => ({...c, timeLimit: Number(e.target.value)}))} className="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                                    <option value={5}>5 mins</option>
+                                                    <option value={10}>10 mins</option>
+                                                    <option value={15}>15 mins</option>
+                                                </select>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+
                                 <button onClick={handleStartSoloQuizClick} disabled={!studentName || selectedCategoriesForQuiz.length === 0} className="w-full px-8 py-4 bg-indigo-600 text-white font-bold text-lg rounded-lg shadow-md hover:bg-indigo-700 disabled:bg-indigo-300 disabled:cursor-not-allowed transition-transform transform hover:scale-105">
                                     Start Quiz!
                                 </button>

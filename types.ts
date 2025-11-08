@@ -110,6 +110,7 @@ export interface GroupQuiz {
     participants: Participant[];
     status: 'lobby' | 'inprogress' | 'finished';
     startTime?: number;
+    reportShared?: boolean;
 }
 
 // Types for Quick Revision
