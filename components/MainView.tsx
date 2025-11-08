@@ -6,12 +6,13 @@ import type { GroupQuiz } from '../types';
 import type { SoloQuizConfig } from '../App';
 import LoadingSpinner from './LoadingSpinner';
 import CertificateShowcase from './CertificateShowcase';
+import QuickRevisionView from './QuickRevisionView';
 
 const MainView: React.FC<{ 
     onStartSoloQuiz: (name: string, topics: string[], config: SoloQuizConfig) => void;
     onStartGroupQuizLobby: (quiz: GroupQuiz, participantId: string, isOrganizer: boolean) => void;
 }> = ({ onStartSoloQuiz, onStartGroupQuizLobby }) => {
-    const [quizMode, setQuizMode] = useState<'solo' | 'group'>('solo');
+    const [quizMode, setQuizMode] = useState<'solo' | 'group' | 'revision'>('solo');
     
     // Solo Quiz state
     const [studentName, setStudentName] = useState('');
@@ -157,8 +158,10 @@ const MainView: React.FC<{
         }
     };
     
-    const renderQuizSetup = () => {
+    const renderContent = () => {
         switch(quizMode) {
+            case 'revision':
+                return <QuickRevisionView />;
             case 'solo':
                 return (
                     <div className="p-8 bg-white rounded-xl shadow-lg border border-gray-200">
@@ -315,12 +318,13 @@ const MainView: React.FC<{
                 <div className="mt-8 flex justify-center gap-2 border-t pt-6 bg-gray-50 p-2 rounded-xl">
                     <button onClick={() => setQuizMode('solo')} className={navButtonClass('solo')}>Solo Quiz</button>
                     <button onClick={() => setQuizMode('group')} className={navButtonClass('group')}>Group Quiz</button>
+                    <button onClick={() => setQuizMode('revision')} className={navButtonClass('revision')}>Quick Revision</button>
                 </div>
             </section>
 
              <section className="grid grid-cols-1 md:grid-cols-12 gap-6">
                 <div className="md:col-span-9 order-1 md:order-1">
-                    {renderQuizSetup()}
+                    {renderContent()}
                 </div>
                 <div className="md:col-span-3 order-2 md:order-2">
                     <div className="p-4 bg-white rounded-lg shadow-md sticky top-20">

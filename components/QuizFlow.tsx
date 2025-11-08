@@ -272,23 +272,23 @@ const CertificateView: React.FC<{
     };
 
     return (
-        <div className="max-w-4xl mx-auto p-4">
-            <div ref={certRef} className={`p-8 md:p-12 rounded-2xl shadow-2xl border-4 ${bg} ${border} text-center`}>
+        <div className="max-w-3xl mx-auto p-4">
+            <div ref={certRef} className={`p-6 md:p-8 rounded-2xl shadow-2xl border-4 ${bg} ${border} text-center`}>
                 <CertificateBadge type={tier} />
 
-                <p className="text-xl text-gray-600 my-2">This certificate is proudly presented to</p>
-                <h1 className="text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-blue-500 my-4 tracking-tight">
+                <p className="text-lg text-gray-600 my-2">This certificate is proudly presented to</p>
+                <h1 className="text-4xl font-extrabold text-indigo-600 my-4 tracking-tight">
                     {studentName}
                 </h1>
-                <p className="text-lg text-gray-700">for outstanding performance in the IGCSE Physics Quiz on {new Date().toLocaleDateString()}.</p>
+                <p className="text-base text-gray-700">for outstanding performance in the IGCSE Physics Quiz on {new Date().toLocaleDateString()}.</p>
                 
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-8 text-center max-w-md mx-auto">
                     <div className="p-4 bg-white/50 rounded-lg">
-                        <p className="text-4xl font-bold text-green-600">{result.correctAnswers}/{result.totalQuestions}</p>
+                        <p className="text-3xl font-bold text-green-600">{result.correctAnswers}/{result.totalQuestions}</p>
                         <p className="text-gray-600">Correct Answers</p>
                     </div>
                     <div className="p-4 bg-white/50 rounded-lg">
-                        <p className="text-4xl font-bold text-blue-600">{roundedAccuracy}%</p>
+                        <p className="text-3xl font-bold text-blue-600">{roundedAccuracy}%</p>
                         <p className="text-gray-600">Score</p>
                     </div>
                 </div>
@@ -349,9 +349,9 @@ const ImprovementReportView: React.FC<{
     };
 
     return (
-        <div className="max-w-3xl mx-auto text-center p-4">
-            <div ref={reportRef} className="p-8 bg-white rounded-xl shadow-xl text-center border-t-8 border-indigo-500">
-                <h2 className="text-4xl font-bold text-gray-800">Quiz Report for {studentName}</h2>
+        <div className="max-w-2xl mx-auto text-center p-4">
+            <div ref={reportRef} className="p-6 bg-white rounded-xl shadow-xl text-center border-t-8 border-indigo-500">
+                <h2 className="text-3xl font-bold text-gray-800">Quiz Report for {studentName}</h2>
                 <p className="text-gray-600 mt-2">Quiz Date: {new Date().toLocaleDateString()}</p>
                 
                 <div className="my-4 text-center">
@@ -361,11 +361,11 @@ const ImprovementReportView: React.FC<{
 
                 <div className="my-8 flex justify-center items-center gap-4">
                     <div className="text-right">
-                        <p className="text-5xl font-bold text-red-500">{accuracy.toFixed(0)}%</p>
+                        <p className="text-4xl font-bold text-red-500">{accuracy.toFixed(0)}%</p>
                         <p className="text-gray-600">Your Score</p>
                     </div>
                     <div className="text-left">
-                        <p className="text-2xl font-bold text-gray-700">{result.correctAnswers} / {result.totalQuestions}</p>
+                        <p className="text-xl font-bold text-gray-700">{result.correctAnswers} / {result.totalQuestions}</p>
                         <p className="text-gray-600">Correct Answers</p>
                     </div>
                 </div>
