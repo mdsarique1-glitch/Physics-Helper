@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import type { QuizQuestion, CertificateData, Indicator, Topic, RevisionNote, SoloImprovementReport, GroupQuizReport, GroupQuiz, ConceptExplanation } from '../types';
+import type { QuizQuestion, CertificateData, Indicator, Topic, RevisionNote, SoloImprovementReport, GroupQuizReport, GroupQuiz, ConceptExplanation, FeedbackEntry } from '../types';
 import { PHYSICS_CATEGORIES } from "../constants";
 
 const API_KEY = process.env.API_KEY;
@@ -142,6 +142,42 @@ export const getFeedbackResponse = async (feedbackText: string): Promise<string>
         console.error("Error getting feedback response:", error);
         return "Thank you for your feedback! We've received it successfully.";
     }
+};
+
+const FEEDBACK_STORAGE_KEY = 'physics-helper-feedback';
+
+export const saveFeedback = (feedbackText: string): void => {
+    const getFeedbackFromStorage = (): FeedbackEntry[] => {
+        try {
+            const storedFeedback = localStorage.getItem(FEEDBACK_STORAGE_KEY);
+            return storedFeedback ? JSON.parse(storedFeedback) : [];
+        } catch (error) {
+            console.error("Error parsing feedback from localStorage", error);
+            return [];
+        }
+    };
+    
+    const existingFeedback = getFeedbackFromStorage();
+    const newEntry: FeedbackEntry = {
+        text: feedbackText,
+        timestamp: new Date().toISOString(),
+    };
+    const updatedFeedback = [...existingFeedback, newEntry];
+    localStorage.setItem(FEEDBACK_STORAGE_KEY, JSON.stringify(updatedFeedback));
+};
+
+export const getStoredFeedback = (): FeedbackEntry[] => {
+    try {
+        const storedFeedback = localStorage.getItem(FEEDBACK_STORAGE_KEY);
+        return storedFeedback ? JSON.parse(storedFeedback) : [];
+    } catch (error) {
+        console.error("Error parsing feedback from localStorage", error);
+        return [];
+    }
+};
+
+export const clearStoredFeedback = (): void => {
+    localStorage.removeItem(FEEDBACK_STORAGE_KEY);
 };
 
 

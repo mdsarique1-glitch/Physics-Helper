@@ -138,3 +138,8 @@ export interface ConceptExplanation {
     formula: string;
     siUnit: string;
 }
+
+export interface FeedbackEntry {
+    text: string;
+    timestamp: string;
+}

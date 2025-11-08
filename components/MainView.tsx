@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { PHYSICS_CATEGORIES, PHYSICS_HELPER_MESSAGES } from '../constants';
-import { getFeedbackResponse, generateQuizQuestions, getConceptExplanation } from '../services/geminiService';
+import { getFeedbackResponse, generateQuizQuestions, getConceptExplanation, saveFeedback } from '../services/geminiService';
 import type { GroupQuiz, ConceptExplanation } from '../types';
 import type { SoloQuizConfig } from '../App';
 import LoadingSpinner from './LoadingSpinner';
@@ -153,6 +153,7 @@ const MainView: React.FC<{
         setFeedbackError('');
         setFeedbackResponse('');
         try {
+            saveFeedback(feedbackText); // Save the feedback to localStorage
             const response = await getFeedbackResponse(feedbackText);
             setFeedbackResponse(response);
             setFeedbackText('');
