@@ -5,29 +5,6 @@ import { PHYSICS_CATEGORIES, MOTIVATIONAL_QUOTES } from '../constants';
 import LoadingSpinner from './LoadingSpinner';
 import CertificateShowcase from './CertificateShowcase';
 
-// FIX: Add global window declarations for html2canvas to resolve TypeScript errors.
-declare global {
-    interface Window {
-        html2canvas: any;
-    }
-}
-
-const waitForHtml2Canvas = (timeout = 3000): Promise<any> => {
-    return new Promise((resolve, reject) => {
-        const startTime = Date.now();
-        const check = () => {
-            if (typeof window.html2canvas !== 'undefined') {
-                resolve(window.html2canvas);
-            } else if (Date.now() - startTime > timeout) {
-                reject(new Error("html2canvas library failed to load in time."));
-            } else {
-                setTimeout(check, 100);
-            }
-        };
-        check();
-    });
-};
-
 const Timer: React.FC<{ seconds: number }> = ({ seconds }) => {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
@@ -354,63 +331,45 @@ const GroupCertificateView: React.FC<{
 
         useEffect(() => { getSoloImprovementReport(participant.name, result.correctAnswers, result.totalQuestions, topics).then(setReport).catch(console.error).finally(() => setLoading(false)); }, []);
 
-        const handleDownload = async () => {
-            if (!reportRef.current) return;
-            try {
-                const html2canvas = await waitForHtml2Canvas();
-                const canvas = await html2canvas(reportRef.current, { scale: 2, useCORS: true, backgroundColor: null });
-                const image = canvas.toDataURL('image/jpeg', 0.95);
-                
-                const link = document.createElement('a');
-                link.href = image;
-                link.download = `Physics-Helper-Report-${participant.name}.jpg`;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-
-            } catch (error) {
-                console.error("Failed to download report as Image:", error);
-                alert("Sorry, we couldn't generate the image. Please check your internet connection, disable any ad-blockers, and try again.");
-            }
-        };
-
         return (
-            <div className="max-w-2xl mx-auto text-center p-4">
-                <div ref={reportRef} className="p-6 bg-white rounded-xl shadow-xl text-center border-t-8 border-indigo-500">
-                    <h2 className="text-3xl font-bold text-gray-800">Quiz Report for {participant.name}</h2>
-                    <p className="text-gray-600 mt-2">Quiz Date: {new Date().toLocaleDateString()}</p>
-                    <div className="my-4 text-center">
-                        <p className="font-bold text-gray-700">Quiz Categories:</p>
-                        <p className="text-gray-600">{quiz.config.categories.join(', ')}</p>
-                    </div>
-                    <div className="my-8 flex justify-center items-center gap-4">
-                        <div className="text-right">
-                            <p className="text-4xl font-bold text-red-500">{accuracy.toFixed(0)}%</p>
-                            <p className="text-gray-600">Your Score</p>
+            <div className="max-w-2xl mx-auto p-4 flex flex-col items-center">
+                <div className="transform scale-75 origin-top">
+                    <div ref={reportRef} className="p-6 bg-white rounded-xl shadow-xl text-center border-t-8 border-indigo-500 w-[672px]">
+                        <h2 className="text-3xl font-bold text-gray-800">Quiz Report for {participant.name}</h2>
+                        <p className="text-gray-600 mt-2">Quiz Date: {new Date().toLocaleDateString()}</p>
+                        <div className="my-4 text-center">
+                            <p className="font-bold text-gray-700">Quiz Categories:</p>
+                            <p className="text-gray-600">{quiz.config.categories.join(', ')}</p>
                         </div>
-                        <div className="text-left">
-                            <p className="text-xl font-bold text-gray-700">{result.correctAnswers} / {result.totalQuestions}</p>
-                            <p className="text-gray-600">Correct Answers</p>
+                        <div className="my-8 flex justify-center items-center gap-4">
+                            <div className="text-right">
+                                <p className="text-4xl font-bold text-red-500">{accuracy.toFixed(0)}%</p>
+                                <p className="text-gray-600">Your Score</p>
+                            </div>
+                            <div className="text-left">
+                                <p className="text-xl font-bold text-gray-700">{result.correctAnswers} / {result.totalQuestions}</p>
+                                <p className="text-gray-600">Correct Answers</p>
+                            </div>
                         </div>
-                    </div>
-                    {loading ? <LoadingSpinner /> : (
-                    <div className="text-left my-6 bg-indigo-50 p-6 rounded-lg border-l-4 border-indigo-400">
-                        <h4 className="font-bold text-lg text-indigo-800">Areas for Improvement:</h4>
-                        <ul className="list-disc list-inside mt-2 text-indigo-900 space-y-1">{report?.improvementAreas.map((area, i) => <li key={i}>{area}</li>)}</ul>
-                        <h4 className="font-bold text-lg text-indigo-800 mt-6">A Quick Note:</h4>
-                        <p className="italic text-indigo-900 mt-1">"{report?.motivationalMessage}"</p>
-                    </div>)}
-                    <p className="mt-8 text-gray-500 italic">"{motivationalQuote}"</p>
-                    <div className="mt-6 pt-4 border-t-2 border-gray-300/50 flex items-center justify-start">
-                        <div className="text-left">
-                            <p className="font-bold text-lg text-indigo-800">Physics Helper</p>
-                            <p className="text-xs text-gray-600">Your companion for IGCSE Physics</p>
+                        {loading ? <LoadingSpinner /> : (
+                        <div className="text-left my-6 bg-indigo-50 p-6 rounded-lg border-l-4 border-indigo-400">
+                            <h4 className="font-bold text-lg text-indigo-800">Areas for Improvement:</h4>
+                            <ul className="list-disc list-inside mt-2 text-indigo-900 space-y-1">{report?.improvementAreas.map((area, i) => <li key={i}>{area}</li>)}</ul>
+                            <h4 className="font-bold text-lg text-indigo-800 mt-6">A Quick Note:</h4>
+                            <p className="italic text-indigo-900 mt-1">"{report?.motivationalMessage}"</p>
+                        </div>)}
+                        <p className="mt-8 text-gray-500 italic">"{motivationalQuote}"</p>
+                        <div className="mt-6 pt-4 border-t-2 border-gray-300/50 flex items-center justify-start">
+                            <div className="text-left">
+                                <p className="font-bold text-lg text-indigo-800">Physics Helper</p>
+                                <p className="text-xs text-gray-600">Your companion for IGCSE Physics</p>
+                            </div>
                         </div>
                     </div>
                 </div>
-                 <div className="mt-8 flex justify-center flex-wrap gap-4">
-                    <button onClick={handleDownload} className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700">Download Image</button>
-                    <button onClick={onReset} className="px-6 py-3 bg-indigo-600 text-white rounded-lg">Back to Home</button>
+                 <div className="text-center">
+                    <p className="text-gray-700 font-semibold">Take a screenshot to save and share your report!</p>
+                    <button onClick={onReset} className="mt-4 px-8 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition">Back to Home</button>
                 </div>
             </div>
         );
@@ -441,55 +400,37 @@ const GroupCertificateView: React.FC<{
             Bronze: { bg: 'bg-orange-200', border: 'border-orange-400' },
         };
         const { bg, border } = theme[tier];
-
-        const handleDownload = async () => { 
-            if (!certRef.current) return;
-            try {
-                const html2canvas = await waitForHtml2Canvas();
-                const canvas = await html2canvas(certRef.current, { scale: 2, useCORS: true, backgroundColor: null }); 
-                const imgData = canvas.toDataURL('image/jpeg', 0.95);
-                
-                const link = document.createElement('a');
-                link.href = imgData;
-                link.download = `Physics-Helper-Certificate-${participant.name}.jpg`;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-
-            } catch (error) {
-                console.error("Failed to download certificate as Image:", error);
-                alert("Sorry, we couldn't generate the image. Please check your internet connection, disable any ad-blockers, and try again.");
-            }
-        };
         
         return (
-            <div className="max-w-3xl mx-auto p-4">
-                <div ref={certRef} className={`p-6 md:p-8 rounded-2xl shadow-2xl border-4 ${bg} ${border} text-center`}>
-                    <CertificateBadge type={tier} />
-                    <p className="text-lg text-gray-600 my-2">This certificate is proudly presented to</p>
-                    <h1 className="text-4xl font-extrabold text-indigo-600 my-4 tracking-tight">{participant.name}</h1>
-                    <p className="text-base text-gray-700">for outstanding performance in the Group Physics Quiz on {new Date().toLocaleDateString()}.</p>
-                    <div className="my-6 text-center">
-                        <p className="font-bold text-gray-700">Quiz Categories:</p>
-                        <p className="text-gray-600">{quiz.config.categories.join(', ')}</p>
-                    </div>
-                    <div className="grid grid-cols-3 gap-4 my-8 text-center max-w-lg mx-auto">
-                        <div className="p-4 bg-white/50 rounded-lg"><p className="text-2xl font-bold text-green-600">{result.correctAnswers}/{result.totalQuestions}</p><p className="text-gray-600 text-sm">Correct</p></div>
-                        <div className="p-4 bg-white/50 rounded-lg"><p className="text-2xl font-bold text-purple-600">#{result.rank}</p><p className="text-gray-600 text-sm">Group Rank</p></div>
-                        <div className="p-4 bg-white/50 rounded-lg"><p className="text-2xl font-bold text-blue-600">{roundedAccuracy}%</p><p className="text-gray-600 text-sm">Score</p></div>
-                    </div>
-                    {loading ? <div className="py-4"><LoadingSpinner/></div> : (<div className="text-left space-y-4 my-6 bg-white/60 p-6 rounded-lg"><h4 className="font-bold text-lg text-gray-800">Performance Summary:</h4><p className="text-gray-700">{certData?.summary}</p></div>)}
-                    <p className="mt-8 text-gray-500 italic">"{motivationalQuote}"</p>
-                     <div className="mt-6 pt-4 border-t-2 border-gray-300/50 flex items-center justify-start">
-                        <div className="text-left">
-                            <p className="font-bold text-lg text-indigo-800">Physics Helper</p>
-                            <p className="text-xs text-gray-600">Your companion for IGCSE Physics</p>
+            <div className="max-w-3xl mx-auto p-4 flex flex-col items-center">
+                <div className="transform scale-75 origin-top">
+                    <div ref={certRef} className={`p-6 md:p-8 rounded-2xl shadow-2xl border-4 ${bg} ${border} text-center w-[768px]`}>
+                        <CertificateBadge type={tier} />
+                        <p className="text-lg text-gray-600 my-2">This certificate is proudly presented to</p>
+                        <h1 className="text-4xl font-extrabold text-indigo-600 my-4 tracking-tight">{participant.name}</h1>
+                        <p className="text-base text-gray-700">for outstanding performance in the Group Physics Quiz on {new Date().toLocaleDateString()}.</p>
+                        <div className="my-6 text-center">
+                            <p className="font-bold text-gray-700">Quiz Categories:</p>
+                            <p className="text-gray-600">{quiz.config.categories.join(', ')}</p>
+                        </div>
+                        <div className="grid grid-cols-3 gap-4 my-8 text-center max-w-lg mx-auto">
+                            <div className="p-4 bg-white/50 rounded-lg"><p className="text-2xl font-bold text-green-600">{result.correctAnswers}/{result.totalQuestions}</p><p className="text-gray-600 text-sm">Correct</p></div>
+                            <div className="p-4 bg-white/50 rounded-lg"><p className="text-2xl font-bold text-purple-600">#{result.rank}</p><p className="text-gray-600 text-sm">Group Rank</p></div>
+                            <div className="p-4 bg-white/50 rounded-lg"><p className="text-2xl font-bold text-blue-600">{roundedAccuracy}%</p><p className="text-gray-600 text-sm">Score</p></div>
+                        </div>
+                        {loading ? <div className="py-4"><LoadingSpinner/></div> : (<div className="text-left space-y-4 my-6 bg-white/60 p-6 rounded-lg"><h4 className="font-bold text-lg text-gray-800">Performance Summary:</h4><p className="text-gray-700">{certData?.summary}</p></div>)}
+                        <p className="mt-8 text-gray-500 italic">"{motivationalQuote}"</p>
+                        <div className="mt-6 pt-4 border-t-2 border-gray-300/50 flex items-center justify-start">
+                            <div className="text-left">
+                                <p className="font-bold text-lg text-indigo-800">Physics Helper</p>
+                                <p className="text-xs text-gray-600">Your companion for IGCSE Physics</p>
+                            </div>
                         </div>
                     </div>
                 </div>
-                <div className="mt-8 flex justify-center flex-wrap gap-4">
-                    <button onClick={handleDownload} className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700">Download Image</button>
-                    <button onClick={onReset} className="px-6 py-3 bg-gray-600 text-white rounded-lg">Back to Home</button>
+                <div className="text-center">
+                    <p className="text-gray-700 font-semibold">Take a screenshot to save and share your certificate!</p>
+                    <button onClick={onReset} className="mt-4 px-8 py-3 bg-gray-600 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700 transition">Back to Home</button>
                 </div>
             </div>
         );
@@ -535,26 +476,6 @@ const GroupResultsView: React.FC<{
         const updatedQuiz = { ...quizState, reportShared: true };
         localStorage.setItem(`group-quiz-${quiz.code}`, JSON.stringify(updatedQuiz));
         setQuizState(updatedQuiz);
-    };
-
-    const handleDownloadReport = async () => {
-        if (!reportRef.current) return;
-        try {
-            const html2canvas = await waitForHtml2Canvas();
-            const canvas = await html2canvas(reportRef.current, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
-            const imgData = canvas.toDataURL('image/jpeg', 0.95);
-            
-            const link = document.createElement('a');
-            link.href = imgData;
-            link.download = `Group-Report-${quiz.config.title}.jpg`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-
-        } catch (error) {
-            console.error("Failed to download report as Image:", error);
-            alert("Sorry, we couldn't generate the image. Please check your internet connection, disable any ad-blockers, and try again.");
-        }
     };
 
     const sortedParticipants = [...quizState.participants].sort((a, b) => b.score - a.score);
@@ -610,7 +531,10 @@ const GroupResultsView: React.FC<{
                 </div>
             </div>
             
-            <div className="mt-8 flex justify-center flex-wrap gap-4">
+            {isOrganizer && (
+                <p className="mt-6 text-gray-700 font-semibold">Take a screenshot to save and share this report with your group!</p>
+            )}
+            <div className="mt-4 flex justify-center flex-wrap gap-4">
                 {isOrganizer ? (
                    <>
                         {quizState.reportShared ? (
@@ -618,7 +542,6 @@ const GroupResultsView: React.FC<{
                         ) : (
                             <button onClick={handleShareReport} className="px-8 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600">Share Results</button>
                         )}
-                        <button onClick={handleDownloadReport} className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Download Report (Image)</button>
                    </>
                 ) : (
                     <button onClick={() => setView('certificate')} className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">View My Certificate/Report</button>
