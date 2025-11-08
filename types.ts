@@ -29,6 +29,15 @@ export interface QuizQuestion {
   difficulty: 'easy' | 'medium' | 'hard';
 }
 
+export interface SoloQuizConfig {
+    questionCount: number;
+    timerEnabled: boolean;
+    timeLimit: number; // in minutes
+    categories: string[];
+    seed?: number;
+}
+
+
 export interface QuizResult {
   correctAnswers: number;
   incorrectAnswers: number;
@@ -47,17 +56,6 @@ export interface CertificateData {
 export interface SoloImprovementReport {
     improvementAreas: string[];
     motivationalMessage: string;
-}
-
-export interface IndividualFeedback {
-    participantName: string;
-    feedback: string;
-}
-
-export interface GroupQuizReport {
-    groupSummary: string;
-    improvementAreas: string[];
-    individualFeedback: IndividualFeedback[];
 }
 
 // FIX: Add missing RevisionPoint and RevisionNote types for QuickRevisionView.tsx
@@ -82,39 +80,4 @@ export enum View {
   MAIN = 'main',
   QUIZ = 'quiz',
   CERTIFICATE = 'certificate',
-  GROUP_QUIZ_HOME = 'group_quiz_home',
-  GROUP_QUIZ_LOBBY = 'group_quiz_lobby',
-  GROUP_QUIZ = 'group_quiz',
-  GROUP_QUIZ_RESULTS = 'group_quiz_results',
-}
-
-// Types for Group Quiz
-export interface GroupQuizConfig {
-    title: string;
-    categories: string[];
-    questionCount: number;
-    timeLimit: number; // in minutes
-}
-
-export interface Participant {
-    id: string;
-    name: string;
-    score: number;
-    isFinished: boolean;
-}
-
-export interface GroupQuiz {
-    code: string;
-    organizerName: string;
-    config: GroupQuizConfig;
-    questions: QuizQuestion[];
-    participants: Participant[];
-    status: 'lobby' | 'inprogress' | 'finished';
-    startTime?: number;
-    reportShared?: boolean;
-}
-
-export interface FeedbackEntry {
-    text: string;
-    timestamp: string;
 }

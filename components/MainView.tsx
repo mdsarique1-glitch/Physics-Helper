@@ -1,31 +1,31 @@
 
 import React, { useState, useEffect } from 'react';
 import { PHYSICS_CATEGORIES, PHYSICS_HELPER_MESSAGES } from '../constants';
-import { getFeedbackResponse, generateQuizQuestions, saveFeedback } from '../services/geminiService';
-import type { GroupQuiz } from '../types';
-import type { SoloQuizConfig } from '../App';
+import { getFeedbackResponse } from '../services/geminiService';
+import type { SoloQuizConfig } from '../types';
 import LoadingSpinner from './LoadingSpinner';
 import CertificateShowcase from './CertificateShowcase';
 import QuickRevisionView from './QuickRevisionView';
 
 const MainView: React.FC<{ 
-    onStartSoloQuiz: (name: string, topics: string[], config: SoloQuizConfig) => void;
-    onStartGroupQuizLobby: (quiz: GroupQuiz, participantId: string, isOrganizer: boolean) => void;
-}> = ({ onStartSoloQuiz, onStartGroupQuizLobby }) => {
+    onStartQuiz: (name: string, config: SoloQuizConfig) => void;
+}> = ({ onStartQuiz }) => {
     const [quizMode, setQuizMode] = useState<'solo' | 'group' | 'revision'>('solo');
     
-    // Solo Quiz state
+    // Solo & Group state
     const [studentName, setStudentName] = useState('');
-    const [selectedCategoriesForQuiz, setSelectedCategoriesForQuiz] = useState<string[]>([]);
-    const [soloQuizConfig, setSoloQuizConfig] = useState<Omit<SoloQuizConfig, 'categories'>>({ questionCount: 15, timerEnabled: false, timeLimit: 15 });
+    const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
     
-    // Group Quiz state
+    // Solo Config
+    const [soloQuizConfig, setSoloQuizConfig] = useState<Omit<SoloQuizConfig, 'categories' | 'seed'>>({ questionCount: 15, timerEnabled: false, timeLimit: 15 });
+    
+    // Group Challenge State
     const [organizerName, setOrganizerName] = useState('');
     const [joinCode, setJoinCode] = useState('');
-    const [groupQuizConfig, setGroupQuizConfig] = useState({ title: '', questionCount: 10, timeLimit: 10, categories: [] as string[] });
-    const [isCreatingGroup, setIsCreatingGroup] = useState(false);
-    const [activeOrganizerQuiz, setActiveOrganizerQuiz] = useState<string | null>(null);
-    
+    const [generatedChallengeCode, setGeneratedChallengeCode] = useState('');
+    const [groupQuizConfig, setGroupQuizConfig] = useState<Omit<SoloQuizConfig, 'categories' | 'seed'>>({ questionCount: 10, timerEnabled: true, timeLimit: 10 });
+    const [challengeTitle, setChallengeTitle] = useState('');
+
     // Common state
     const [feedbackText, setFeedbackText] = useState('');
     const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
@@ -35,124 +35,111 @@ const MainView: React.FC<{
 
     useEffect(() => {
         setHelperMessage(PHYSICS_HELPER_MESSAGES[Math.floor(Math.random() * PHYSICS_HELPER_MESSAGES.length)]);
-        
-        const activeQuizCode = localStorage.getItem('organizer-active-quiz');
-        if (activeQuizCode) {
-            const quizData = localStorage.getItem(`group-quiz-${activeQuizCode}`);
-            if (quizData) {
-                const quiz: GroupQuiz = JSON.parse(quizData);
-                if (quiz.status === 'lobby') {
-                    setActiveOrganizerQuiz(activeQuizCode);
-                } else {
-                    localStorage.removeItem('organizer-active-quiz');
-                }
-            } else {
-                 localStorage.removeItem('organizer-active-quiz');
-            }
-        }
     }, []);
 
     const handleStartSoloQuizClick = () => {
-        const topicsForQuiz = PHYSICS_CATEGORIES
-            .filter(category => selectedCategoriesForQuiz.includes(category.name))
-            .flatMap(category => category.topics.map(topic => topic.name));
-
-        if (studentName && topicsForQuiz.length > 0) {
-            const configWithCategories: SoloQuizConfig = { ...soloQuizConfig, categories: selectedCategoriesForQuiz };
-            onStartSoloQuiz(studentName, topicsForQuiz, configWithCategories);
+        if (studentName && selectedCategories.length > 0) {
+            const config: SoloQuizConfig = { ...soloQuizConfig, categories: selectedCategories };
+            onStartQuiz(studentName, config);
         } else {
             alert("Please enter your name and select at least one category.");
         }
     };
     
-    const handleCreateGroupQuiz = async () => {
-        if (!organizerName.trim() || !groupQuizConfig.title.trim() || groupQuizConfig.categories.length === 0) {
-            alert("Please provide your name, a quiz title, and select at least one category.");
+    const handleCreateChallenge = () => {
+        if (!organizerName.trim() || !challengeTitle.trim() || selectedCategories.length === 0) {
+            alert("Please provide your name, a challenge title, and select at least one category.");
             return;
         }
-        setIsCreatingGroup(true);
+        
+        const seed = Math.floor(Math.random() * 1000000);
+        const configToEncode = {
+            c: selectedCategories,
+            q: groupQuizConfig.questionCount,
+            t: groupQuizConfig.timeLimit,
+            i: groupQuizConfig.timerEnabled,
+            l: challengeTitle
+        };
+
         try {
-            const topicsForQuiz = PHYSICS_CATEGORIES
-                .filter(category => groupQuizConfig.categories.includes(category.name))
-                .flatMap(category => category.topics.map(topic => topic.name));
+            const configString = JSON.stringify(configToEncode);
+            const encodedConfig = btoa(configString);
+            const code = `${seed}-${encodedConfig}`;
+            setGeneratedChallengeCode(code);
+        } catch (error) {
+            console.error("Failed to create challenge code:", error);
+            alert("Could not create challenge code.");
+        }
+    };
 
-            const questions = await generateQuizQuestions(topicsForQuiz, groupQuizConfig.questionCount);
-            if (questions.length === 0) {
-                throw new Error("Could not generate questions for the selected topics.");
-            }
-            
-            const groupCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-            const newGroupQuiz: GroupQuiz = {
-                code: groupCode,
-                organizerName,
-                config: groupQuizConfig,
-                questions,
-                participants: [],
-                status: 'lobby'
+    const handleJoinChallenge = () => {
+        if (!studentName.trim() || !joinCode.trim()) {
+            alert("Please enter your name and a challenge code.");
+            return;
+        }
+
+        try {
+            const [seedStr, encodedConfig] = joinCode.split('-');
+            if (!seedStr || !encodedConfig) throw new Error("Invalid code format.");
+
+            const seed = parseInt(seedStr, 10);
+            const configString = atob(encodedConfig);
+            const decodedConfig = JSON.parse(configString);
+
+            const config: SoloQuizConfig = {
+                categories: decodedConfig.c,
+                questionCount: decodedConfig.q,
+                timeLimit: decodedConfig.t,
+                timerEnabled: decodedConfig.i,
+                seed: seed
             };
-
-            localStorage.setItem(`group-quiz-${groupCode}`, JSON.stringify(newGroupQuiz));
-            localStorage.setItem('organizer-active-quiz', groupCode);
-            onStartGroupQuizLobby(newGroupQuiz, 'organizer', true);
+            onStartQuiz(studentName, config);
 
         } catch (error) {
-            console.error("Failed to create group quiz:", error);
-            alert("An error occurred while creating the group quiz. Please try again.");
-        } finally {
-            setIsCreatingGroup(false);
+            console.error("Failed to join challenge:", error);
+            alert("Invalid or corrupted challenge code. Please check the code and try again.");
         }
     };
+    
+    const startChallengeForOrganizer = () => {
+        try {
+             const [seedStr, encodedConfig] = generatedChallengeCode.split('-');
+             const seed = parseInt(seedStr, 10);
+             const configString = atob(encodedConfig);
+             const decodedConfig = JSON.parse(configString);
+             const config: SoloQuizConfig = {
+                categories: decodedConfig.c,
+                questionCount: decodedConfig.q,
+                timeLimit: decodedConfig.t,
+                timerEnabled: decodedConfig.i,
+                seed: seed
+            };
+            onStartQuiz(organizerName, config);
+        } catch (e) {
+            alert("Could not start the challenge due to an error.")
+        }
+    }
 
-    const handleJoinGroupQuiz = () => {
-        if (!studentName.trim() || !joinCode.trim()) {
-            alert("Please enter your name and a group code.");
-            return;
-        }
-        const quizData = localStorage.getItem(`group-quiz-${joinCode.toUpperCase()}`);
-        if (!quizData) {
-            alert("Invalid group code. Please check the code and try again.");
-            return;
-        }
-        const quiz: GroupQuiz = JSON.parse(quizData);
-        if (quiz.participants.length >= 15) {
-            alert("This group is full.");
-            return;
-        }
-        if (quiz.status !== 'lobby') {
-            alert("This quiz has already started and cannot be joined.");
-            return;
-        }
-
-        const participantId = `p-${Date.now()}`;
-        const newParticipant = { id: participantId, name: studentName, score: 0, isFinished: false };
-        quiz.participants.push(newParticipant);
-        localStorage.setItem(`group-quiz-${quiz.code}`, JSON.stringify(quiz));
-
-        onStartGroupQuizLobby(quiz, participantId, false);
-    };
-
-    const handleRejoinLobby = () => {
-        if (!activeOrganizerQuiz) return;
-        const quizData = localStorage.getItem(`group-quiz-${activeOrganizerQuiz}`);
-        if (quizData) {
-            const quiz: GroupQuiz = JSON.parse(quizData);
-            onStartGroupQuizLobby(quiz, 'organizer', true);
-        }
-    };
 
     const handleFeedbackSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!feedbackText.trim()) return;
+
+        // Use mailto link
+        const subject = encodeURIComponent("Feedback for Physics Helper App");
+        const body = encodeURIComponent(feedbackText);
+        const developerEmail = "sarique.mohammed_@outlook.com"; // Replace with actual developer email
+        window.location.href = `mailto:${developerEmail}?subject=${subject}&body=${body}`;
+
         setIsSubmittingFeedback(true);
         setFeedbackError('');
         setFeedbackResponse('');
         try {
-            saveFeedback(feedbackText); // Save the feedback to localStorage
             const response = await getFeedbackResponse(feedbackText);
             setFeedbackResponse(response);
             setFeedbackText('');
         } catch (err) {
-            setFeedbackError('Sorry, we couldn\'t submit your feedback right now.');
+            setFeedbackError('Could not generate an AI response, but your email app should be open.');
         } finally {
             setIsSubmittingFeedback(false);
         }
@@ -179,7 +166,7 @@ const MainView: React.FC<{
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     {PHYSICS_CATEGORIES.map(category => (
                                         <div key={category.name} className="flex items-center">
-                                            <input type="checkbox" id={`category-${category.name}`} checked={selectedCategoriesForQuiz.includes(category.name)} onChange={() => setSelectedCategoriesForQuiz(prev => prev.includes(category.name) ? prev.filter(c => c !== category.name) : [...prev, category.name])} className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
+                                            <input type="checkbox" id={`category-${category.name}`} checked={selectedCategories.includes(category.name)} onChange={() => setSelectedCategories(prev => prev.includes(category.name) ? prev.filter(c => c !== category.name) : [...prev, category.name])} className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
                                             <label htmlFor={`category-${category.name}`} className="ml-3 text-gray-700">{category.name}</label>
                                         </div>
                                     ))}
@@ -211,31 +198,27 @@ const MainView: React.FC<{
                                 </div>
                             </div>
 
-                            <button onClick={handleStartSoloQuizClick} disabled={!studentName || selectedCategoriesForQuiz.length === 0} className="w-full px-8 py-4 bg-indigo-600 text-white font-bold text-lg rounded-lg shadow-md hover:bg-indigo-700 disabled:bg-indigo-300 disabled:cursor-not-allowed transition-transform transform hover:scale-105">
+                            <button onClick={handleStartSoloQuizClick} disabled={!studentName || selectedCategories.length === 0} className="w-full px-8 py-4 bg-indigo-600 text-white font-bold text-lg rounded-lg shadow-md hover:bg-indigo-700 disabled:bg-indigo-300 disabled:cursor-not-allowed transition-transform transform hover:scale-105">
                                 Start Quiz!
                             </button>
                         </div>
                     </div>
                 );
             case 'group':
-                 if (activeOrganizerQuiz) {
-                    const quizData = localStorage.getItem(`group-quiz-${activeOrganizerQuiz}`);
-                    const quizTitle = quizData ? (JSON.parse(quizData) as GroupQuiz).config.title : '';
+                 if (generatedChallengeCode) {
                     return (
                         <div className="p-8 bg-white rounded-xl shadow-lg border border-gray-200 text-center space-y-4">
-                            <h2 className="text-2xl font-bold text-gray-800">Active Quiz Lobby</h2>
-                            <p className="text-gray-600">You have a quiz titled "{quizTitle}" waiting for participants.</p>
-                            <p className="font-mono text-2xl font-bold text-indigo-600 bg-gray-100 py-2 px-4 rounded-lg inline-block">{activeOrganizerQuiz}</p>
-                            <div className="flex justify-center gap-4 pt-4">
-                                <button onClick={handleRejoinLobby} className="px-6 py-3 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700">
-                                    Re-enter Lobby
+                            <h2 className="text-2xl font-bold text-green-700">Challenge Created!</h2>
+                            <p className="text-gray-600">Share this code with your friends to start the challenge.</p>
+                            <div className="p-4 bg-gray-100 rounded-lg">
+                                <p className="font-mono text-xl md:text-2xl font-bold text-indigo-600 break-words">{generatedChallengeCode}</p>
+                            </div>
+                            <div className="flex flex-col sm:flex-row justify-center gap-4 pt-4">
+                                <button onClick={startChallengeForOrganizer} className="px-6 py-3 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700">
+                                    Start My Quiz
                                 </button>
-                                <button onClick={() => {
-                                    localStorage.removeItem(`group-quiz-${activeOrganizerQuiz}`);
-                                    localStorage.removeItem('organizer-active-quiz');
-                                    setActiveOrganizerQuiz(null);
-                                }} className="px-6 py-3 bg-gray-200 text-gray-800 font-bold rounded-lg hover:bg-gray-300">
-                                    Abandon & Create New
+                                <button onClick={() => { setGeneratedChallengeCode(''); setSelectedCategories([]); }} className="px-6 py-3 bg-gray-200 text-gray-800 font-bold rounded-lg hover:bg-gray-300">
+                                    Create New Challenge
                                 </button>
                             </div>
                         </div>
@@ -243,59 +226,53 @@ const MainView: React.FC<{
                 }
                  return (
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        {/* Create Group Quiz Card */}
+                        {/* Create Group Challenge Card */}
                         <div className="p-8 bg-white rounded-xl shadow-lg border border-gray-200 space-y-4">
-                            <h2 className="text-2xl font-bold text-gray-800">Create a Group Quiz</h2>
-                            <p className="text-gray-600">Be the organizer! Set up a quiz for your class or study group.</p>
+                            <h2 className="text-2xl font-bold text-gray-800">Create a Group Challenge</h2>
+                            <p className="text-gray-600">Set up a quiz and get a code to share with your friends.</p>
                             <div>
                                 <label className="block font-medium text-gray-700">Your Name (Organizer):</label>
                                 <input type="text" value={organizerName} onChange={e => setOrganizerName(e.target.value)} placeholder="Enter your name" className="w-full mt-1 p-2 bg-white border border-gray-300 rounded" />
                             </div>
                              <div>
-                                <label className="block font-medium text-gray-700">Quiz Title:</label>
-                                <input type="text" value={groupQuizConfig.title} onChange={e => setGroupQuizConfig(c => ({...c, title: e.target.value}))} placeholder="e.g., Term 1 Revision" className="w-full mt-1 p-2 bg-white border border-gray-300 rounded" />
+                                <label className="block font-medium text-gray-700">Challenge Title:</label>
+                                <input type="text" value={challengeTitle} onChange={e => setChallengeTitle(e.target.value)} placeholder="e.g., Term 1 Revision" className="w-full mt-1 p-2 bg-white border border-gray-300 rounded" />
                             </div>
-                            <div>
+                             <div>
                                 <label className="block font-medium text-gray-700">Number of Questions:</label>
                                 <select value={groupQuizConfig.questionCount} onChange={e => setGroupQuizConfig(c => ({...c, questionCount: Number(e.target.value)}))} className="w-full mt-1 p-2 bg-white border border-gray-300 rounded">
                                     {[5, 10, 15, 20, 25].map(n => <option key={n} value={n}>{n}</option>)}
                                 </select>
                             </div>
-                             <div>
-                                <label className="block font-medium text-gray-700">Time Limit (Minutes):</label>
-                                <select value={groupQuizConfig.timeLimit} onChange={e => setGroupQuizConfig(c => ({...c, timeLimit: Number(e.target.value)}))} className="w-full mt-1 p-2 bg-white border border-gray-300 rounded">
-                                    {[5, 10, 15, 20].map(n => <option key={n} value={n}>{n}</option>)}
-                                </select>
-                            </div>
-                             <div>
+                            <div>
                                 <label className="block font-medium text-gray-700 mb-2">Categories:</label>
                                 <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto">
                                     {PHYSICS_CATEGORIES.map(category => (
                                         <label key={category.name} className="flex items-center text-sm">
-                                            <input type="checkbox" checked={groupQuizConfig.categories.includes(category.name)} onChange={() => setGroupQuizConfig(c => ({...c, categories: c.categories.includes(category.name) ? c.categories.filter(cat => cat !== category.name) : [...c.categories, category.name]}))} className="h-4 w-4 rounded border-gray-300 text-indigo-600" />
+                                            <input type="checkbox" checked={selectedCategories.includes(category.name)} onChange={() => setSelectedCategories(c => c.includes(category.name) ? c.filter(cat => cat !== category.name) : [...c, category.name])} className="h-4 w-4 rounded border-gray-300 text-indigo-600" />
                                             <span className="ml-2 text-gray-700">{category.name}</span>
                                         </label>
                                     ))}
                                 </div>
                             </div>
-                            <button onClick={handleCreateGroupQuiz} disabled={isCreatingGroup} className="w-full py-3 bg-green-500 text-white font-bold rounded-lg hover:bg-green-600 disabled:bg-green-300">
-                                {isCreatingGroup ? <LoadingSpinner/> : 'Create Group'}
+                            <button onClick={handleCreateChallenge} className="w-full py-3 bg-green-500 text-white font-bold rounded-lg hover:bg-green-600">
+                                Create Challenge Code
                             </button>
                         </div>
-                        {/* Join Group Quiz Card */}
+                        {/* Join Group Challenge Card */}
                         <div className="p-8 bg-white rounded-xl shadow-lg border border-gray-200 space-y-4">
-                            <h2 className="text-2xl font-bold text-gray-800">Join a Group Quiz</h2>
-                             <p className="text-gray-600">Enter your name and the group code from your organizer to join.</p>
+                            <h2 className="text-2xl font-bold text-gray-800">Join a Group Challenge</h2>
+                             <p className="text-gray-600">Enter your name and the challenge code from your friend to start.</p>
                             <div>
                                 <label className="block font-medium text-gray-700">Your Name:</label>
                                 <input type="text" value={studentName} onChange={e => setStudentName(e.target.value)} placeholder="Enter your name" className="w-full mt-1 p-2 bg-white border border-gray-300 rounded" />
                             </div>
                             <div>
-                                <label className="block font-medium text-gray-700">Group Code:</label>
-                                <input type="text" value={joinCode} onChange={e => setJoinCode(e.target.value)} placeholder="Enter 6-digit code" className="w-full mt-1 p-2 bg-white border border-gray-300 rounded uppercase" />
+                                <label className="block font-medium text-gray-700">Challenge Code:</label>
+                                <input type="text" value={joinCode} onChange={e => setJoinCode(e.target.value)} placeholder="Enter code" className="w-full mt-1 p-2 bg-white border border-gray-300 rounded" />
                             </div>
-                             <button onClick={handleJoinGroupQuiz} className="w-full py-3 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700">
-                                Join Quiz
+                             <button onClick={handleJoinChallenge} className="w-full py-3 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700">
+                                Join Challenge
                             </button>
                         </div>
                     </div>
@@ -317,7 +294,7 @@ const MainView: React.FC<{
                 </p>
                 <div className="mt-8 flex justify-center gap-2 border-t pt-6 bg-gray-50 p-2 rounded-xl">
                     <button onClick={() => setQuizMode('solo')} className={navButtonClass('solo')}>Solo Quiz</button>
-                    <button onClick={() => setQuizMode('group')} className={navButtonClass('group')}>Group Quiz</button>
+                    <button onClick={() => setQuizMode('group')} className={navButtonClass('group')}>Group Challenge</button>
                     <button onClick={() => setQuizMode('revision')} className={navButtonClass('revision')}>Quick Revision</button>
                 </div>
             </section>

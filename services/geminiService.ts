@@ -1,7 +1,6 @@
 import { GoogleGenAI, Type } from "@google/genai";
 // FIX: Import RevisionNote to be used in generateRevisionNotes function.
-import type { QuizQuestion, CertificateData, Indicator, Topic, SoloImprovementReport, GroupQuizReport, GroupQuiz, FeedbackEntry, RevisionNote } from '../types';
-import { PHYSICS_CATEGORIES } from "../constants";
+import type { QuizQuestion, CertificateData, Indicator, Topic, SoloImprovementReport, RevisionNote } from '../types';
 
 const API_KEY = process.env.API_KEY;
 if (!API_KEY) {
@@ -25,7 +24,7 @@ const quizQuestionsSchema = {
     }
 };
 
-export const generateQuizQuestions = async (topics: string[], questionCount: number): Promise<QuizQuestion[]> => {
+export const generateQuizQuestions = async (topics: string[], questionCount: number, seed?: number): Promise<QuizQuestion[]> => {
     const baseDifficultyCount = Math.floor(questionCount / 3);
     const remainder = questionCount % 3;
     const numEasy = baseDifficultyCount + (remainder > 0 ? 1 : 0);
@@ -48,6 +47,7 @@ export const generateQuizQuestions = async (topics: string[], questionCount: num
             config: {
                 responseMimeType: "application/json",
                 responseSchema: quizQuestionsSchema,
+                ...(seed && { seed }),
             },
         });
         const parsed = JSON.parse(response.text);
@@ -133,7 +133,7 @@ export const getSoloImprovementReport = async (studentName: string, correctAnswe
 
 
 export const getFeedbackResponse = async (feedbackText: string): Promise<string> => {
-    const prompt = `A user of the "Physics Helper" app provided this feedback: "${feedbackText}". Generate a short, polite, and encouraging thank you message acknowledging their feedback was received and will be considered.`;
+    const prompt = `A user of the "Physics Helper" app provided this feedback: "${feedbackText}". Generate a short, polite, and encouraging thank you message acknowledging their feedback was received and will be considered for their email.`;
     
     try {
         const response = await ai.models.generateContent({ model: 'gemini-flash-lite-latest', contents: prompt });
@@ -141,101 +141,6 @@ export const getFeedbackResponse = async (feedbackText: string): Promise<string>
     } catch (error) {
         console.error("Error getting feedback response:", error);
         return "Thank you for your feedback! We've received it successfully.";
-    }
-};
-
-const FEEDBACK_STORAGE_KEY = 'physics-helper-feedback';
-
-export const saveFeedback = (feedbackText: string): void => {
-    const getFeedbackFromStorage = (): FeedbackEntry[] => {
-        try {
-            const storedFeedback = localStorage.getItem(FEEDBACK_STORAGE_KEY);
-            return storedFeedback ? JSON.parse(storedFeedback) : [];
-        } catch (error) {
-            console.error("Error parsing feedback from localStorage", error);
-            return [];
-        }
-    };
-    
-    const existingFeedback = getFeedbackFromStorage();
-    const newEntry: FeedbackEntry = {
-        text: feedbackText,
-        timestamp: new Date().toISOString(),
-    };
-    const updatedFeedback = [...existingFeedback, newEntry];
-    localStorage.setItem(FEEDBACK_STORAGE_KEY, JSON.stringify(updatedFeedback));
-};
-
-export const getStoredFeedback = (): FeedbackEntry[] => {
-    try {
-        const storedFeedback = localStorage.getItem(FEEDBACK_STORAGE_KEY);
-        return storedFeedback ? JSON.parse(storedFeedback) : [];
-    } catch (error) {
-        console.error("Error parsing feedback from localStorage", error);
-        return [];
-    }
-};
-
-export const clearStoredFeedback = (): void => {
-    localStorage.removeItem(FEEDBACK_STORAGE_KEY);
-};
-
-const groupQuizReportSchema = {
-    type: Type.OBJECT,
-    properties: {
-        groupSummary: { type: Type.STRING, description: "A brief summary of the group's overall performance." },
-        improvementAreas: { 
-            type: Type.ARRAY, 
-            items: { type: Type.STRING },
-            description: "A list of common topics or concepts the group struggled with."
-        },
-        individualFeedback: {
-            type: Type.ARRAY,
-            items: {
-                type: Type.OBJECT,
-                properties: {
-                    participantName: { type: Type.STRING },
-                    feedback: { type: Type.STRING, description: "Personalized, constructive feedback for each participant." }
-                },
-                required: ['participantName', 'feedback']
-            }
-        }
-    },
-    required: ["groupSummary", "improvementAreas", "individualFeedback"]
-};
-
-export const generateGroupQuizReport = async (quiz: GroupQuiz): Promise<GroupQuizReport> => {
-    const topics = PHYSICS_CATEGORIES
-        .filter(c => quiz.config.categories.includes(c.name))
-        .flatMap(c => c.topics.map(t => t.name));
-
-    const participantsData = quiz.participants.map(p => ({
-        name: p.name,
-        score: `${(p.score / (quiz.questions.length * 10)) * 100}%`
-    }));
-
-    const prompt = `A group quiz titled "${quiz.config.title}" on IGCSE Physics topics (${topics.join(', ')}) has just finished. Here is the list of participants and their final scores: ${JSON.stringify(participantsData)}.
-    
-    Generate a comprehensive report that includes:
-    1. 'groupSummary': A brief, positive summary of the group's overall performance.
-    2. 'improvementAreas': A list of 2-3 common areas where the group might need improvement, based on the quiz topics.
-    3. 'individualFeedback': For each participant in the list, provide a short, personalized, and constructive feedback message. The feedback should acknowledge their performance (without restating the score) and offer encouragement or a specific suggestion. Ensure the name matches exactly.`;
-
-    try {
-        // Using Pro for more nuanced, personalized feedback generation
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-pro',
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: groupQuizReportSchema,
-                thinkingConfig: { thinkingBudget: 32768 },
-            },
-        });
-        return JSON.parse(response.text) as GroupQuizReport;
-    } catch (error) {
-        console.error("Error generating group quiz report:", error);
-        throw new Error("Failed to generate group quiz report from Gemini API.");
     }
 };
 
