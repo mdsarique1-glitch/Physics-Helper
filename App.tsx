@@ -43,7 +43,7 @@ const App: React.FC = () => {
 
   const showCertificate = async (result: QuizResult) => {
     const accuracy = result.totalQuestions > 0 ? (result.correctAnswers / result.totalQuestions) * 100 : 0;
-    const hasCertificate = accuracy >= 70 && !result.error;
+    const hasCertificate = accuracy >= 61 && !result.error;
 
     try {
         if (hasCertificate) {

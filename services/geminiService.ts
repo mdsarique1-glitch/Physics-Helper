@@ -1,3 +1,4 @@
+
 import { GoogleGenAI, Type } from "@google/genai";
 import type { QuizQuestion, CertificateData, Indicator, Topic, RevisionNote, SoloImprovementReport, GroupQuizReport, GroupQuiz, ConceptExplanation, FeedbackEntry } from '../types';
 import { PHYSICS_CATEGORIES } from "../constants";
@@ -64,16 +65,15 @@ export const generateQuizQuestions = async (topics: string[], questionCount: num
 const certificateDataSchema = {
     type: Type.OBJECT,
     properties: {
-        summary: { type: Type.STRING, description: "A short, positive performance summary." },
-        improvementAreas: { type: Type.STRING, description: "One or two clear, specific, and actionable areas for improvement, phrased constructively." }
+        summary: { type: Type.STRING, description: "A short, encouraging, and positive performance summary celebrating the student's achievement." }
     },
-    required: ["summary", "improvementAreas"]
+    required: ["summary"]
 };
 
 export const getCertificateData = async (studentName: string, correctAnswers: number, totalQuestions: number, topics: string[]): Promise<CertificateData> => {
-    const prompt = `An IGCSE Physics student named ${studentName} just completed a quiz on the topics: ${topics.join(', ')}. They scored ${correctAnswers} out of ${totalQuestions}. Based on this, generate:
-    1.  A short, positive performance summary.
-    2.  One or two clear, specific, and actionable areas for improvement, phrased constructively. For example, instead of 'review motion,' suggest 'focus on differentiating between distance-time and speed-time graphs.'`;
+    const prompt = `An IGCSE Physics student named ${studentName} just completed a quiz on the topics: ${topics.join(', ')}. They scored ${correctAnswers} out of ${totalQuestions}.
+    
+    Based on this, generate a short, encouraging, and positive performance summary to be displayed on their certificate. It should celebrate their achievement and strong performance on the quiz topics.`;
 
     try {
         const response = await ai.models.generateContent({
@@ -109,7 +109,7 @@ const soloImprovementReportSchema = {
 
 export const getSoloImprovementReport = async (studentName: string, correctAnswers: number, totalQuestions: number, topics: string[]): Promise<SoloImprovementReport> => {
     const accuracy = ((correctAnswers / totalQuestions) * 100).toFixed(0);
-    const prompt = `An IGCSE Physics student named ${studentName} completed a quiz on the topics: ${topics.join(', ')}. They scored ${correctAnswers} out of ${totalQuestions} (${accuracy}%), which is below the 70% pass mark. 
+    const prompt = `An IGCSE Physics student named ${studentName} completed a quiz on the topics: ${topics.join(', ')}. They scored ${correctAnswers} out of ${totalQuestions} (${accuracy}%), which is below the 61% required for a certificate. 
     
     Generate a constructive report that includes:
     1. A list of 2-3 key areas for improvement, based on the topics they were tested on. Be specific (e.g., "Understanding the difference between speed and velocity", "Applying the principle of moments").

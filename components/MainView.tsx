@@ -184,19 +184,19 @@ const MainView: React.FC<{
         switch(mode) {
             case 'revision':
                  return (
-                    <div className="md:col-span-9">
+                    <div>
                         <QuickRevisionView />
                     </div>
                 );
             case 'solo-quiz':
                 return (
-                    <div className="md:col-span-9">
+                    <div>
                         <div className="p-8 bg-white rounded-xl shadow-lg border border-gray-200">
                              <h2 className="text-3xl font-bold text-gray-800 text-center">Solo Quiz Challenge</h2>
                              <div className="mt-6 max-w-2xl mx-auto text-left space-y-6">
                                  <div className="mb-4">
                                     <label htmlFor="studentName" className="block text-lg font-medium text-gray-700 mb-2">Enter your name:</label>
-                                    <input id="studentName" type="text" value={studentName} onChange={(e) => setStudentName(e.target.value)} placeholder="e.g., Albert Einstein" className="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+                                    <input id="studentName" type="text" value={studentName} onChange={(e) => setStudentName(e.target.value)} placeholder="e.g., Albert Einstein" className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
                                 </div>
 
                                 <CertificateShowcase />
@@ -216,7 +216,7 @@ const MainView: React.FC<{
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 border rounded-lg">
                                      <div>
                                         <label htmlFor="questionCount" className="block text-lg font-medium text-gray-700 mb-2">Number of Questions:</label>
-                                        <select id="questionCount" value={soloQuizConfig.questionCount} onChange={e => setSoloQuizConfig(c => ({...c, questionCount: Number(e.target.value)}))} className="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                        <select id="questionCount" value={soloQuizConfig.questionCount} onChange={e => setSoloQuizConfig(c => ({...c, questionCount: Number(e.target.value)}))} className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
                                             {Array.from({length: 16}, (_, i) => i + 15).map(n => <option key={n} value={n}>{n} Questions</option>)}
                                         </select>
                                     </div>
@@ -228,7 +228,7 @@ const MainView: React.FC<{
                                                 <span className="ml-2 text-gray-700">Enable Timer</span>
                                             </label>
                                             {soloQuizConfig.timerEnabled && (
-                                                <select value={soloQuizConfig.timeLimit} onChange={e => setSoloQuizConfig(c => ({...c, timeLimit: Number(e.target.value)}))} className="w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                                                <select value={soloQuizConfig.timeLimit} onChange={e => setSoloQuizConfig(c => ({...c, timeLimit: Number(e.target.value)}))} className="w-full px-4 py-2 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
                                                     <option value={5}>5 mins</option>
                                                     <option value={10}>10 mins</option>
                                                     <option value={15}>15 mins</option>
@@ -250,7 +250,7 @@ const MainView: React.FC<{
                     const quizData = localStorage.getItem(`group-quiz-${activeOrganizerQuiz}`);
                     const quizTitle = quizData ? (JSON.parse(quizData) as GroupQuiz).config.title : '';
                     return (
-                        <div className="md:col-span-9">
+                        <div>
                             <div className="p-8 bg-white rounded-xl shadow-lg border border-gray-200 text-center space-y-4">
                                 <h2 className="text-2xl font-bold text-gray-800">Active Quiz Lobby</h2>
                                 <p className="text-gray-600">You have a quiz titled "{quizTitle}" waiting for participants.</p>
@@ -272,28 +272,28 @@ const MainView: React.FC<{
                     );
                 }
                  return (
-                    <div className="md:col-span-9 grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                         {/* Create Group Quiz Card */}
                         <div className="p-8 bg-white rounded-xl shadow-lg border border-gray-200 space-y-4">
                             <h2 className="text-2xl font-bold text-gray-800">Create a Group Quiz</h2>
                             <p className="text-gray-600">Be the organizer! Set up a quiz for your class or study group.</p>
                             <div>
                                 <label className="block font-medium text-gray-700">Your Name (Organizer):</label>
-                                <input type="text" value={organizerName} onChange={e => setOrganizerName(e.target.value)} placeholder="Enter your name" className="w-full mt-1 p-2 border rounded" />
+                                <input type="text" value={organizerName} onChange={e => setOrganizerName(e.target.value)} placeholder="Enter your name" className="w-full mt-1 p-2 bg-white border border-gray-300 rounded" />
                             </div>
                              <div>
                                 <label className="block font-medium text-gray-700">Quiz Title:</label>
-                                <input type="text" value={groupQuizConfig.title} onChange={e => setGroupQuizConfig(c => ({...c, title: e.target.value}))} placeholder="e.g., Term 1 Revision" className="w-full mt-1 p-2 border rounded" />
+                                <input type="text" value={groupQuizConfig.title} onChange={e => setGroupQuizConfig(c => ({...c, title: e.target.value}))} placeholder="e.g., Term 1 Revision" className="w-full mt-1 p-2 bg-white border border-gray-300 rounded" />
                             </div>
                             <div>
                                 <label className="block font-medium text-gray-700">Number of Questions:</label>
-                                <select value={groupQuizConfig.questionCount} onChange={e => setGroupQuizConfig(c => ({...c, questionCount: Number(e.target.value)}))} className="w-full mt-1 p-2 border rounded">
+                                <select value={groupQuizConfig.questionCount} onChange={e => setGroupQuizConfig(c => ({...c, questionCount: Number(e.target.value)}))} className="w-full mt-1 p-2 bg-white border border-gray-300 rounded">
                                     {[5, 10, 15, 20, 25].map(n => <option key={n} value={n}>{n}</option>)}
                                 </select>
                             </div>
                              <div>
                                 <label className="block font-medium text-gray-700">Time Limit (Minutes):</label>
-                                <select value={groupQuizConfig.timeLimit} onChange={e => setGroupQuizConfig(c => ({...c, timeLimit: Number(e.target.value)}))} className="w-full mt-1 p-2 border rounded">
+                                <select value={groupQuizConfig.timeLimit} onChange={e => setGroupQuizConfig(c => ({...c, timeLimit: Number(e.target.value)}))} className="w-full mt-1 p-2 bg-white border border-gray-300 rounded">
                                     {[5, 10, 15, 20].map(n => <option key={n} value={n}>{n}</option>)}
                                 </select>
                             </div>
@@ -318,11 +318,11 @@ const MainView: React.FC<{
                              <p className="text-gray-600">Enter your name and the group code from your organizer to join.</p>
                             <div>
                                 <label className="block font-medium text-gray-700">Your Name:</label>
-                                <input type="text" value={studentName} onChange={e => setStudentName(e.target.value)} placeholder="Enter your name" className="w-full mt-1 p-2 border rounded" />
+                                <input type="text" value={studentName} onChange={e => setStudentName(e.target.value)} placeholder="Enter your name" className="w-full mt-1 p-2 bg-white border border-gray-300 rounded" />
                             </div>
                             <div>
                                 <label className="block font-medium text-gray-700">Group Code:</label>
-                                <input type="text" value={joinCode} onChange={e => setJoinCode(e.target.value)} placeholder="Enter 6-digit code" className="w-full mt-1 p-2 border rounded uppercase" />
+                                <input type="text" value={joinCode} onChange={e => setJoinCode(e.target.value)} placeholder="Enter 6-digit code" className="w-full mt-1 p-2 bg-white border border-gray-300 rounded uppercase" />
                             </div>
                              <button onClick={handleJoinGroupQuiz} className="w-full py-3 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700">
                                 Join Quiz
@@ -353,7 +353,7 @@ const MainView: React.FC<{
                             value={searchQuery}
                             onChange={e => setSearchQuery(e.target.value)}
                             placeholder="Quick search for a concept (e.g., Velocity, Ohm's Law)..."
-                            className="w-full px-4 py-3 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
                         />
                         <button type="submit" disabled={isSearching} className="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 disabled:bg-indigo-300">
                             {isSearching ? '...' : 'Search'}
@@ -402,7 +402,10 @@ const MainView: React.FC<{
             </section>
 
              <section className="grid grid-cols-1 md:grid-cols-12 gap-6">
-                <div className="md:col-span-3">
+                <div className="md:col-span-9 order-1 md:order-1">
+                    {renderModeContent()}
+                </div>
+                <div className="md:col-span-3 order-2 md:order-2">
                     <div className="p-4 bg-white rounded-lg shadow-md sticky top-20">
                          <h3 className="text-xl font-bold text-gray-800 mb-4">Have Feedback?</h3>
                         <p className="text-gray-600 mb-4 text-sm">
@@ -414,7 +417,7 @@ const MainView: React.FC<{
                                 onChange={(e) => setFeedbackText(e.target.value)}
                                 rows={3}
                                 placeholder="Your experience, suggestions..."
-                                className="w-full p-2 border border-gray-300 rounded-lg text-sm"
+                                className="w-full p-2 bg-white border border-gray-300 rounded-lg text-sm"
                             ></textarea>
                             <button
                                 type="submit"
@@ -433,7 +436,6 @@ const MainView: React.FC<{
                         </div>
                     </div>
                 </div>
-                {renderModeContent()}
             </section>
         </div>
     );

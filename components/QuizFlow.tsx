@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, type QuizQuestion, type QuizResult } from '../types';
 import type { SoloQuizConfig } from '../App';
@@ -6,7 +7,6 @@ import { MOTIVATIONAL_QUOTES } from '../constants';
 import LoadingSpinner from './LoadingSpinner';
 
 declare var html2canvas: any;
-declare var jspdf: any;
 
 const Timer: React.FC<{ seconds: number }> = ({ seconds }) => {
     const minutes = Math.floor(seconds / 60);
@@ -217,7 +217,13 @@ const CertificateView: React.FC<{
     const motivationalQuote = MOTIVATIONAL_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)];
     
     const accuracy = result.totalQuestions > 0 ? (result.correctAnswers / result.totalQuestions) * 100 : 0;
-    const tier = accuracy === 100 ? 'Gold' : accuracy >= 90 ? 'Silver' : 'Bronze';
+    
+    const getTier = (acc: number): 'Gold' | 'Silver' | 'Bronze' => {
+        if (acc >= 81) return 'Gold';
+        if (acc >= 71) return 'Silver';
+        return 'Bronze';
+    };
+    const tier = getTier(accuracy);
 
     const theme = {
         Gold: { bg: 'bg-gradient-to-br from-yellow-50 via-amber-100 to-yellow-200', border: 'border-amber-400' },
@@ -229,24 +235,45 @@ const CertificateView: React.FC<{
 
     const handleDownload = async () => {
         if (!certRef.current) return;
-        const canvas = await html2canvas(certRef.current, { scale: 2, backgroundColor: null }); // Use null for transparent bg on canvas
-        const imgData = canvas.toDataURL('image/png');
-        const { jsPDF } = jspdf;
-        const pdf = new jsPDF({ orientation: 'landscape', unit: 'px', format: [canvas.width, canvas.height] });
-        pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
-        pdf.save(`Physics-Helper-Certificate-${studentName}.pdf`);
+        const canvas = await html2canvas(certRef.current, { scale: 2, backgroundColor: null });
+        const image = canvas.toDataURL('image/jpeg', 0.95);
+        const link = document.createElement('a');
+        link.href = image;
+        link.download = `Physics-Helper-Certificate-${studentName}.jpeg`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     };
 
-    const handleShare = () => {
-        const shareUrl = 'https://ai.google.dev/gemini-api/docs/models/gemini';
-        if (navigator.share) {
-            navigator.share({
-                title: 'I earned a certificate on Physics Helper!',
-                text: `I just earned a ${tier} certificate on the Physics Helper app with a score of ${accuracy.toFixed(0)}%! I was tested on ${result.categories?.join(', ')}.`,
-                url: shareUrl,
-            }).catch(console.error);
-        } else {
-            alert('Share feature is not supported on this browser.');
+    const handleShare = async () => {
+        if (!certRef.current || !navigator.share) {
+            alert('Share feature is not supported on this browser. Try downloading instead.');
+            return;
+        }
+
+        try {
+            const canvas = await html2canvas(certRef.current, { scale: 2, backgroundColor: null });
+            canvas.toBlob(async (blob) => {
+                if (!blob) throw new Error('Could not create image blob.');
+                
+                const file = new File([blob], `Physics-Helper-Certificate-${studentName}.jpeg`, { type: 'image/jpeg' });
+                const shareData = {
+                    files: [file],
+                    title: 'I earned a certificate on Physics Helper!',
+                    text: `I just earned a ${tier} certificate on the Physics Helper app with a score of ${accuracy.toFixed(0)}%! I was tested on ${result.categories?.join(', ')}.`,
+                };
+
+                if (navigator.canShare && navigator.canShare(shareData)) {
+                    await navigator.share(shareData);
+                } else {
+                    alert("Sharing images isn't supported on this browser. You can download and share it manually.");
+                }
+            }, 'image/jpeg', 0.95);
+        } catch (error) {
+            console.error('Sharing failed:', error);
+            if ((error as Error).name !== 'AbortError') {
+                 alert('An error occurred while trying to share the certificate.');
+            }
         }
     };
 
@@ -280,8 +307,6 @@ const CertificateView: React.FC<{
                         </div>
                         <h4 className="font-bold text-lg text-gray-800">Performance Summary:</h4>
                         <p className="text-gray-700">{certData?.summary}</p>
-                        <h4 className="font-bold text-lg text-gray-800">Areas for Improvement:</h4>
-                        <p className="text-gray-700">{certData?.improvementAreas}</p>
                     </div>
                 )}
                 <p className="mt-8 text-gray-500 italic">"{motivationalQuote}"</p>
@@ -298,7 +323,7 @@ const CertificateView: React.FC<{
                 </div>
             </div>
             <div className="mt-8 flex justify-center flex-wrap gap-4">
-                <button onClick={handleDownload} className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition">Download PDF</button>
+                <button onClick={handleDownload} className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition">Download JPEG</button>
                 <button onClick={handleShare} className="px-6 py-3 bg-teal-500 text-white font-semibold rounded-lg shadow-md hover:bg-teal-600 transition">Share</button>
                 <button onClick={onReset} className="px-6 py-3 bg-gray-600 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700 transition">Back to Home</button>
             </div>
@@ -321,23 +346,44 @@ const ImprovementReportView: React.FC<{
     const handleDownload = async () => {
         if (!reportRef.current) return;
         const canvas = await html2canvas(reportRef.current, { scale: 2 });
-        const imgData = canvas.toDataURL('image/png');
-        const { jsPDF } = jspdf;
-        const pdf = new jsPDF({ orientation: 'portrait', unit: 'px', format: [canvas.width, canvas.height] });
-        pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
-        pdf.save(`Physics-Helper-Report-${studentName}.pdf`);
+        const image = canvas.toDataURL('image/jpeg', 0.95);
+        const link = document.createElement('a');
+        link.href = image;
+        link.download = `Physics-Helper-Report-${studentName}.jpeg`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     };
 
-    const handleShare = () => {
-        const shareUrl = 'https://ai.google.dev/gemini-api/docs/models/gemini';
-        if (navigator.share) {
-            navigator.share({
-                title: 'My Physics Quiz Report',
-                text: `I just took a quiz on Physics Helper! My score was ${accuracy.toFixed(0)}%. Time to review and improve!`,
-                url: shareUrl,
-            }).catch(console.error);
-        } else {
-            alert('Share feature is not supported on this browser.');
+    const handleShare = async () => {
+        if (!reportRef.current || !navigator.share) {
+            alert('Share feature is not supported on this browser. Try downloading instead.');
+            return;
+        }
+    
+        try {
+            const canvas = await html2canvas(reportRef.current, { scale: 2 });
+            canvas.toBlob(async (blob) => {
+                if (!blob) throw new Error('Could not create image blob.');
+                
+                const file = new File([blob], `Physics-Helper-Report-${studentName}.jpeg`, { type: 'image/jpeg' });
+                const shareData = {
+                    files: [file],
+                    title: 'My Physics Quiz Report',
+                    text: `I just took a quiz on Physics Helper! My score was ${accuracy.toFixed(0)}%. Time to review and improve!`,
+                };
+    
+                if (navigator.canShare && navigator.canShare(shareData)) {
+                    await navigator.share(shareData);
+                } else {
+                    alert("Sharing images isn't supported on this browser. You can download and share it manually.");
+                }
+            }, 'image/jpeg', 0.95);
+        } catch (error) {
+            console.error('Sharing failed:', error);
+            if ((error as Error).name !== 'AbortError') {
+                 alert('An error occurred while trying to share the report.');
+            }
         }
     };
 
@@ -387,7 +433,7 @@ const ImprovementReportView: React.FC<{
                 </div>
             </div>
             <div className="mt-8 flex justify-center flex-wrap gap-4">
-                <button onClick={handleDownload} className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition">Download Report</button>
+                <button onClick={handleDownload} className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition">Download JPEG</button>
                 <button onClick={handleShare} className="px-6 py-3 bg-teal-500 text-white font-semibold rounded-lg shadow-md hover:bg-teal-600 transition">Share</button>
                 <button onClick={onReset} className="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition">Try Again</button>
             </div>
@@ -407,7 +453,7 @@ interface QuizFlowProps {
 
 const QuizFlow: React.FC<QuizFlowProps> = ({ initialView, studentName, selectedTopics, quizConfig, quizResult, onQuizComplete, onReset }) => {
     const accuracy = quizResult && quizResult.totalQuestions > 0 ? (quizResult.correctAnswers / quizResult.totalQuestions) * 100 : 0;
-    const hasCertificate = quizResult && accuracy >= 70 && !quizResult.error;
+    const hasCertificate = quizResult && accuracy >= 61 && !quizResult.error;
 
     switch (initialView) {
         case View.QUIZ:

@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 const CertificateTier: React.FC<{
@@ -33,25 +34,25 @@ const CertificateShowcase: React.FC = () => {
             <CertificateTier
                 type="Gold"
                 icon={<GoldIcon />}
-                rule="Awarded for a perfect score of 100%."
+                rule="Awarded for an excellent score of 81% or higher."
                 bgColor="bg-amber-100"
                 textColor="text-amber-800"
             />
             <CertificateTier
                 type="Silver"
                 icon={<SilverIcon />}
-                rule="Awarded for an excellent score of 90% or higher."
+                rule="Awarded for a great score of 71% to 80%."
                 bgColor="bg-slate-200"
                 textColor="text-slate-800"
             />
             <CertificateTier
                 type="Bronze"
                 icon={<BronzeIcon />}
-                rule="Awarded for a great score of 70% or higher."
+                rule="Awarded for a good score of 61% to 70%."
                 bgColor="bg-orange-200"
                 textColor="text-orange-900"
             />
-            <p className="text-xs text-center text-gray-600 pt-2">Scores below 70% receive a personalized improvement report to help you succeed next time!</p>
+            <p className="text-xs text-center text-gray-600 pt-2">Scores 60% and below receive a personalized improvement report to help you succeed next time!</p>
         </div>
     );
 };

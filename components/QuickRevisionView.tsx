@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { PHYSICS_CATEGORIES } from '../constants';
 import { generateRevisionNotes } from '../services/geminiService';
@@ -101,11 +102,28 @@ const RevisionTopicView: React.FC<{ topic: Topic }> = ({ topic }) => {
 
     React.useEffect(() => {
         const fetchNotes = async () => {
+            const cacheKey = `revision-notes-${topic.name}`;
+            try {
+                const cachedNotes = sessionStorage.getItem(cacheKey);
+                if (cachedNotes) {
+                    setNotes(JSON.parse(cachedNotes));
+                    setIsLoading(false);
+                    return;
+                }
+            } catch (e) {
+                console.warn("Could not retrieve cached notes:", e)
+            }
+            
             setIsLoading(true);
             setError(null);
             try {
                 const fetchedNotes = await generateRevisionNotes(topic);
                 setNotes(fetchedNotes);
+                try {
+                    sessionStorage.setItem(cacheKey, JSON.stringify(fetchedNotes));
+                } catch(e) {
+                     console.warn("Could not cache revision notes:", e)
+                }
             } catch (err) {
                 setError('Failed to load revision notes. Please try again later.');
             } finally {

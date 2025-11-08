@@ -7,7 +7,6 @@ import LoadingSpinner from './LoadingSpinner';
 import CertificateShowcase from './CertificateShowcase';
 
 declare var html2canvas: any;
-declare var jspdf: any;
 
 const Timer: React.FC<{ seconds: number }> = ({ seconds }) => {
     const minutes = Math.floor(seconds / 60);
@@ -340,23 +339,44 @@ const GroupCertificateView: React.FC<{
         const handleDownload = async () => {
             if (!reportRef.current) return;
             const canvas = await html2canvas(reportRef.current, { scale: 2 });
-            const imgData = canvas.toDataURL('image/png');
-            const { jsPDF } = jspdf;
-            const pdf = new jsPDF({ orientation: 'portrait', unit: 'px', format: [canvas.width, canvas.height] });
-            pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
-            pdf.save(`Physics-Helper-Report-${participant.name}.pdf`);
+            const image = canvas.toDataURL('image/jpeg', 0.95);
+            const link = document.createElement('a');
+            link.href = image;
+            link.download = `Physics-Helper-Report-${participant.name}.jpeg`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
         };
 
-        const handleShare = () => {
-            const shareUrl = 'https://ai.google.dev/gemini-api/docs/models/gemini';
-             if (navigator.share) {
-                navigator.share({
-                    title: 'My Physics Quiz Report',
-                    text: `I just took a group quiz on Physics Helper and scored ${accuracy.toFixed(0)}%. Time to study up!`,
-                    url: shareUrl,
-                }).catch(console.error);
-            } else {
-                alert('Share feature is not supported on your browser.');
+        const handleShare = async () => {
+             if (!reportRef.current || !navigator.share) {
+                alert('Share feature is not supported on your browser. Try downloading instead.');
+                return;
+            }
+        
+            try {
+                const canvas = await html2canvas(reportRef.current, { scale: 2 });
+                canvas.toBlob(async (blob) => {
+                    if (!blob) throw new Error('Could not create image blob.');
+                    
+                    const file = new File([blob], `Physics-Helper-Report-${participant.name}.jpeg`, { type: 'image/jpeg' });
+                    const shareData = {
+                        files: [file],
+                        title: 'My Physics Quiz Report',
+                        text: `I just took a group quiz on Physics Helper and scored ${accuracy.toFixed(0)}%. Time to study up!`,
+                    };
+        
+                    if (navigator.canShare && navigator.canShare(shareData)) {
+                        await navigator.share(shareData);
+                    } else {
+                        alert("Sharing images isn't supported on this browser. You can download and share it manually.");
+                    }
+                }, 'image/jpeg', 0.95);
+            } catch (error) {
+                console.error('Sharing failed:', error);
+                if ((error as Error).name !== 'AbortError') {
+                    alert('An error occurred while trying to share the report.');
+                }
             }
         };
 
@@ -400,7 +420,7 @@ const GroupCertificateView: React.FC<{
                     </div>
                 </div>
                  <div className="mt-8 flex justify-center flex-wrap gap-4">
-                    <button onClick={handleDownload} className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700">Download Report</button>
+                    <button onClick={handleDownload} className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700">Download JPEG</button>
                     <button onClick={handleShare} className="px-6 py-3 bg-teal-500 text-white rounded-lg font-semibold hover:bg-teal-600">Share</button>
                     <button onClick={onReset} className="px-6 py-3 bg-indigo-600 text-white rounded-lg">Back to Home</button>
                 </div>
@@ -417,7 +437,13 @@ const GroupCertificateView: React.FC<{
         useEffect(() => { getCertificateData(participant.name, result.correctAnswers, result.totalQuestions, topics).then(setCertData).catch(console.error).finally(() => setLoading(false)); }, []);
         
         const accuracy = (result.correctAnswers / result.totalQuestions) * 100;
-        const tier = accuracy === 100 ? 'Gold' : accuracy >= 90 ? 'Silver' : 'Bronze';
+        
+        const getTier = (acc: number): 'Gold' | 'Silver' | 'Bronze' => {
+            if (acc >= 81) return 'Gold';
+            if (acc >= 71) return 'Silver';
+            return 'Bronze';
+        };
+        const tier = getTier(accuracy);
 
         const theme = {
             Gold: { bg: 'bg-gradient-to-br from-yellow-50 via-amber-100 to-yellow-200', border: 'border-amber-400' },
@@ -426,19 +452,48 @@ const GroupCertificateView: React.FC<{
         };
         const { bg, border } = theme[tier];
 
-        const handleDownload = async () => { if (!certRef.current) return; const canvas = await html2canvas(certRef.current, { scale: 2, backgroundColor: null }); const imgData = canvas.toDataURL('image/png'); const { jsPDF } = jspdf; const pdf = new jsPDF({ orientation: 'landscape', unit: 'px', format: [canvas.width, canvas.height] }); pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height); pdf.save(`Certificate-${participant.name}.pdf`); };
+        const handleDownload = async () => { 
+            if (!certRef.current) return; 
+            const canvas = await html2canvas(certRef.current, { scale: 2, backgroundColor: null }); 
+            const image = canvas.toDataURL('image/jpeg', 0.95);
+            const link = document.createElement('a');
+            link.href = image;
+            link.download = `Physics-Helper-Certificate-${participant.name}.jpeg`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        };
         
         const accStr = accuracy.toFixed(0);
-        const handleShare = () => {
-            const shareUrl = 'https://ai.google.dev/gemini-api/docs/models/gemini';
-             if (navigator.share) {
-                navigator.share({
-                    title: 'My Physics Quiz Certificate!',
-                    text: `I just earned a ${tier} certificate in a group quiz on Physics Helper with a score of ${accStr}% and rank #${result.rank}! We covered ${quiz.config.categories.join(', ')}.`,
-                    url: shareUrl,
-                }).catch(console.error);
-            } else {
-                alert('Share feature is not supported on your browser.');
+        const handleShare = async () => {
+             if (!certRef.current || !navigator.share) {
+                alert('Share feature is not supported on this browser. Try downloading instead.');
+                return;
+            }
+        
+            try {
+                const canvas = await html2canvas(certRef.current, { scale: 2, backgroundColor: null });
+                canvas.toBlob(async (blob) => {
+                    if (!blob) throw new Error('Could not create image blob.');
+                    
+                    const file = new File([blob], `Physics-Helper-Certificate-${participant.name}.jpeg`, { type: 'image/jpeg' });
+                    const shareData = {
+                        files: [file],
+                        title: 'My Physics Quiz Certificate!',
+                        text: `I just earned a ${tier} certificate in a group quiz on Physics Helper with a score of ${accStr}% and rank #${result.rank}! We covered ${quiz.config.categories.join(', ')}.`,
+                    };
+        
+                    if (navigator.canShare && navigator.canShare(shareData)) {
+                        await navigator.share(shareData);
+                    } else {
+                        alert("Sharing images isn't supported on this browser. You can download and share it manually.");
+                    }
+                }, 'image/jpeg', 0.95);
+            } catch (error) {
+                console.error('Sharing failed:', error);
+                if ((error as Error).name !== 'AbortError') {
+                    alert('An error occurred while trying to share the certificate.');
+                }
             }
         };
 
@@ -458,7 +513,7 @@ const GroupCertificateView: React.FC<{
                         <div className="p-4 bg-white/50 rounded-lg"><p className="text-3xl font-bold text-purple-600">#{result.rank}</p><p className="text-gray-600 text-sm">Group Rank</p></div>
                         <div className="p-4 bg-white/50 rounded-lg"><p className="text-3xl font-bold text-blue-600">{accStr}%</p><p className="text-gray-600 text-sm">Score</p></div>
                     </div>
-                    {loading ? <div className="py-4"><LoadingSpinner/></div> : (<div className="text-left space-y-4 my-6 bg-white/60 p-6 rounded-lg"><h4 className="font-bold text-lg text-gray-800">Performance Summary:</h4><p className="text-gray-700">{certData?.summary}</p><h4 className="font-bold text-lg text-gray-800 mt-4">Areas for Improvement:</h4><p className="text-gray-700">{certData?.improvementAreas}</p></div>)}
+                    {loading ? <div className="py-4"><LoadingSpinner/></div> : (<div className="text-left space-y-4 my-6 bg-white/60 p-6 rounded-lg"><h4 className="font-bold text-lg text-gray-800">Performance Summary:</h4><p className="text-gray-700">{certData?.summary}</p></div>)}
                     <p className="mt-8 text-gray-500 italic">"{motivationalQuote}"</p>
                      <div className="mt-6 pt-4 border-t-2 border-gray-300/50 flex items-center justify-between">
                         <div className="text-left">
@@ -473,7 +528,7 @@ const GroupCertificateView: React.FC<{
                     </div>
                 </div>
                 <div className="mt-8 flex justify-center flex-wrap gap-4">
-                    <button onClick={handleDownload} className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700">Download</button>
+                    <button onClick={handleDownload} className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700">Download JPEG</button>
                     <button onClick={handleShare} className="px-6 py-3 bg-teal-500 text-white rounded-lg font-semibold hover:bg-teal-600">Share</button>
                     <button onClick={onReset} className="px-6 py-3 bg-gray-600 text-white rounded-lg">Back to Home</button>
                 </div>
@@ -482,7 +537,7 @@ const GroupCertificateView: React.FC<{
     };
 
     const accuracy = (result.correctAnswers / result.totalQuestions) * 100;
-    return accuracy >= 70 ? <Certificate /> : <ImprovementReport />;
+    return accuracy >= 61 ? <Certificate /> : <ImprovementReport />;
 };
 
 
@@ -526,15 +581,13 @@ const GroupResultsView: React.FC<{
     const handleDownloadReport = async () => {
         if (!reportRef.current) return;
         const canvas = await html2canvas(reportRef.current, { scale: 2 });
-        const imgData = canvas.toDataURL('image/png');
-        const { jsPDF } = jspdf;
-        const pdf = new jsPDF({ orientation: 'portrait', unit: 'px', format: 'a4' });
-        const pdfWidth = pdf.internal.pageSize.getWidth();
-        const canvasAspectRatio = canvas.width / canvas.height;
-        const finalCanvasHeight = pdfWidth / canvasAspectRatio;
-        
-        pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, finalCanvasHeight);
-        pdf.save(`Group-Report-${quiz.config.title}.pdf`);
+        const image = canvas.toDataURL('image/jpeg', 0.95);
+        const link = document.createElement('a');
+        link.href = image;
+        link.download = `Group-Report-${quiz.config.title}.jpeg`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     };
 
     const sortedParticipants = [...quizState.participants].sort((a, b) => b.score - a.score);
@@ -553,7 +606,7 @@ const GroupResultsView: React.FC<{
             <h2 className="text-3xl font-bold text-indigo-700">Group Quiz Results</h2>
             <p className="text-lg mt-2 text-gray-600">{quizState.config.title}</p>
             
-            <div ref={reportRef}>
+            <div ref={reportRef} className="p-4 bg-white">
                 {isOrganizer && (
                     <div className="my-6 p-6 bg-gray-50 rounded-lg text-left border border-gray-200">
                         <h3 className="text-2xl font-bold text-gray-800 mb-4 text-center">Organizer's Report</h3>
@@ -598,7 +651,7 @@ const GroupResultsView: React.FC<{
                         ) : (
                             <button onClick={handleShareReport} className="px-8 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600">Share Results</button>
                         )}
-                        <button onClick={handleDownloadReport} className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Download Report</button>
+                        <button onClick={handleDownloadReport} className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Download Report (JPEG)</button>
                    </>
                 ) : (
                     <button onClick={() => setView('certificate')} className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">View My Certificate/Report</button>

@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 export interface Indicator {
@@ -60,7 +61,6 @@ export interface QuizResult {
 
 export interface CertificateData {
     summary: string;
-    improvementAreas: string;
 }
 
 export interface SoloImprovementReport {
