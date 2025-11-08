@@ -5,8 +5,13 @@ import { PHYSICS_CATEGORIES, MOTIVATIONAL_QUOTES } from '../constants';
 import LoadingSpinner from './LoadingSpinner';
 import CertificateShowcase from './CertificateShowcase';
 
-declare var html2canvas: any;
-declare var jspdf: any;
+// FIX: Add global window declarations for html2canvas and jspdf to resolve TypeScript errors.
+declare global {
+    interface Window {
+        html2canvas: any;
+        jspdf: any;
+    }
+}
 
 const Timer: React.FC<{ seconds: number }> = ({ seconds }) => {
     const minutes = Math.floor(seconds / 60);
@@ -264,28 +269,25 @@ const CertificateBadge: React.FC<{ type: 'Gold' | 'Silver' | 'Bronze' }> = ({ ty
     const config = {
         Gold: {
             gradient: "url(#gold-gradient)",
-            shadow: "drop-shadow(0 5px 8px rgba(255, 215, 0, 0.5))",
             textColor: "text-amber-700",
             title: "Gold Achievement"
         },
         Silver: {
             gradient: "url(#silver-gradient)",
-            shadow: "drop-shadow(0 5px 8px rgba(192, 192, 192, 0.5))",
             textColor: "text-slate-700",
             title: "Silver Achievement"
         },
         Bronze: {
             gradient: "url(#bronze-gradient)",
-            shadow: "drop-shadow(0 5px 8px rgba(205, 127, 50, 0.5))",
             textColor: "text-orange-800",
             title: "Bronze Achievement"
         },
     };
-    const { gradient, shadow, textColor, title } = config[type];
+    const { gradient, textColor, title } = config[type];
 
     return (
         <div className="flex flex-col items-center gap-4 mb-6">
-            <svg width="120" height="120" viewBox="0 0 120 120" style={{ filter: shadow }}>
+            <svg width="120" height="120" viewBox="0 0 120 120">
                 <defs>
                     <radialGradient id="gold-gradient" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
                         <stop offset="0%" stopColor="#FFF7B0" />
@@ -339,18 +341,28 @@ const GroupCertificateView: React.FC<{
 
         const handleDownload = async () => {
             if (!reportRef.current) return;
-            const canvas = await html2canvas(reportRef.current, { scale: 2, useCORS: true });
-            const image = canvas.toDataURL('image/jpeg', 0.95);
-            const { jsPDF } = jspdf;
-    
-            const pdf = new jsPDF({
-                orientation: canvas.width > canvas.height ? 'l' : 'p',
-                unit: 'px',
-                format: [canvas.width, canvas.height]
-            });
-            
-            pdf.addImage(image, 'JPEG', 0, 0, canvas.width, canvas.height);
-            pdf.save(`Physics-Helper-Report-${participant.name}.pdf`);
+            try {
+                // FIX: Access html2canvas and jspdf via the window object to fix TypeScript errors.
+                if (typeof window.html2canvas === 'undefined' || typeof window.jspdf === 'undefined') {
+                    alert("PDF generation library not loaded. Please check your internet connection and refresh.");
+                    return;
+                }
+                const canvas = await window.html2canvas(reportRef.current, { scale: 2, useCORS: true, backgroundColor: null });
+                const image = canvas.toDataURL('image/jpeg', 0.95);
+                const { jsPDF } = window.jspdf;
+        
+                const pdf = new jsPDF({
+                    orientation: canvas.width > canvas.height ? 'l' : 'p',
+                    unit: 'px',
+                    format: [canvas.width, canvas.height]
+                });
+                
+                pdf.addImage(image, 'JPEG', 0, 0, canvas.width, canvas.height);
+                pdf.save(`Physics-Helper-Report-${participant.name}.pdf`);
+            } catch (error) {
+                console.error("Failed to download report as PDF:", error);
+                alert("Sorry, an error occurred while creating the PDF. Please try again.");
+            }
         };
 
         return (
@@ -415,26 +427,36 @@ const GroupCertificateView: React.FC<{
         const tier = getTier(roundedAccuracy);
 
         const theme = {
-            Gold: { bg: 'bg-gradient-to-br from-yellow-50 via-amber-100 to-yellow-200', border: 'border-amber-400' },
-            Silver: { bg: 'bg-gradient-to-br from-slate-100 via-gray-200 to-slate-300', border: 'border-slate-400' },
-            Bronze: { bg: 'bg-gradient-to-br from-orange-100 via-amber-200 to-orange-200', border: 'border-orange-400' },
+            Gold: { bg: 'bg-yellow-100', border: 'border-amber-400' },
+            Silver: { bg: 'bg-slate-200', border: 'border-slate-400' },
+            Bronze: { bg: 'bg-orange-200', border: 'border-orange-400' },
         };
         const { bg, border } = theme[tier];
 
         const handleDownload = async () => { 
-            if (!certRef.current) return; 
-            const canvas = await html2canvas(certRef.current, { scale: 2, useCORS: true }); 
-            const imgData = canvas.toDataURL('image/jpeg', 0.95);
-            const { jsPDF } = jspdf;
-        
-            const pdf = new jsPDF({
-                orientation: canvas.width > canvas.height ? 'l' : 'p',
-                unit: 'px',
-                format: [canvas.width, canvas.height]
-            });
+            if (!certRef.current) return;
+            try {
+                // FIX: Access html2canvas and jspdf via the window object to fix TypeScript errors.
+                if (typeof window.html2canvas === 'undefined' || typeof window.jspdf === 'undefined') {
+                    alert("PDF generation library not loaded. Please check your internet connection and refresh.");
+                    return;
+                }
+                const canvas = await window.html2canvas(certRef.current, { scale: 2, useCORS: true, backgroundColor: null }); 
+                const imgData = canvas.toDataURL('image/jpeg', 0.95);
+                const { jsPDF } = window.jspdf;
             
-            pdf.addImage(imgData, 'JPEG', 0, 0, canvas.width, canvas.height);
-            pdf.save(`Physics-Helper-Certificate-${participant.name}.pdf`);
+                const pdf = new jsPDF({
+                    orientation: canvas.width > canvas.height ? 'l' : 'p',
+                    unit: 'px',
+                    format: [canvas.width, canvas.height]
+                });
+                
+                pdf.addImage(imgData, 'JPEG', 0, 0, canvas.width, canvas.height);
+                pdf.save(`Physics-Helper-Certificate-${participant.name}.pdf`);
+            } catch (error) {
+                console.error("Failed to download certificate as PDF:", error);
+                alert("Sorry, an error occurred while creating the PDF. Please try again.");
+            }
         };
         
         return (
@@ -514,16 +536,26 @@ const GroupResultsView: React.FC<{
 
     const handleDownloadReport = async () => {
         if (!reportRef.current) return;
-        const canvas = await html2canvas(reportRef.current, { scale: 2 });
-        const imgData = canvas.toDataURL('image/jpeg', 0.95);
-        const { jsPDF } = jspdf;
-        const pdf = new jsPDF({
-            orientation: canvas.width > canvas.height ? 'l' : 'p',
-            unit: 'px',
-            format: [canvas.width, canvas.height]
-        });
-        pdf.addImage(imgData, 'JPEG', 0, 0, canvas.width, canvas.height);
-        pdf.save(`Group-Report-${quiz.config.title}.pdf`);
+        try {
+            // FIX: Access html2canvas and jspdf via the window object to fix TypeScript errors.
+            if (typeof window.html2canvas === 'undefined' || typeof window.jspdf === 'undefined') {
+                alert("PDF generation library not loaded. Please check your internet connection and refresh.");
+                return;
+            }
+            const canvas = await window.html2canvas(reportRef.current, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+            const imgData = canvas.toDataURL('image/jpeg', 0.95);
+            const { jsPDF } = window.jspdf;
+            const pdf = new jsPDF({
+                orientation: canvas.width > canvas.height ? 'l' : 'p',
+                unit: 'px',
+                format: [canvas.width, canvas.height]
+            });
+            pdf.addImage(imgData, 'JPEG', 0, 0, canvas.width, canvas.height);
+            pdf.save(`Group-Report-${quiz.config.title}.pdf`);
+        } catch (error) {
+            console.error("Failed to download report as PDF:", error);
+            alert("Sorry, an error occurred while creating the PDF. Please try again.");
+        }
     };
 
     const sortedParticipants = [...quizState.participants].sort((a, b) => b.score - a.score);
