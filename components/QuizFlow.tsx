@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, type QuizQuestion, type QuizResult } from '../types';
 import type { SoloQuizConfig } from '../App';
@@ -7,6 +6,7 @@ import { MOTIVATIONAL_QUOTES } from '../constants';
 import LoadingSpinner from './LoadingSpinner';
 
 declare var html2canvas: any;
+declare var jspdf: any;
 
 const Timer: React.FC<{ seconds: number }> = ({ seconds }) => {
     const minutes = Math.floor(seconds / 60);
@@ -213,26 +213,7 @@ const CertificateView: React.FC<{
     const certRef = useRef<HTMLDivElement>(null);
     const certData = result.certificateData;
     const loading = !certData;
-    const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
-
-    useEffect(() => {
-        const fetchQrCode = async () => {
-            try {
-                const response = await fetch(`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(window.location.href)}`);
-                if (!response.ok) throw new Error('QR code fetch failed');
-                const blob = await response.blob();
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                    setQrCodeUrl(reader.result as string);
-                };
-                reader.readAsDataURL(blob);
-            } catch (error) {
-                console.error("Failed to fetch QR code:", error);
-            }
-        };
-        fetchQrCode();
-    }, []);
-
+    
     const motivationalQuote = MOTIVATIONAL_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)];
     
     const accuracy = result.totalQuestions > 0 ? (result.correctAnswers / result.totalQuestions) * 100 : 0;
@@ -255,46 +236,18 @@ const CertificateView: React.FC<{
 
     const handleDownload = async () => {
         if (!certRef.current) return;
-        const canvas = await html2canvas(certRef.current, { scale: 2, backgroundColor: null, useCORS: true });
-        const image = canvas.toDataURL('image/jpeg', 0.95);
-        const link = document.createElement('a');
-        link.href = image;
-        link.download = `Physics-Helper-Certificate-${studentName}.jpeg`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    };
-
-    const handleShare = async () => {
-        if (!certRef.current || !navigator.share) {
-            alert('Share feature is not supported on this browser. Try downloading instead.');
-            return;
-        }
-
-        try {
-            const canvas = await html2canvas(certRef.current, { scale: 2, backgroundColor: null, useCORS: true });
-            canvas.toBlob(async (blob) => {
-                if (!blob) throw new Error('Could not create image blob.');
-                
-                const file = new File([blob], `Physics-Helper-Certificate-${studentName}.jpeg`, { type: 'image/jpeg' });
-                const shareData = {
-                    files: [file],
-                    title: 'I earned a certificate on Physics Helper!',
-                    text: `I just earned a ${tier} certificate on the Physics Helper app with a score of ${roundedAccuracy}%! I was tested on ${result.categories?.join(', ')}.`,
-                };
-
-                if (navigator.canShare && navigator.canShare(shareData)) {
-                    await navigator.share(shareData);
-                } else {
-                    alert("Sharing images isn't supported on this browser. You can download and share it manually.");
-                }
-            }, 'image/jpeg', 0.95);
-        } catch (error) {
-            console.error('Sharing failed:', error);
-            if ((error as Error).name !== 'AbortError') {
-                 alert('An error occurred while trying to share the certificate.');
-            }
-        }
+        const canvas = await html2canvas(certRef.current, { scale: 2, useCORS: true });
+        const imgData = canvas.toDataURL('image/jpeg', 0.95);
+        const { jsPDF } = jspdf;
+        
+        const pdf = new jsPDF({
+            orientation: canvas.width > canvas.height ? 'l' : 'p',
+            unit: 'px',
+            format: [canvas.width, canvas.height]
+        });
+        
+        pdf.addImage(imgData, 'JPEG', 0, 0, canvas.width, canvas.height);
+        pdf.save(`Physics-Helper-Certificate-${studentName}.pdf`);
     };
 
     return (
@@ -330,21 +283,15 @@ const CertificateView: React.FC<{
                     </div>
                 )}
                 <p className="mt-8 text-gray-500 italic">"{motivationalQuote}"</p>
-                <div className="mt-6 pt-4 border-t-2 border-gray-300/50 flex items-center justify-between">
+                <div className="mt-6 pt-4 border-t-2 border-gray-300/50 flex items-center justify-start">
                     <div className="text-left">
                         <p className="font-bold text-lg text-indigo-800">Physics Helper</p>
                         <p className="text-xs text-gray-600">Your companion for IGCSE Physics</p>
                     </div>
-                    {qrCodeUrl ? <img 
-                        src={qrCodeUrl} 
-                        alt="Scan to open Physics Helper"
-                        className="rounded-lg"
-                    /> : <div className="w-[80px] h-[80px] bg-gray-200 rounded-lg"></div>}
                 </div>
             </div>
             <div className="mt-8 flex justify-center flex-wrap gap-4">
-                <button onClick={handleDownload} className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition">Download JPEG</button>
-                <button onClick={handleShare} className="px-6 py-3 bg-teal-500 text-white font-semibold rounded-lg shadow-md hover:bg-teal-600 transition">Share</button>
+                <button onClick={handleDownload} className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition">Download PDF</button>
                 <button onClick={onReset} className="px-6 py-3 bg-gray-600 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700 transition">Back to Home</button>
             </div>
         </div>
@@ -360,25 +307,6 @@ const ImprovementReportView: React.FC<{
     const report = result.improvementReport;
     const loading = !report;
     const motivationalQuote = MOTIVATIONAL_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)];
-    const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
-
-    useEffect(() => {
-        const fetchQrCode = async () => {
-            try {
-                const response = await fetch(`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(window.location.href)}`);
-                if (!response.ok) throw new Error('QR code fetch failed');
-                const blob = await response.blob();
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                    setQrCodeUrl(reader.result as string);
-                };
-                reader.readAsDataURL(blob);
-            } catch (error) {
-                console.error("Failed to fetch QR code:", error);
-            }
-        };
-        fetchQrCode();
-    }, []);
 
     const accuracy = result.totalQuestions > 0 ? (result.correctAnswers / result.totalQuestions) * 100 : 0;
 
@@ -386,44 +314,16 @@ const ImprovementReportView: React.FC<{
         if (!reportRef.current) return;
         const canvas = await html2canvas(reportRef.current, { scale: 2, useCORS: true });
         const image = canvas.toDataURL('image/jpeg', 0.95);
-        const link = document.createElement('a');
-        link.href = image;
-        link.download = `Physics-Helper-Report-${studentName}.jpeg`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    };
+        const { jsPDF } = jspdf;
 
-    const handleShare = async () => {
-        if (!reportRef.current || !navigator.share) {
-            alert('Share feature is not supported on this browser. Try downloading instead.');
-            return;
-        }
-    
-        try {
-            const canvas = await html2canvas(reportRef.current, { scale: 2, useCORS: true });
-            canvas.toBlob(async (blob) => {
-                if (!blob) throw new Error('Could not create image blob.');
-                
-                const file = new File([blob], `Physics-Helper-Report-${studentName}.jpeg`, { type: 'image/jpeg' });
-                const shareData = {
-                    files: [file],
-                    title: 'My Physics Quiz Report',
-                    text: `I just took a quiz on Physics Helper! My score was ${accuracy.toFixed(0)}%. Time to review and improve!`,
-                };
-    
-                if (navigator.canShare && navigator.canShare(shareData)) {
-                    await navigator.share(shareData);
-                } else {
-                    alert("Sharing images isn't supported on this browser. You can download and share it manually.");
-                }
-            }, 'image/jpeg', 0.95);
-        } catch (error) {
-            console.error('Sharing failed:', error);
-            if ((error as Error).name !== 'AbortError') {
-                 alert('An error occurred while trying to share the report.');
-            }
-        }
+        const pdf = new jsPDF({
+            orientation: canvas.width > canvas.height ? 'l' : 'p',
+            unit: 'px',
+            format: [canvas.width, canvas.height]
+        });
+        
+        pdf.addImage(image, 'JPEG', 0, 0, canvas.width, canvas.height);
+        pdf.save(`Physics-Helper-Report-${studentName}.pdf`);
     };
 
     return (
@@ -459,21 +359,15 @@ const ImprovementReportView: React.FC<{
                     </div>
                 )}
                 <p className="mt-8 text-gray-500 italic">"{motivationalQuote}"</p>
-                <div className="mt-6 pt-4 border-t-2 border-gray-300/50 flex items-center justify-between">
+                <div className="mt-6 pt-4 border-t-2 border-gray-300/50 flex items-center justify-start">
                     <div className="text-left">
                         <p className="font-bold text-lg text-indigo-800">Physics Helper</p>
                         <p className="text-xs text-gray-600">Your companion for IGCSE Physics</p>
                     </div>
-                    {qrCodeUrl ? <img 
-                        src={qrCodeUrl}
-                        alt="Scan to open Physics Helper"
-                        className="rounded-lg"
-                    /> : <div className="w-[80px] h-[80px] bg-gray-200 rounded-lg"></div>}
                 </div>
             </div>
             <div className="mt-8 flex justify-center flex-wrap gap-4">
-                <button onClick={handleDownload} className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition">Download JPEG</button>
-                <button onClick={handleShare} className="px-6 py-3 bg-teal-500 text-white font-semibold rounded-lg shadow-md hover:bg-teal-600 transition">Share</button>
+                <button onClick={handleDownload} className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition">Download PDF</button>
                 <button onClick={onReset} className="px-6 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition">Try Again</button>
             </div>
         </div>
