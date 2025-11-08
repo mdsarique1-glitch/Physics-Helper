@@ -285,6 +285,17 @@ const CertificateView: React.FC<{
                     </div>
                 )}
                 <p className="mt-8 text-gray-500 italic">"{motivationalQuote}"</p>
+                <div className="mt-6 pt-4 border-t-2 border-gray-300/50 flex items-center justify-between">
+                    <div className="text-left">
+                        <p className="font-bold text-lg text-indigo-800">Physics Helper</p>
+                        <p className="text-xs text-gray-600">Your companion for IGCSE Physics</p>
+                    </div>
+                    <img 
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(window.location.href)}`} 
+                        alt="Scan to open Physics Helper"
+                        className="rounded-lg"
+                    />
+                </div>
             </div>
             <div className="mt-8 flex justify-center flex-wrap gap-4">
                 <button onClick={handleDownload} className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition">Download PDF</button>
@@ -363,6 +374,17 @@ const ImprovementReportView: React.FC<{
                     </div>
                 )}
                 <p className="mt-8 text-gray-500 italic">"{motivationalQuote}"</p>
+                <div className="mt-6 pt-4 border-t-2 border-gray-300/50 flex items-center justify-between">
+                    <div className="text-left">
+                        <p className="font-bold text-lg text-indigo-800">Physics Helper</p>
+                        <p className="text-xs text-gray-600">Your companion for IGCSE Physics</p>
+                    </div>
+                    <img 
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(window.location.href)}`} 
+                        alt="Scan to open Physics Helper"
+                        className="rounded-lg"
+                    />
+                </div>
             </div>
             <div className="mt-8 flex justify-center flex-wrap gap-4">
                 <button onClick={handleDownload} className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 transition">Download Report</button>

@@ -348,6 +348,17 @@ const GroupCertificateView: React.FC<{
                         <p className="italic text-indigo-900 mt-1">"{report?.motivationalMessage}"</p>
                     </div>)}
                     <p className="mt-8 text-gray-500 italic">"{motivationalQuote}"</p>
+                    <div className="mt-6 pt-4 border-t-2 border-gray-300/50 flex items-center justify-between">
+                        <div className="text-left">
+                            <p className="font-bold text-lg text-indigo-800">Physics Helper</p>
+                            <p className="text-xs text-gray-600">Your companion for IGCSE Physics</p>
+                        </div>
+                        <img 
+                            src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(window.location.href)}`} 
+                            alt="Scan to open Physics Helper"
+                            className="rounded-lg"
+                        />
+                    </div>
                 </div>
                  <div className="mt-8 flex justify-center flex-wrap gap-4">
                     <button onClick={handleDownload} className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700">Download Report</button>
@@ -410,6 +421,17 @@ const GroupCertificateView: React.FC<{
                     </div>
                     {loading ? <div className="py-4"><LoadingSpinner/></div> : (<div className="text-left space-y-4 my-6 bg-white/60 p-6 rounded-lg"><h4 className="font-bold text-lg text-gray-800">Performance Summary:</h4><p className="text-gray-700">{certData?.summary}</p><h4 className="font-bold text-lg text-gray-800 mt-4">Areas for Improvement:</h4><p className="text-gray-700">{certData?.improvementAreas}</p></div>)}
                     <p className="mt-8 text-gray-500 italic">"{motivationalQuote}"</p>
+                     <div className="mt-6 pt-4 border-t-2 border-gray-300/50 flex items-center justify-between">
+                        <div className="text-left">
+                            <p className="font-bold text-lg text-indigo-800">Physics Helper</p>
+                            <p className="text-xs text-gray-600">Your companion for IGCSE Physics</p>
+                        </div>
+                        <img 
+                            src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(window.location.href)}`} 
+                            alt="Scan to open Physics Helper"
+                            className="rounded-lg"
+                        />
+                    </div>
                 </div>
                 <div className="mt-8 flex justify-center flex-wrap gap-4">
                     <button onClick={handleDownload} className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700">Download</button>
