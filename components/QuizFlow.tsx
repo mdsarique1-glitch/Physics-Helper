@@ -213,17 +213,37 @@ const CertificateView: React.FC<{
     const certRef = useRef<HTMLDivElement>(null);
     const certData = result.certificateData;
     const loading = !certData;
+    const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
+
+    useEffect(() => {
+        const fetchQrCode = async () => {
+            try {
+                const response = await fetch(`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(window.location.href)}`);
+                if (!response.ok) throw new Error('QR code fetch failed');
+                const blob = await response.blob();
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    setQrCodeUrl(reader.result as string);
+                };
+                reader.readAsDataURL(blob);
+            } catch (error) {
+                console.error("Failed to fetch QR code:", error);
+            }
+        };
+        fetchQrCode();
+    }, []);
 
     const motivationalQuote = MOTIVATIONAL_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)];
     
     const accuracy = result.totalQuestions > 0 ? (result.correctAnswers / result.totalQuestions) * 100 : 0;
+    const roundedAccuracy = Math.round(accuracy);
     
     const getTier = (acc: number): 'Gold' | 'Silver' | 'Bronze' => {
         if (acc >= 81) return 'Gold';
         if (acc >= 71) return 'Silver';
         return 'Bronze';
     };
-    const tier = getTier(accuracy);
+    const tier = getTier(roundedAccuracy);
 
     const theme = {
         Gold: { bg: 'bg-gradient-to-br from-yellow-50 via-amber-100 to-yellow-200', border: 'border-amber-400' },
@@ -235,7 +255,7 @@ const CertificateView: React.FC<{
 
     const handleDownload = async () => {
         if (!certRef.current) return;
-        const canvas = await html2canvas(certRef.current, { scale: 2, backgroundColor: null });
+        const canvas = await html2canvas(certRef.current, { scale: 2, backgroundColor: null, useCORS: true });
         const image = canvas.toDataURL('image/jpeg', 0.95);
         const link = document.createElement('a');
         link.href = image;
@@ -252,7 +272,7 @@ const CertificateView: React.FC<{
         }
 
         try {
-            const canvas = await html2canvas(certRef.current, { scale: 2, backgroundColor: null });
+            const canvas = await html2canvas(certRef.current, { scale: 2, backgroundColor: null, useCORS: true });
             canvas.toBlob(async (blob) => {
                 if (!blob) throw new Error('Could not create image blob.');
                 
@@ -260,7 +280,7 @@ const CertificateView: React.FC<{
                 const shareData = {
                     files: [file],
                     title: 'I earned a certificate on Physics Helper!',
-                    text: `I just earned a ${tier} certificate on the Physics Helper app with a score of ${accuracy.toFixed(0)}%! I was tested on ${result.categories?.join(', ')}.`,
+                    text: `I just earned a ${tier} certificate on the Physics Helper app with a score of ${roundedAccuracy}%! I was tested on ${result.categories?.join(', ')}.`,
                 };
 
                 if (navigator.canShare && navigator.canShare(shareData)) {
@@ -294,7 +314,7 @@ const CertificateView: React.FC<{
                         <p className="text-gray-600">Correct Answers</p>
                     </div>
                     <div className="p-4 bg-white/50 rounded-lg">
-                        <p className="text-4xl font-bold text-blue-600">{accuracy.toFixed(0)}%</p>
+                        <p className="text-4xl font-bold text-blue-600">{roundedAccuracy}%</p>
                         <p className="text-gray-600">Score</p>
                     </div>
                 </div>
@@ -315,11 +335,11 @@ const CertificateView: React.FC<{
                         <p className="font-bold text-lg text-indigo-800">Physics Helper</p>
                         <p className="text-xs text-gray-600">Your companion for IGCSE Physics</p>
                     </div>
-                    <img 
-                        src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(window.location.href)}`} 
+                    {qrCodeUrl ? <img 
+                        src={qrCodeUrl} 
                         alt="Scan to open Physics Helper"
                         className="rounded-lg"
-                    />
+                    /> : <div className="w-[80px] h-[80px] bg-gray-200 rounded-lg"></div>}
                 </div>
             </div>
             <div className="mt-8 flex justify-center flex-wrap gap-4">
@@ -340,12 +360,31 @@ const ImprovementReportView: React.FC<{
     const report = result.improvementReport;
     const loading = !report;
     const motivationalQuote = MOTIVATIONAL_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)];
+    const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
+
+    useEffect(() => {
+        const fetchQrCode = async () => {
+            try {
+                const response = await fetch(`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(window.location.href)}`);
+                if (!response.ok) throw new Error('QR code fetch failed');
+                const blob = await response.blob();
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    setQrCodeUrl(reader.result as string);
+                };
+                reader.readAsDataURL(blob);
+            } catch (error) {
+                console.error("Failed to fetch QR code:", error);
+            }
+        };
+        fetchQrCode();
+    }, []);
 
     const accuracy = result.totalQuestions > 0 ? (result.correctAnswers / result.totalQuestions) * 100 : 0;
 
     const handleDownload = async () => {
         if (!reportRef.current) return;
-        const canvas = await html2canvas(reportRef.current, { scale: 2 });
+        const canvas = await html2canvas(reportRef.current, { scale: 2, useCORS: true });
         const image = canvas.toDataURL('image/jpeg', 0.95);
         const link = document.createElement('a');
         link.href = image;
@@ -362,7 +401,7 @@ const ImprovementReportView: React.FC<{
         }
     
         try {
-            const canvas = await html2canvas(reportRef.current, { scale: 2 });
+            const canvas = await html2canvas(reportRef.current, { scale: 2, useCORS: true });
             canvas.toBlob(async (blob) => {
                 if (!blob) throw new Error('Could not create image blob.');
                 
@@ -425,11 +464,11 @@ const ImprovementReportView: React.FC<{
                         <p className="font-bold text-lg text-indigo-800">Physics Helper</p>
                         <p className="text-xs text-gray-600">Your companion for IGCSE Physics</p>
                     </div>
-                    <img 
-                        src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(window.location.href)}`} 
+                    {qrCodeUrl ? <img 
+                        src={qrCodeUrl}
                         alt="Scan to open Physics Helper"
                         className="rounded-lg"
-                    />
+                    /> : <div className="w-[80px] h-[80px] bg-gray-200 rounded-lg"></div>}
                 </div>
             </div>
             <div className="mt-8 flex justify-center flex-wrap gap-4">

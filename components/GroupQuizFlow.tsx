@@ -331,6 +331,26 @@ const GroupCertificateView: React.FC<{
         const reportRef = useRef<HTMLDivElement>(null);
         const [report, setReport] = useState<SoloImprovementReport | null>(null);
         const [loading, setLoading] = useState(true);
+        const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
+        
+        useEffect(() => {
+            const fetchQrCode = async () => {
+                try {
+                    const response = await fetch(`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(window.location.href)}`);
+                    if (!response.ok) throw new Error('QR code fetch failed');
+                    const blob = await response.blob();
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                        setQrCodeUrl(reader.result as string);
+                    };
+                    reader.readAsDataURL(blob);
+                } catch (error) {
+                    console.error("Failed to fetch QR code:", error);
+                }
+            };
+            fetchQrCode();
+        }, []);
+
         const accuracy = ((result.correctAnswers / result.totalQuestions) * 100);
         const motivationalQuote = MOTIVATIONAL_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)];
 
@@ -338,7 +358,7 @@ const GroupCertificateView: React.FC<{
 
         const handleDownload = async () => {
             if (!reportRef.current) return;
-            const canvas = await html2canvas(reportRef.current, { scale: 2 });
+            const canvas = await html2canvas(reportRef.current, { scale: 2, useCORS: true });
             const image = canvas.toDataURL('image/jpeg', 0.95);
             const link = document.createElement('a');
             link.href = image;
@@ -355,7 +375,7 @@ const GroupCertificateView: React.FC<{
             }
         
             try {
-                const canvas = await html2canvas(reportRef.current, { scale: 2 });
+                const canvas = await html2canvas(reportRef.current, { scale: 2, useCORS: true });
                 canvas.toBlob(async (blob) => {
                     if (!blob) throw new Error('Could not create image blob.');
                     
@@ -412,11 +432,11 @@ const GroupCertificateView: React.FC<{
                             <p className="font-bold text-lg text-indigo-800">Physics Helper</p>
                             <p className="text-xs text-gray-600">Your companion for IGCSE Physics</p>
                         </div>
-                        <img 
-                            src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(window.location.href)}`} 
+                        {qrCodeUrl ? <img 
+                            src={qrCodeUrl}
                             alt="Scan to open Physics Helper"
                             className="rounded-lg"
-                        />
+                        /> : <div className="w-[80px] h-[80px] bg-gray-200 rounded-lg"></div>}
                     </div>
                 </div>
                  <div className="mt-8 flex justify-center flex-wrap gap-4">
@@ -432,18 +452,39 @@ const GroupCertificateView: React.FC<{
         const certRef = useRef<HTMLDivElement>(null);
         const [certData, setCertData] = useState<CertificateData | null>(null);
         const [loading, setLoading] = useState(true);
+        const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
+        
+        useEffect(() => {
+            const fetchQrCode = async () => {
+                try {
+                    const response = await fetch(`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(window.location.href)}`);
+                    if (!response.ok) throw new Error('QR code fetch failed');
+                    const blob = await response.blob();
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                        setQrCodeUrl(reader.result as string);
+                    };
+                    reader.readAsDataURL(blob);
+                } catch (error) {
+                    console.error("Failed to fetch QR code:", error);
+                }
+            };
+            fetchQrCode();
+        }, []);
+
         const motivationalQuote = MOTIVATIONAL_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)];
 
         useEffect(() => { getCertificateData(participant.name, result.correctAnswers, result.totalQuestions, topics).then(setCertData).catch(console.error).finally(() => setLoading(false)); }, []);
         
         const accuracy = (result.correctAnswers / result.totalQuestions) * 100;
+        const roundedAccuracy = Math.round(accuracy);
         
         const getTier = (acc: number): 'Gold' | 'Silver' | 'Bronze' => {
             if (acc >= 81) return 'Gold';
             if (acc >= 71) return 'Silver';
             return 'Bronze';
         };
-        const tier = getTier(accuracy);
+        const tier = getTier(roundedAccuracy);
 
         const theme = {
             Gold: { bg: 'bg-gradient-to-br from-yellow-50 via-amber-100 to-yellow-200', border: 'border-amber-400' },
@@ -454,7 +495,7 @@ const GroupCertificateView: React.FC<{
 
         const handleDownload = async () => { 
             if (!certRef.current) return; 
-            const canvas = await html2canvas(certRef.current, { scale: 2, backgroundColor: null }); 
+            const canvas = await html2canvas(certRef.current, { scale: 2, backgroundColor: null, useCORS: true }); 
             const image = canvas.toDataURL('image/jpeg', 0.95);
             const link = document.createElement('a');
             link.href = image;
@@ -464,7 +505,6 @@ const GroupCertificateView: React.FC<{
             document.body.removeChild(link);
         };
         
-        const accStr = accuracy.toFixed(0);
         const handleShare = async () => {
              if (!certRef.current || !navigator.share) {
                 alert('Share feature is not supported on this browser. Try downloading instead.');
@@ -472,7 +512,7 @@ const GroupCertificateView: React.FC<{
             }
         
             try {
-                const canvas = await html2canvas(certRef.current, { scale: 2, backgroundColor: null });
+                const canvas = await html2canvas(certRef.current, { scale: 2, backgroundColor: null, useCORS: true });
                 canvas.toBlob(async (blob) => {
                     if (!blob) throw new Error('Could not create image blob.');
                     
@@ -480,7 +520,7 @@ const GroupCertificateView: React.FC<{
                     const shareData = {
                         files: [file],
                         title: 'My Physics Quiz Certificate!',
-                        text: `I just earned a ${tier} certificate in a group quiz on Physics Helper with a score of ${accStr}% and rank #${result.rank}! We covered ${quiz.config.categories.join(', ')}.`,
+                        text: `I just earned a ${tier} certificate in a group quiz on Physics Helper with a score of ${roundedAccuracy}% and rank #${result.rank}! We covered ${quiz.config.categories.join(', ')}.`,
                     };
         
                     if (navigator.canShare && navigator.canShare(shareData)) {
@@ -511,7 +551,7 @@ const GroupCertificateView: React.FC<{
                     <div className="grid grid-cols-3 gap-4 my-8 text-center max-w-lg mx-auto">
                         <div className="p-4 bg-white/50 rounded-lg"><p className="text-3xl font-bold text-green-600">{result.correctAnswers}/{result.totalQuestions}</p><p className="text-gray-600 text-sm">Correct</p></div>
                         <div className="p-4 bg-white/50 rounded-lg"><p className="text-3xl font-bold text-purple-600">#{result.rank}</p><p className="text-gray-600 text-sm">Group Rank</p></div>
-                        <div className="p-4 bg-white/50 rounded-lg"><p className="text-3xl font-bold text-blue-600">{accStr}%</p><p className="text-gray-600 text-sm">Score</p></div>
+                        <div className="p-4 bg-white/50 rounded-lg"><p className="text-3xl font-bold text-blue-600">{roundedAccuracy}%</p><p className="text-gray-600 text-sm">Score</p></div>
                     </div>
                     {loading ? <div className="py-4"><LoadingSpinner/></div> : (<div className="text-left space-y-4 my-6 bg-white/60 p-6 rounded-lg"><h4 className="font-bold text-lg text-gray-800">Performance Summary:</h4><p className="text-gray-700">{certData?.summary}</p></div>)}
                     <p className="mt-8 text-gray-500 italic">"{motivationalQuote}"</p>
@@ -520,11 +560,11 @@ const GroupCertificateView: React.FC<{
                             <p className="font-bold text-lg text-indigo-800">Physics Helper</p>
                             <p className="text-xs text-gray-600">Your companion for IGCSE Physics</p>
                         </div>
-                        <img 
-                            src={`https://api.qrserver.com/v1/create-qr-code/?size=80x80&data=${encodeURIComponent(window.location.href)}`} 
+                        {qrCodeUrl ? <img 
+                            src={qrCodeUrl}
                             alt="Scan to open Physics Helper"
                             className="rounded-lg"
-                        />
+                        /> : <div className="w-[80px] h-[80px] bg-gray-200 rounded-lg"></div>}
                     </div>
                 </div>
                 <div className="mt-8 flex justify-center flex-wrap gap-4">
