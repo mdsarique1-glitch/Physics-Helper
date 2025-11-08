@@ -5,11 +5,10 @@ import { PHYSICS_CATEGORIES, MOTIVATIONAL_QUOTES } from '../constants';
 import LoadingSpinner from './LoadingSpinner';
 import CertificateShowcase from './CertificateShowcase';
 
-// FIX: Add global window declarations for html2canvas and jspdf to resolve TypeScript errors.
+// FIX: Add global window declarations for html2canvas to resolve TypeScript errors.
 declare global {
     interface Window {
         html2canvas: any;
-        jspdf: any;
     }
 }
 
@@ -342,26 +341,24 @@ const GroupCertificateView: React.FC<{
         const handleDownload = async () => {
             if (!reportRef.current) return;
             try {
-                // FIX: Access html2canvas and jspdf via the window object to fix TypeScript errors.
-                if (typeof window.html2canvas === 'undefined' || typeof window.jspdf === 'undefined') {
-                    alert("PDF generation library not loaded. Please check your internet connection and refresh.");
+                // FIX: Access html2canvas via the window object to fix TypeScript errors.
+                if (typeof window.html2canvas === 'undefined') {
+                    alert("Image generation library not loaded. Please check your internet connection and refresh.");
                     return;
                 }
                 const canvas = await window.html2canvas(reportRef.current, { scale: 2, useCORS: true, backgroundColor: null });
                 const image = canvas.toDataURL('image/jpeg', 0.95);
-                const { jsPDF } = window.jspdf;
-        
-                const pdf = new jsPDF({
-                    orientation: canvas.width > canvas.height ? 'l' : 'p',
-                    unit: 'px',
-                    format: [canvas.width, canvas.height]
-                });
                 
-                pdf.addImage(image, 'JPEG', 0, 0, canvas.width, canvas.height);
-                pdf.save(`Physics-Helper-Report-${participant.name}.pdf`);
+                const link = document.createElement('a');
+                link.href = image;
+                link.download = `Physics-Helper-Report-${participant.name}.jpg`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
             } catch (error) {
-                console.error("Failed to download report as PDF:", error);
-                alert("Sorry, an error occurred while creating the PDF. Please try again.");
+                console.error("Failed to download report as Image:", error);
+                alert("Sorry, an error occurred while creating the image. Please try again.");
             }
         };
 
@@ -400,7 +397,7 @@ const GroupCertificateView: React.FC<{
                     </div>
                 </div>
                  <div className="mt-8 flex justify-center flex-wrap gap-4">
-                    <button onClick={handleDownload} className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700">Download PDF</button>
+                    <button onClick={handleDownload} className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700">Download Image</button>
                     <button onClick={onReset} className="px-6 py-3 bg-indigo-600 text-white rounded-lg">Back to Home</button>
                 </div>
             </div>
@@ -436,26 +433,24 @@ const GroupCertificateView: React.FC<{
         const handleDownload = async () => { 
             if (!certRef.current) return;
             try {
-                // FIX: Access html2canvas and jspdf via the window object to fix TypeScript errors.
-                if (typeof window.html2canvas === 'undefined' || typeof window.jspdf === 'undefined') {
-                    alert("PDF generation library not loaded. Please check your internet connection and refresh.");
+                // FIX: Access html2canvas via the window object to fix TypeScript errors.
+                if (typeof window.html2canvas === 'undefined') {
+                    alert("Image generation library not loaded. Please check your internet connection and refresh.");
                     return;
                 }
                 const canvas = await window.html2canvas(certRef.current, { scale: 2, useCORS: true, backgroundColor: null }); 
                 const imgData = canvas.toDataURL('image/jpeg', 0.95);
-                const { jsPDF } = window.jspdf;
-            
-                const pdf = new jsPDF({
-                    orientation: canvas.width > canvas.height ? 'l' : 'p',
-                    unit: 'px',
-                    format: [canvas.width, canvas.height]
-                });
                 
-                pdf.addImage(imgData, 'JPEG', 0, 0, canvas.width, canvas.height);
-                pdf.save(`Physics-Helper-Certificate-${participant.name}.pdf`);
+                const link = document.createElement('a');
+                link.href = imgData;
+                link.download = `Physics-Helper-Certificate-${participant.name}.jpg`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
             } catch (error) {
-                console.error("Failed to download certificate as PDF:", error);
-                alert("Sorry, an error occurred while creating the PDF. Please try again.");
+                console.error("Failed to download certificate as Image:", error);
+                alert("Sorry, an error occurred while creating the image. Please try again.");
             }
         };
         
@@ -485,7 +480,7 @@ const GroupCertificateView: React.FC<{
                     </div>
                 </div>
                 <div className="mt-8 flex justify-center flex-wrap gap-4">
-                    <button onClick={handleDownload} className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700">Download PDF</button>
+                    <button onClick={handleDownload} className="px-6 py-3 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700">Download Image</button>
                     <button onClick={onReset} className="px-6 py-3 bg-gray-600 text-white rounded-lg">Back to Home</button>
                 </div>
             </div>
@@ -537,24 +532,24 @@ const GroupResultsView: React.FC<{
     const handleDownloadReport = async () => {
         if (!reportRef.current) return;
         try {
-            // FIX: Access html2canvas and jspdf via the window object to fix TypeScript errors.
-            if (typeof window.html2canvas === 'undefined' || typeof window.jspdf === 'undefined') {
-                alert("PDF generation library not loaded. Please check your internet connection and refresh.");
+            // FIX: Access html2canvas via the window object to fix TypeScript errors.
+            if (typeof window.html2canvas === 'undefined') {
+                alert("Image generation library not loaded. Please check your internet connection and refresh.");
                 return;
             }
             const canvas = await window.html2canvas(reportRef.current, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
             const imgData = canvas.toDataURL('image/jpeg', 0.95);
-            const { jsPDF } = window.jspdf;
-            const pdf = new jsPDF({
-                orientation: canvas.width > canvas.height ? 'l' : 'p',
-                unit: 'px',
-                format: [canvas.width, canvas.height]
-            });
-            pdf.addImage(imgData, 'JPEG', 0, 0, canvas.width, canvas.height);
-            pdf.save(`Group-Report-${quiz.config.title}.pdf`);
+            
+            const link = document.createElement('a');
+            link.href = imgData;
+            link.download = `Group-Report-${quiz.config.title}.jpg`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+
         } catch (error) {
-            console.error("Failed to download report as PDF:", error);
-            alert("Sorry, an error occurred while creating the PDF. Please try again.");
+            console.error("Failed to download report as Image:", error);
+            alert("Sorry, an error occurred while creating the image. Please try again.");
         }
     };
 
@@ -619,7 +614,7 @@ const GroupResultsView: React.FC<{
                         ) : (
                             <button onClick={handleShareReport} className="px-8 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600">Share Results</button>
                         )}
-                        <button onClick={handleDownloadReport} className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Download Report (PDF)</button>
+                        <button onClick={handleDownloadReport} className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Download Report (Image)</button>
                    </>
                 ) : (
                     <button onClick={() => setView('certificate')} className="px-8 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700">View My Certificate/Report</button>
