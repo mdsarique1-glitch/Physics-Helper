@@ -1,6 +1,6 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
-import type { QuizQuestion, CertificateData, Indicator, Topic, RevisionNote, SoloImprovementReport, GroupQuizReport, GroupQuiz, ConceptExplanation, FeedbackEntry } from '../types';
+// FIX: Import RevisionNote to be used in generateRevisionNotes function.
+import type { QuizQuestion, CertificateData, Indicator, Topic, SoloImprovementReport, GroupQuizReport, GroupQuiz, FeedbackEntry, RevisionNote } from '../types';
 import { PHYSICS_CATEGORIES } from "../constants";
 
 const API_KEY = process.env.API_KEY;
@@ -32,9 +32,9 @@ export const generateQuizQuestions = async (topics: string[], questionCount: num
     const numMedium = baseDifficultyCount + (remainder > 1 ? 1 : 0);
     const numHard = baseDifficultyCount;
 
-    const prompt = `Generate ${questionCount} unique, multiple-choice quiz questions for an IGCSE Physics student. The questions must strictly adhere to the Cambridge IGCSE Physics (0625) syllabus for exams in 2026-2028 and be based on the core content found in the official syllabus guide and high-quality revision notes for these topics: ${topics.join(', ')}.
+    const prompt = `Generate ${questionCount} unique, multiple-choice quiz questions for an IGCSE Physics student. The questions must strictly adhere to the Cambridge IGCSE Physics (0625) syllabus for exams in 2026-2028 and be based on the core content found in the official syllabus guide for these topics: ${topics.join(', ')}.
     IMPORTANT:
-    1.  The questions must be conceptually focused, testing understanding of definitions, formulas (in terms of variable relationships), units, and core principles.
+    1.  The questions must be conceptually focused. Ensure they cover a mix of definitions, formulas (in terms of variable relationships), units, and both core and supplementary concepts as outlined in the syllabus.
     2.  Absolutely NO calculation questions.
     3.  Distribute the questions as evenly as possible across all the provided topics.
     4.  Generate exactly ${numEasy} easy, ${numMedium} medium, and ${numHard} hard questions.
@@ -180,85 +180,6 @@ export const clearStoredFeedback = (): void => {
     localStorage.removeItem(FEEDBACK_STORAGE_KEY);
 };
 
-
-const revisionNoteSchema = {
-    type: Type.ARRAY,
-    items: {
-        type: Type.OBJECT,
-        properties: {
-            subTopicHeading: { type: Type.STRING },
-            points: {
-                type: Type.ARRAY,
-                items: {
-                    type: Type.OBJECT,
-                    properties: {
-                        description: { type: Type.STRING },
-                        formula: { type: Type.STRING },
-                        symbolExplanation: { type: Type.STRING, description: "Explanation of symbols in the formula, formatted for clarity (e.g., 'v = velocity<br>s = distance<br>t = time'). Use 'N/A' if formula is 'N/A'." },
-                        siUnit: { type: Type.STRING },
-                        tableData: {
-                            type: Type.OBJECT,
-                            nullable: true,
-                            properties: {
-                                headers: { type: Type.ARRAY, items: { type: Type.STRING } },
-                                rows: { type: Type.ARRAY, items: { type: Type.ARRAY, items: { type: Type.STRING } } }
-                            },
-                            required: ['headers', 'rows']
-                        }
-                    },
-                    required: ['description', 'formula', 'symbolExplanation', 'siUnit']
-                }
-            }
-        },
-        required: ['subTopicHeading', 'points']
-    }
-};
-
-export const generateRevisionNotes = async (topic: Topic): Promise<RevisionNote[]> => {
-    // Flatten all indicators from the topic and its subtopics
-    const allIndicators = (topic.indicators || []).concat(
-        (topic.subTopics || []).flatMap(st => st.indicators)
-    );
-
-    const prompt = `You are an expert academic content creator specializing in the Cambridge IGCSE Physics (0625) syllabus for exams in 2026, 2027, and 2028. Your style should emulate that of a top 1% educational creator, focusing on clarity, visual structure, and professionalism.
-Your task is to generate concise, professional, and effective quick revision notes for the topic: "${topic.name}".
-
-Below is a complete list of all learning objectives (indicators) for this topic:
-${JSON.stringify(allIndicators)}
-
-**CRITICAL INSTRUCTIONS - ADHERE STRICTLY:**
-1.  **Absolute Completeness:** Your highest priority is to ensure 100% coverage. You must perform a thorough scan of every single indicator provided below and ensure that every definition, concept, formula, and learning outcome is explicitly addressed in the generated notes. Do not skip or merge any distinct learning point, no matter how small. Cross-reference your output against the provided list of indicators to guarantee complete coverage.
-2.  **Analyze and Group:** Systematically analyze all the provided indicators. Group related indicators together to form logical sub-topics.
-3.  **Create Headings:** For each group, create a short, clear, and descriptive heading (e.g., "Speed, Velocity, & Acceleration", "Hooke's Law", "Principle of Moments"). This will be the 'subTopicHeading', which will be displayed in a larger font.
-4.  **Consolidate Content:** For each heading, create a consolidated list of key points that cover ALL the information from the grouped indicators. The content must be brief, to-the-point, and easy to digest. 
-5.  **Point Format:** Each point in the 'points' array MUST be a JSON object with five fields, designed for a visually structured layout:
-    *   \`description\`: A short, to-the-point professional definition or explanation. **CRITICALLY IMPORTANT: Use bullet points with \`<ul>\` and \`<li>\` tags to break down information instead of using long paragraphs.** This is essential for readability. You **MUST** bold all important keywords, terms, and quantities using HTML \`<b>\` tags. For example: '<ul><li><b>Speed</b> is the rate of change of <b>distance</b>.</li><li>It is a scalar quantity.</li></ul>'.
-    *   \`formula\`: The relevant formula, perfectly formatted using IGCSE symbols and simple HTML (\`<sub>\`, \`<sup>\`, \`&...;\` entities). This will be displayed in a distinct box. Use 'N/A' if not applicable.
-    *   \`symbolExplanation\`: A clear explanation for each symbol in the formula, designed to appear next to the formula box. Format as a list with each symbol on a new line using \`<br>\` (e.g., 'v = velocity<br>s = distance<br>t = time'). If the formula is 'N/A', this must also be 'N/A'.
-    *   \`siUnit\`: The SI unit for the main quantity, formatted with HTML (e.g. m/s<sup>2</sup>). Use 'N/A' if not applicable.
-    *   \`tableData\`: Use this field **ONLY** for comparisons or structured lists (e.g., properties of radiation, conductors vs insulators). The table should be clear and concise. Otherwise, **omit this field entirely**. The description should introduce the table.
-6.  **Syllabus Adherence:** All content, including definitions, formulas, symbols, and constants (e.g., g = 9.8 m/s²), must strictly align with the IGCSE Physics (0625) 2026-2028 syllabus. In the 'description', clearly label supplement-only content with "<b>(Supplement)</b>".
-7.  **Efficiency:** Merge simple, related concepts into single points where it makes sense for revision.
-8.  **Output Format:** Your entire response must be a single, valid JSON object that strictly adheres to the provided schema. Do not include any text outside the JSON object.`;
-
-    try {
-        const response = await ai.models.generateContent({
-            model: 'gemini-2.5-pro',
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: revisionNoteSchema,
-                thinkingConfig: { thinkingBudget: 32768 },
-            },
-        });
-        const parsed = JSON.parse(response.text);
-        return parsed as RevisionNote[];
-    } catch (error) {
-        console.error(`Error generating revision notes for "${topic.name}":`, error);
-        throw new Error("Failed to generate revision notes from Gemini API.");
-    }
-};
-
 const groupQuizReportSchema = {
     type: Type.OBJECT,
     properties: {
@@ -318,23 +239,61 @@ export const generateGroupQuizReport = async (quiz: GroupQuiz): Promise<GroupQui
     }
 };
 
-const conceptExplanationSchema = {
-    type: Type.OBJECT,
-    properties: {
-        description: { type: Type.STRING, description: "A brief, clear definition or description of the concept, suitable for an IGCSE student." },
-        formula: { type: Type.STRING, description: "The relevant formula. Use 'N/A' if not applicable." },
-        siUnit: { type: Type.STRING, description: "The SI unit for the concept. Use 'N/A' if not applicable." }
-    },
-    required: ["description", "formula", "siUnit"]
+// FIX: Add generateRevisionNotes function to support QuickRevisionView.tsx
+const revisionNotesSchema = {
+    type: Type.ARRAY,
+    description: "An array of revision notes, where each note corresponds to a sub-topic.",
+    items: {
+        type: Type.OBJECT,
+        properties: {
+            subTopicHeading: { type: Type.STRING, description: "The heading for the sub-topic." },
+            points: {
+                type: Type.ARRAY,
+                description: "An array of key revision points for this sub-topic.",
+                items: {
+                    type: Type.OBJECT,
+                    properties: {
+                        description: { type: Type.STRING, description: "A detailed explanation of the concept, including definitions. Can use basic HTML for formatting like <strong>, <em>, <sub>, <sup>." },
+                        formula: { type: Type.STRING, description: "The relevant formula, if any. Use HTML for special characters (e.g., E = mc<sup>2</sup>). Use 'N/A' if not applicable." },
+                        symbolExplanation: { type: Type.STRING, description: "Explanation of symbols in the formula. Use 'N/A' if no formula. Can use basic HTML." },
+                        siUnit: { type: Type.STRING, description: "The SI unit for the main quantity. Use 'N/A' if not applicable." },
+                        tableData: {
+                            type: Type.OBJECT,
+                            description: "Optional table for comparative data.",
+                            properties: {
+                                headers: { type: Type.ARRAY, items: { type: Type.STRING } },
+                                rows: { type: Type.ARRAY, items: { type: Type.ARRAY, items: { type: Type.STRING } } }
+                            },
+                            required: ['headers', 'rows']
+                        }
+                    },
+                    required: ['description']
+                }
+            }
+        },
+        required: ['subTopicHeading', 'points']
+    }
 };
 
-export const getConceptExplanation = async (concept: string): Promise<ConceptExplanation> => {
-    const prompt = `For the IGCSE Physics (0625) syllabus, provide a quick, clear, and concise explanation for the concept: "${concept}". 
-    The explanation must include:
-    1. A brief description/definition.
-    2. The main formula associated with it (use 'N/A' if none).
-    3. The standard SI unit (use 'N/A' if not applicable).
-    Keep it simple and direct for quick revision.`;
+export const generateRevisionNotes = async (topic: Topic): Promise<RevisionNote[]> => {
+    const indicatorsList = topic.indicators?.map(i => i.name).join('; ') || 'N/A';
+    const subTopicsList = topic.subTopics?.map(st => `Sub-topic: ${st.name}, Indicators: ${st.indicators.map(i => i.name).join('; ')}`).join('\\n') || 'N/A';
+
+    const prompt = `Generate concise revision notes for an IGCSE Physics student on the topic "${topic.name}".
+    The notes must cover the following syllabus points (indicators):
+    - For the main topic: ${indicatorsList}
+    - For sub-topics:
+    ${subTopicsList}
+
+    IMPORTANT INSTRUCTIONS:
+    1.  Organize the notes by sub-topic. If there are no named sub-topics, group related indicators under logical headings.
+    2.  For each concept/indicator, provide a clear 'description'.
+    3.  If a concept has a formula, provide the 'formula' using HTML for formatting (e.g., F = ma, E<sub>k</sub> = ½mv<sup>2</sup>). If no formula, use "N/A".
+    4.  If a formula is provided, explain the symbols in 'symbolExplanation'. If no formula, use "N/A".
+    5.  Provide the 'siUnit' where applicable. If not, use "N/A".
+    6.  Use the 'tableData' field ONLY for information that is best represented in a table (e.g., comparing properties, types of waves). For other content, use the description.
+    7.  All text content can include basic HTML tags for formatting: <strong>, <em>, <sub>, <sup>.
+    8.  The output must be structured precisely according to the provided JSON schema.`;
 
     try {
         const response = await ai.models.generateContent({
@@ -342,12 +301,12 @@ export const getConceptExplanation = async (concept: string): Promise<ConceptExp
             contents: prompt,
             config: {
                 responseMimeType: "application/json",
-                responseSchema: conceptExplanationSchema,
+                responseSchema: revisionNotesSchema,
             },
         });
-        return JSON.parse(response.text) as ConceptExplanation;
+        return JSON.parse(response.text) as RevisionNote[];
     } catch (error) {
-        console.error(`Error getting explanation for "${concept}":`, error);
-        throw new Error("Failed to get concept explanation from Gemini API.");
+        console.error(`Error generating revision notes for topic "${topic.name}":`, error);
+        throw new Error("Failed to generate revision notes from Gemini API.");
     }
 };

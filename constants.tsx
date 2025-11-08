@@ -1,3 +1,4 @@
+
 import React from 'react';
 import type { Category } from './types';
 
@@ -765,10 +766,10 @@ export const MOTIVATIONAL_QUOTES: string[] = [
 ];
 
 export const PHYSICS_HELPER_MESSAGES: string[] = [
-    "Did you know? The concept of inertia was first described by Galileo Galilei.",
-    "Quick tip: Always write down the formula before substituting values. It helps avoid errors!",
+    "Ready to test your knowledge? Select your topics and start a quiz!",
+    "Pay close attention to the wording of questions. 'Speed' and 'velocity' are not the same!",
     "Remember, vectors have both magnitude and direction, while scalars only have magnitude.",
-    "Having trouble with a topic? Try drawing a diagram. Visualizing the problem can make it much clearer.",
+    "Quick tip: Always double-check the SI units when answering questions.",
     "Practice makes perfect! The more problems you solve, the more confident you'll become.",
-    "A moment is the turning effect of a force. Think of using a spanner to tighten a nut!",
+    "Challenge a friend! Use the Group Quiz mode for a fun competition.",
 ];

@@ -1,4 +1,3 @@
-
 import React from 'react';
 
 export interface Indicator {
@@ -22,24 +21,6 @@ export interface Category {
   icon: React.ReactNode;
   topics: Topic[];
 }
-
-export interface Concept {
-    name: string;
-    definition: string;
-    formula: string;
-    symbolExplanation: string;
-    siUnit: string;
-    example: string;
-    tableData?: {
-        headers: string[];
-        rows: string[][];
-    };
-}
-
-export interface TopicDetails {
-  concepts: Concept[];
-}
-
 
 export interface QuizQuestion {
   question: string;
@@ -79,6 +60,23 @@ export interface GroupQuizReport {
     individualFeedback: IndividualFeedback[];
 }
 
+// FIX: Add missing RevisionPoint and RevisionNote types for QuickRevisionView.tsx
+export interface RevisionPoint {
+    description: string;
+    formula?: string;
+    symbolExplanation?: string;
+    siUnit?: string;
+    tableData?: {
+        headers: string[];
+        rows: string[][];
+    };
+}
+
+export interface RevisionNote {
+    subTopicHeading: string;
+    points: RevisionPoint[];
+}
+
 
 export enum View {
   MAIN = 'main',
@@ -114,29 +112,6 @@ export interface GroupQuiz {
     status: 'lobby' | 'inprogress' | 'finished';
     startTime?: number;
     reportShared?: boolean;
-}
-
-// Types for Quick Revision
-export interface RevisionPoint {
-    description: string;
-    formula: string;
-    symbolExplanation?: string;
-    siUnit: string;
-    tableData?: {
-        headers: string[];
-        rows: string[][];
-    };
-}
-
-export interface RevisionNote {
-    subTopicHeading: string;
-    points: RevisionPoint[];
-}
-
-export interface ConceptExplanation {
-    description: string;
-    formula: string;
-    siUnit: string;
 }
 
 export interface FeedbackEntry {
