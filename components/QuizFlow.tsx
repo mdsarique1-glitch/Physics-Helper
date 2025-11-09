@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, type QuizQuestion, type QuizResult, type SoloQuizConfig, Indicator } from '../types';
 import { generateQuizQuestions } from '../services/geminiService';
-// FIX: Import PHYSICS_CATEGORIES to resolve reference error.
 import { MOTIVATIONAL_QUOTES, PHYSICS_CATEGORIES, LOADING_MESSAGES } from '../constants';
 import LoadingSpinner from './LoadingSpinner';
 
@@ -259,9 +258,11 @@ const CertificateView: React.FC<{
                     </div>
                 </div>
             </div>
-            <div className="text-center p-4">
-                <p className="text-gray-700 text-sm font-semibold">Take a screenshot to save and share your certificate!</p>
-                <button onClick={onReset} className="mt-4 px-8 py-3 bg-gray-600 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700 transition">Back to Home</button>
+            <div className="text-center p-4 w-full flex flex-col items-center gap-4">
+                <p className="p-4 bg-green-100 text-green-800 rounded-lg text-center font-semibold">
+                    Congratulations! Take a screenshot to share your achievement.
+                </p>
+                <button onClick={onReset} className="px-8 py-3 bg-gray-600 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700 transition">Back to Home</button>
             </div>
         </div>
     );

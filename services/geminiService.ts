@@ -1,7 +1,6 @@
 
 
 import { GoogleGenAI, Type } from "@google/genai";
-// FIX: Import RevisionNote to be used in generateRevisionNotes function.
 import type { QuizQuestion, CertificateData, Indicator, Topic, SoloImprovementReport, RevisionNote, Category, SubTopic } from '../types';
 
 const API_KEY = process.env.API_KEY;
@@ -54,49 +53,50 @@ export const generateQuizQuestions = async (
 ): Promise<QuizQuestion[]> => {
     const prng = seed ? mulberry32(seed) : Math.random;
 
-    const formatSyllabus = (cats: Category[]): string => {
-        const shuffledCategories = shuffleArray(cats, prng);
-
-        return shuffledCategories.map(category => {
-            let categoryString = `Category: ${category.name}\n`;
-            
-            const shuffledTopics = shuffleArray(category.topics, prng)
-                .filter(topic => syllabusLevel === 'extended' || !topic.isSupplement);
-
-            shuffledTopics.forEach(topic => {
-                categoryString += `  Topic: ${topic.name}\n`;
+    // New robust method: Flatten all syllabus points into a single list, then shuffle it once.
+    const getAllSyllabusPoints = (cats: Category[]): string[] => {
+        const points: string[] = [];
+        cats.forEach(category => {
+            const processTopic = (topic: Topic, path: string) => {
+                if (syllabusLevel === 'core' && topic.isSupplement) return;
                 
-                const filterAndFormatIndicators = (indicators: Indicator[]): string => {
-                    return shuffleArray(indicators, prng)
-                        .filter(ind => syllabusLevel === 'extended' || !ind.isSupplement)
-                        .map(ind => `      - ${ind.name}\n`)
-                        .join('');
-                };
+                const currentPath = `${path} > ${topic.name}`;
 
                 if (topic.indicators) {
-                    categoryString += filterAndFormatIndicators(topic.indicators);
+                    topic.indicators.forEach(indicator => {
+                        if (syllabusLevel === 'core' && indicator.isSupplement) return;
+                        points.push(`${currentPath}: ${indicator.name}`);
+                    });
                 }
-                if (topic.subTopics) {
-                    const shuffledSubTopics = shuffleArray(topic.subTopics, prng)
-                        .filter(subTopic => syllabusLevel === 'extended' || !subTopic.isSupplement);
 
-                    shuffledSubTopics.forEach(subTopic => {
-                        categoryString += `    Sub-topic: ${subTopic.name}\n`;
-                        if (subTopic.indicators) {
-                           categoryString += filterAndFormatIndicators(subTopic.indicators);
+                if (topic.subTopics) {
+                    topic.subTopics.forEach(subTopic => {
+                        if (syllabusLevel === 'core' && subTopic.isSupplement) return;
+                        const subTopicPath = `${currentPath} > ${subTopic.name}`;
+                         if (subTopic.indicators) {
+                            subTopic.indicators.forEach(indicator => {
+                                if (syllabusLevel === 'core' && indicator.isSupplement) return;
+                                points.push(`${subTopicPath}: ${indicator.name}`);
+                            });
                         }
                     });
                 }
-            });
-            return categoryString;
-        }).join('\n');
+            };
+
+            category.topics.forEach(topic => processTopic(topic, category.name));
+        });
+        return points;
     };
 
-    const syllabusContent = formatSyllabus(categories);
-
-    if (!syllabusContent.trim()) {
+    const allPoints = getAllSyllabusPoints(categories);
+    if (allPoints.length === 0) {
         throw new Error("No syllabus points found for the selected categories and syllabus level.");
     }
+
+    const shuffledPoints = shuffleArray(allPoints, prng);
+    // Provide a generous number of points to the AI, ensuring it has enough context.
+    const selectedPoints = shuffledPoints.slice(0, Math.min(shuffledPoints.length, questionCount * 5)); 
+    const syllabusContent = selectedPoints.join('\n');
 
     const nameForPrompt = seed ? "a group of students" : studentName;
     const prompt = `You are an expert IGCSE Physics tutor. Your task is to generate exactly ${questionCount} high-quality, unique, and engaging multiple-choice quiz questions for ${nameForPrompt}.
@@ -109,9 +109,9 @@ ${syllabusContent}
 
 **Mandatory Question Generation Process:**
 To ensure a fair and comprehensive quiz, you MUST follow this process:
-1.  **Analyze Syllabus Structure:** First, carefully review all the provided categories, topics, and sub-topics to understand the breadth of the material.
-2.  **Plan for Broad Coverage:** Create a mental plan to distribute the ${questionCount} questions as evenly as possible across ALL provided topics and sub-topics. Your goal is to achieve maximum coverage. Do not concentrate questions on only a few points or the first few topics listed. For example, if a category has 5 topics, and you need 5 questions, pull one from each topic.
-3.  **Generate Questions:** Generate each question according to your plan, ensuring each one directly assesses a specific syllabus indicator.
+1.  **Analyze Syllabus Structure:** First, carefully review all the provided syllabus points to understand the breadth of the material.
+2.  **Plan for Broad Coverage:** Create a mental plan to distribute the ${questionCount} questions as evenly as possible across ALL provided points. Your goal is to achieve maximum coverage. Do not concentrate questions on only the first few points listed.
+3.  **Generate Questions:** Generate each question according to your plan, ensuring each one directly assesses a specific syllabus point.
 
 **Critical Guidelines for Each Question:**
 -   **Conceptual Focus:** Questions must test a deep understanding of concepts, not just rote memorization. Absolutely NO calculation-based questions.
@@ -251,7 +251,6 @@ Generate a JSON object that strictly follows this structure.`;
     }
 };
 
-// FIX: Add generateRevisionNotes function to support QuickRevisionView.tsx
 const revisionNotesSchema = {
     type: Type.ARRAY,
     description: "An array of revision notes, where each note corresponds to a sub-topic.",

@@ -8,13 +8,11 @@ export interface Indicator {
 export interface SubTopic {
   name: string;
   indicators: Indicator[];
-  // FIX: Add isSupplement property to SubTopic interface to match usage in constants.tsx
   isSupplement?: boolean;
 }
 
 export interface Topic {
   name: string;
-  // FIX: Add isSupplement property to Topic interface to match usage in constants.tsx
   isSupplement?: boolean;
   indicators?: Indicator[];
   subTopics?: SubTopic[];
@@ -63,7 +61,6 @@ export interface SoloImprovementReport {
     motivationalMessage: string;
 }
 
-// FIX: Add missing RevisionPoint and RevisionNote types for QuickRevisionView.tsx
 export interface RevisionPoint {
     description: string;
     formula?: string;
