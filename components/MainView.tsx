@@ -7,26 +7,17 @@ import CertificateShowcase from './CertificateShowcase';
 import QuickRevisionView from './QuickRevisionView';
 
 const decodeChallengeCode = (code: string): SoloQuizConfig => {
-    const [seedStr, creationTimeStr, encodedConfig] = code.split('-');
-    if (!seedStr || !creationTimeStr || !encodedConfig) {
+    if (!code || code.length < 6 || code.length > 8) { // Basic validation
         throw new Error("Invalid challenge code format. Please check the code and try again.");
     }
-
-    const creationTime = parseInt(creationTimeStr, 10);
-    if (isNaN(creationTime)) {
-        throw new Error("Invalid challenge code: The timestamp is corrupted.");
+    
+    const combined = parseInt(code, 36);
+    if (isNaN(combined)) {
+        throw new Error("Invalid challenge code: The code is corrupted.");
     }
     
-    const oneHour = 60 * 60 * 1000;
-    if (Date.now() - creationTime > oneHour) {
-        throw new Error("This challenge code has expired. Please ask the organizer for a new one.");
-    }
-
-    const seed = parseInt(seedStr, 10);
-    if (isNaN(seed)) throw new Error("Invalid challenge code: The seed is corrupted.");
-
-    const packed = parseInt(encodedConfig, 36);
-    if (isNaN(packed)) throw new Error("Invalid challenge code: The configuration is corrupted.");
+    const seed = combined >> 12;
+    const packed = combined & 0xFFF; // 12-bit mask (4095)
 
     const syllabusLevel = (packed & 1) === 1 ? 'extended' : 'core';
     const timeValue = (packed >> 1) & 3;
@@ -36,7 +27,7 @@ const decodeChallengeCode = (code: string): SoloQuizConfig => {
     const questionValue = (packed >> 3) & 7;
     const questionOptions = [5, 10, 15, 20, 25];
     const questionCount = questionOptions[questionValue] || 10;
-    const categoryBitmask = (packed >> 6) & 63;
+    const categoryBitmask = (packed >> 6) & 63; // 6 bits for categories
     const categoryIndices: number[] = [];
     for (let i = 0; i < PHYSICS_CATEGORIES.length; i++) {
         if ((categoryBitmask >> i) & 1) {
@@ -114,8 +105,7 @@ const MainView: React.FC<{
             return;
         }
     
-        const seed = Math.floor(100000 + Math.random() * 900000);
-        const creationTime = Date.now();
+        const seed = Math.floor(100000 + Math.random() * 900000); // 6-digit seed
         const categoryIndices = selectedCategories.map(name =>
             PHYSICS_CATEGORIES.findIndex(cat => cat.name === name)
         ).filter(index => index !== -1);
@@ -132,8 +122,11 @@ const MainView: React.FC<{
         const categoryBitmask = categoryIndices.reduce((acc, index) => acc | (1 << index), 0);
         packed |= (categoryBitmask << 6);
     
-        const encodedConfig = packed.toString(36);
-        const code = `${seed}-${creationTime}-${encodedConfig}`;
+        // Combine seed and packed config into a single number
+        const combined = (seed << 12) | packed;
+        
+        // Convert to a shorter, base-36 string
+        const code = combined.toString(36).toUpperCase();
         setGeneratedChallengeCode(code);
     };
 
@@ -143,7 +136,7 @@ const MainView: React.FC<{
             return;
         }
         try {
-            const config = decodeChallengeCode(joinCode);
+            const config = decodeChallengeCode(joinCode.trim().toUpperCase());
             onStartQuiz(studentName, config);
         } catch (error) {
             const message = error instanceof Error ? error.message : "An unknown error occurred.";
@@ -268,7 +261,7 @@ const MainView: React.FC<{
                         <div className="p-8 bg-white rounded-xl shadow-lg border border-gray-200 space-y-4">
                             <h2 className="text-2xl font-bold text-gray-800">Create a Group Challenge</h2>
                              <div className="p-3 bg-blue-50 border-l-4 border-blue-400 text-blue-800 text-sm rounded-r-lg">
-                                <p><span className="font-semibold">How it works:</span> Set up the quiz options and generate a unique code. Share this code with your friends. It will expire in 1 hour and ensures everyone gets the same questions. Good luck!</p>
+                                <p><span className="font-semibold">How it works:</span> Set up the quiz options and generate a unique code. Share it with your friends to ensure everyone gets the same questions. Good luck!</p>
                             </div>
                             <div>
                                 <label className="block font-medium text-gray-700">Your Name (Organizer):</label>
@@ -341,7 +334,7 @@ const MainView: React.FC<{
                         <div className="p-8 bg-white rounded-xl shadow-lg border border-gray-200 space-y-4">
                             <h2 className="text-2xl font-bold text-gray-800">Join a Group Challenge</h2>
                             <div className="p-3 bg-indigo-50 border-l-4 border-indigo-400 text-indigo-800 text-sm rounded-r-lg">
-                                <p><span className="font-semibold">Ready to play?</span> Get the code from the challenge organizer. Enter it below along with your name. Remember, codes are only valid for 1 hour!</p>
+                                <p><span className="font-semibold">Ready to play?</span> Get the code from the challenge organizer. Enter it below along with your name.</p>
                             </div>
                             <div>
                                 <label className="block font-medium text-gray-700">Your Name:</label>

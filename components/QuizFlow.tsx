@@ -65,7 +65,9 @@ const QuizView: React.FC<{
             }
 
             try {
-                const fetchedQuestions = await generateQuizQuestions(studentName, selectedCategories, config.questionCount, config.syllabusLevel, config.seed);
+                // Use a generic name for group quizzes to ensure same questions, but student's name for solo quizzes
+                const nameForPrompt = config.seed ? "a group of students" : studentName;
+                const fetchedQuestions = await generateQuizQuestions(nameForPrompt, selectedCategories, config.questionCount, config.syllabusLevel, config.seed);
                 if (fetchedQuestions.length < config.questionCount) {
                     throw new Error("Could not generate a full set of quiz questions.");
                 }
