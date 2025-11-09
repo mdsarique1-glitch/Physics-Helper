@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, memo } from 'react';
 import { View, type QuizQuestion, type QuizResult, type SoloQuizConfig, Indicator } from '../types';
 import { generateQuizQuestions } from '../services/geminiService';
 import { MOTIVATIONAL_QUOTES, PHYSICS_CATEGORIES } from '../constants';
@@ -239,8 +239,7 @@ const CertificateView: React.FC<{
     studentName: string;
     result: QuizResult;
     onReset: () => void;
-}> = ({ studentName, result, onReset }) => {
-    const certRef = useRef<HTMLDivElement>(null);
+}> = memo(({ studentName, result, onReset }) => {
     const certData = result.certificateData;
     const loading = !certData;
     
@@ -263,7 +262,7 @@ const CertificateView: React.FC<{
 
     return (
         <div className="max-w-xs mx-auto p-2 sm:p-4 flex flex-col items-center space-y-4">
-             <div ref={certRef} className="relative p-6 bg-[#f7f5f2] rounded-lg shadow-2xl w-full text-center overflow-hidden border border-gray-300">
+             <div className="relative p-6 bg-[#f7f5f2] rounded-lg shadow-2xl w-full text-center overflow-hidden border border-gray-300">
                 <CornerFlourish position="top-left" color={color} />
                 <CornerFlourish position="top-right" color={color} />
                 <CornerFlourish position="bottom-left" color={color} />
@@ -308,14 +307,13 @@ const CertificateView: React.FC<{
             </div>
         </div>
     );
-};
+});
 
 const ImprovementReportView: React.FC<{
     studentName: string;
     result: QuizResult;
     onReset: () => void;
-}> = ({ studentName, result, onReset }) => {
-    const reportRef = useRef<HTMLDivElement>(null);
+}> = memo(({ studentName, result, onReset }) => {
     const report = result.improvementReport;
     const loading = !report;
 
@@ -323,7 +321,7 @@ const ImprovementReportView: React.FC<{
 
     return (
         <div className="max-w-xs mx-auto p-2 flex flex-col items-center space-y-4">
-            <div ref={reportRef} className="p-5 bg-white rounded-xl shadow-xl w-full border-t-4 border-indigo-500">
+            <div className="p-5 bg-white rounded-xl shadow-xl w-full border-t-4 border-indigo-500">
                 <div className="text-center">
                     <h2 className="text-xl font-bold text-gray-800">Improvement Report</h2>
                     <p className="text-xs text-gray-500 mt-1">for <span className="font-semibold">{studentName}</span></p>
@@ -360,7 +358,7 @@ const ImprovementReportView: React.FC<{
             </div>
         </div>
     );
-};
+});
 
 interface QuizFlowProps {
   initialView: View;

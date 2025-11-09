@@ -1,5 +1,4 @@
-
-import React from 'react';
+import React, { memo } from 'react';
 
 const CertificateTier: React.FC<{
     type: 'Gold' | 'Silver' | 'Bronze';
@@ -57,4 +56,4 @@ const CertificateShowcase: React.FC = () => {
     );
 };
 
-export default CertificateShowcase;
+export default memo(CertificateShowcase);

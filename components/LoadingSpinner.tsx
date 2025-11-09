@@ -1,5 +1,4 @@
-
-import React from 'react';
+import React, { memo } from 'react';
 
 const LoadingSpinner: React.FC = () => {
   return (
@@ -9,4 +8,4 @@ const LoadingSpinner: React.FC = () => {
   );
 };
 
-export default LoadingSpinner;
+export default memo(LoadingSpinner);
