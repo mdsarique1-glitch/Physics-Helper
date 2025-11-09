@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { PHYSICS_CATEGORIES, PHYSICS_HELPER_MESSAGES } from '../constants';
 import type { SoloQuizConfig } from '../types';
+import LoadingSpinner from './LoadingSpinner';
 import CertificateShowcase from './CertificateShowcase';
 import QuickRevisionView from './QuickRevisionView';
 
@@ -16,21 +17,29 @@ const decodeChallengeCode = (code: string): SoloQuizConfig | null => {
         const packed = parseInt(encodedConfig, 36);
         if (isNaN(packed)) throw new Error("Invalid config in code.");
 
+        // Decode syllabus level (1 bit)
         const syllabusLevel = (packed & 1) === 1 ? 'extended' : 'core';
-        
-        const timeValue = (packed >> 1) & 7; // 3 bits
-        const groupTimeOptions = [0, 5, 10, 15, 20];
-        const timeLimit = groupTimeOptions[timeValue] ?? 0;
+
+        // Decode time limit (2 bits)
+        const timeValue = (packed >> 1) & 3; // 0b11
+        const groupTimeOptions = [0, 5, 10, 15];
+        const timeLimit = groupTimeOptions[timeValue] || 0;
         const timerEnabled = timeLimit > 0;
 
-        const questionValue = (packed >> 4) & 7; // 3 bits
+        // Decode question count (3 bits)
+        const questionValue = (packed >> 3) & 7; // 0b111
         const questionOptions = [5, 10, 15, 20, 25];
-        const questionCount = questionOptions[questionValue] ?? 10;
+        const questionCount = questionOptions[questionValue] || 10;
 
-        const categoryBitmask = (packed >> 7) & 63; // 6 bits
-        const categories = PHYSICS_CATEGORIES
-            .filter((_, i) => (categoryBitmask >> i) & 1)
-            .map(cat => cat.name);
+        // Decode categories (6 bits)
+        const categoryBitmask = (packed >> 6) & 63; // 0b111111
+        const categoryIndices: number[] = [];
+        for (let i = 0; i < PHYSICS_CATEGORIES.length; i++) {
+            if ((categoryBitmask >> i) & 1) {
+                categoryIndices.push(i);
+            }
+        }
+        const categories = categoryIndices.map(i => PHYSICS_CATEGORIES[i]?.name).filter((name): name is string => !!name);
 
         if (categories.length === 0) {
             throw new Error("No categories found in challenge code.");
@@ -50,17 +59,9 @@ const decodeChallengeCode = (code: string): SoloQuizConfig | null => {
     }
 };
 
-interface MainViewProps {
-    onStartSoloQuiz: (name: string, config: SoloQuizConfig) => void;
-    onCreateGroupChallenge: (organizerName: string, title: string, config: SoloQuizConfig) => void;
-    onJoinGroupChallenge: (participantName: string, code: string) => string | null;
-}
-
-const MainView: React.FC<MainViewProps> = ({ 
-    onStartSoloQuiz,
-    onCreateGroupChallenge,
-    onJoinGroupChallenge
-}) => {
+const MainView: React.FC<{ 
+    onStartQuiz: (name: string, config: SoloQuizConfig) => void;
+}> = ({ onStartQuiz }) => {
     const [quizMode, setQuizMode] = useState<'solo' | 'group' | 'revision'>('solo');
     
     // Solo & Group state
@@ -74,7 +75,8 @@ const MainView: React.FC<MainViewProps> = ({
     // Group Challenge State
     const [organizerName, setOrganizerName] = useState('');
     const [joinCode, setJoinCode] = useState('');
-    const [groupQuizConfig, setGroupQuizConfig] = useState<Omit<SoloQuizConfig, 'categories' | 'seed' | 'syllabusLevel'>>({ questionCount: 10, timerEnabled: true, timeLimit: 10 });
+    const [generatedChallengeCode, setGeneratedChallengeCode] = useState('');
+    const [groupQuizConfig, setGroupQuizConfig] = useState<Omit<SoloQuizConfig, 'categories' | 'seed' | 'syllabusLevel'>>({ questionCount: 10, timerEnabled: false, timeLimit: 10 });
     const [challengeTitle, setChallengeTitle] = useState('');
 
     // Common state
@@ -86,8 +88,8 @@ const MainView: React.FC<MainViewProps> = ({
 
     const handleStartSoloQuizClick = () => {
         if (studentName && selectedCategories.length > 0) {
-            const config: SoloQuizConfig = { ...soloQuizConfig, categories: selectedCategories, syllabusLevel, seed: Date.now() };
-            onStartSoloQuiz(studentName, config);
+            const config: SoloQuizConfig = { ...soloQuizConfig, categories: selectedCategories, syllabusLevel };
+            onStartQuiz(studentName, config);
         } else {
             alert("Please enter your name and select at least one category.");
         }
@@ -98,38 +100,37 @@ const MainView: React.FC<MainViewProps> = ({
             alert("Please provide your name, a challenge title, and select at least one category.");
             return;
         }
-
-        const seed = Math.floor(100000 + Math.random() * 900000);
-        
-        const fullConfig: SoloQuizConfig = {
-            ...groupQuizConfig,
-            categories: selectedCategories,
-            syllabusLevel,
-            seed
-        };
     
-        // Create a unique ID for the challenge based on the generated config.
-        const categoryIndices = selectedCategories.map(name => PHYSICS_CATEGORIES.findIndex(cat => cat.name === name)).filter(index => index !== -1);
+        const seed = Math.floor(100000 + Math.random() * 900000);
+        const categoryIndices = selectedCategories.map(name =>
+            PHYSICS_CATEGORIES.findIndex(cat => cat.name === name)
+        ).filter(index => index !== -1);
+    
+        // Start packing data into a single number
         let packed = 0;
+    
+        // 1. Syllabus level (1 bit)
         const syllabusValue = syllabusLevel === 'extended' ? 1 : 0;
         packed |= syllabusValue;
     
-        const groupTimeOptions = [0, 5, 10, 15, 20];
+        // 2. Time limit (2 bits)
+        const groupTimeOptions = [0, 5, 10, 15];
         const timeIndex = groupTimeOptions.indexOf(groupQuizConfig.timerEnabled ? groupQuizConfig.timeLimit : 0);
         packed |= ((timeIndex > -1 ? timeIndex : 0) << 1);
     
+        // 3. Question count (3 bits)
         const questionOptions = [5, 10, 15, 20, 25];
         const questionIndex = questionOptions.indexOf(groupQuizConfig.questionCount);
-        packed |= ((questionIndex > -1 ? questionIndex : 0) << 4);
+        packed |= ((questionIndex > -1 ? questionIndex : 0) << 3);
     
+        // 4. Categories (6 bits)
         const categoryBitmask = categoryIndices.reduce((acc, index) => acc | (1 << index), 0);
-        packed |= (categoryBitmask << 7);
+        packed |= (categoryBitmask << 6);
     
+        // Convert the packed number to a short base-36 string
         const encodedConfig = packed.toString(36);
         const code = `${seed}-${encodedConfig}`;
-
-        // Pass this up to App.tsx to handle the state transition
-        onCreateGroupChallenge(organizerName, challengeTitle, { ...fullConfig, seed, id: code });
+        setGeneratedChallengeCode(code);
     };
 
     const handleJoinChallenge = () => {
@@ -137,12 +138,24 @@ const MainView: React.FC<MainViewProps> = ({
             alert("Please enter your name and a challenge code.");
             return;
         }
-        const error = onJoinGroupChallenge(studentName, joinCode);
-        if (error) {
-            alert(error);
+        const config = decodeChallengeCode(joinCode);
+        if (config) {
+            onStartQuiz(studentName, config);
+        } else {
+            alert("Invalid or corrupted challenge code. Please check the code and try again.");
         }
     };
     
+    const startChallengeForOrganizer = () => {
+        const config = decodeChallengeCode(generatedChallengeCode);
+        if (config) {
+            onStartQuiz(organizerName, config);
+        } else {
+            alert("Could not start the challenge due to an error.")
+        }
+    }
+
+
     const handleFeedbackClick = () => {
         const googleFormUrl = "https://docs.google.com/forms/d/e/1FAIpQLSeRIKIvWDqOG3PKJptjlhSgnUDObjenE8V6ILvH5Y9wcereCQ/viewform?usp=dialog";
         window.open(googleFormUrl, '_blank', 'noopener,noreferrer');
@@ -223,7 +236,26 @@ const MainView: React.FC<MainViewProps> = ({
                     </div>
                 );
             case 'group':
-                 const groupTimeOptions = [5, 10, 15, 20];
+                 if (generatedChallengeCode) {
+                    return (
+                        <div className="p-8 bg-white rounded-xl shadow-lg border border-gray-200 text-center space-y-4">
+                            <h2 className="text-2xl font-bold text-green-700">Challenge Created!</h2>
+                            <p className="text-gray-600">Share this code with your friends to start the challenge.</p>
+                            <div className="p-4 bg-gray-100 rounded-lg">
+                                <p className="font-mono text-xl md:text-2xl font-bold text-indigo-600 break-words">{generatedChallengeCode}</p>
+                            </div>
+                            <div className="flex flex-col sm:flex-row justify-center gap-4 pt-4">
+                                <button onClick={startChallengeForOrganizer} className="px-6 py-3 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700">
+                                    Start My Quiz
+                                </button>
+                                <button onClick={() => { setGeneratedChallengeCode(''); setSelectedCategories([]); }} className="px-6 py-3 bg-gray-200 text-gray-800 font-bold rounded-lg hover:bg-gray-300">
+                                    Create New Challenge
+                                </button>
+                            </div>
+                        </div>
+                    );
+                }
+                 const groupTimeOptions = [5, 10, 15];
                  return (
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                         {/* Create Group Challenge Card */}
@@ -294,7 +326,7 @@ const MainView: React.FC<MainViewProps> = ({
                                 </div>
                             </div>
                             <button onClick={handleCreateChallenge} className="w-full py-3 bg-green-500 text-white font-bold rounded-lg hover:bg-green-600">
-                                Create Challenge & Enter Lobby
+                                Create Challenge Code
                             </button>
                         </div>
                         {/* Join Group Challenge Card */}

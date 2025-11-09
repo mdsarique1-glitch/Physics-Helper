@@ -1,7 +1,8 @@
-import React, { useState, memo } from 'react';
+
+import React, { useState } from 'react';
 import { PHYSICS_CATEGORIES } from '../constants';
 import { generateRevisionNotes } from '../services/geminiService';
-import type { Topic, RevisionNote, RevisionPoint, Category } from '../types';
+import type { Topic, RevisionNote, RevisionPoint } from '../types';
 import LoadingSpinner from './LoadingSpinner';
 
 const CollapsibleSection: React.FC<{
@@ -10,7 +11,7 @@ const CollapsibleSection: React.FC<{
     titleClassName?: string;
     onHeaderClick?: () => void;
     isOpen?: boolean;
-}> = memo(({ title, children, titleClassName, onHeaderClick, isOpen: controlledIsOpen }) => {
+}> = ({ title, children, titleClassName, onHeaderClick, isOpen: controlledIsOpen }) => {
     const [internalIsOpen, setInternalIsOpen] = useState(false);
 
     const isControlled = controlledIsOpen !== undefined;
@@ -39,9 +40,9 @@ const CollapsibleSection: React.FC<{
             {isOpen && <div className="bg-white">{children}</div>}
         </div>
     );
-});
+};
 
-const RevisionPointCard: React.FC<{ point: RevisionPoint }> = memo(({ point }) => (
+const RevisionPointCard: React.FC<{ point: RevisionPoint }> = ({ point }) => (
     <div className="p-4 bg-white rounded-lg border border-gray-200 shadow-sm transition-all duration-300 hover:shadow-lg hover:border-indigo-300 hover:scale-[1.01]">
         <div className="text-gray-700 text-base mb-4" dangerouslySetInnerHTML={{ __html: point.description }} />
         
@@ -91,7 +92,7 @@ const RevisionPointCard: React.FC<{ point: RevisionPoint }> = memo(({ point }) =
             </div>
         )}
     </div>
-));
+);
 
 
 const RevisionTopicView: React.FC<{ topic: Topic }> = ({ topic }) => {
@@ -159,42 +160,6 @@ const RevisionTopicView: React.FC<{ topic: Topic }> = ({ topic }) => {
 const QuickRevisionView: React.FC = () => {
     const [openCategory, setOpenCategory] = useState<string | null>(null);
 
-    const prefetchNotesForCategory = (category: Category) => {
-        category.topics.forEach(topic => {
-            const cacheKey = `revision-notes-${topic.name}`;
-            try {
-                const cachedNotes = sessionStorage.getItem(cacheKey);
-                if (!cachedNotes) {
-                    // Fire and forget, don't await. This runs in the background.
-                    generateRevisionNotes(topic)
-                        .then(fetchedNotes => {
-                            try {
-                                sessionStorage.setItem(cacheKey, JSON.stringify(fetchedNotes));
-                            } catch (e) {
-                                console.warn(`Could not cache prefetched notes for ${topic.name}:`, e);
-                            }
-                        })
-                        .catch(err => {
-                            // Fail silently in the background
-                            console.error(`Failed to prefetch notes for ${topic.name}:`, err);
-                        });
-                }
-            } catch(e) {
-                 console.warn(`Could not access session storage for prefetching ${topic.name}:`, e);
-            }
-        });
-    };
-
-    const handleCategoryToggle = (categoryName: string, category: Category) => {
-        const newOpenCategory = openCategory === categoryName ? null : categoryName;
-        setOpenCategory(newOpenCategory);
-        
-        // If we are opening a new category, prefetch its topics
-        if (newOpenCategory === categoryName) {
-            prefetchNotesForCategory(category);
-        }
-    };
-
     return (
         <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
             <div className="p-8 border-b bg-gray-50">
@@ -210,7 +175,7 @@ const QuickRevisionView: React.FC = () => {
                             title={category.name}
                             titleClassName="text-xl font-bold text-indigo-700"
                             isOpen={openCategory === category.name}
-                            onHeaderClick={() => handleCategoryToggle(category.name, category)}
+                            onHeaderClick={() => setOpenCategory(current => current === category.name ? null : category.name)}
                         >
                             <div className="divide-y divide-gray-200">
                                 {category.topics.map(topic => (

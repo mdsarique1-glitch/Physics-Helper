@@ -765,6 +765,17 @@ export const MOTIVATIONAL_QUOTES: string[] = [
     "Every great advance in science has issued from a new audacity of imagination. - John Dewey"
 ];
 
+export const LOADING_MESSAGES: string[] = [
+    "Calibrating the photogates...",
+    "Calculating escape velocity...",
+    "Aligning the laser beams...",
+    "Condensing the Bose-Einstein condensate...",
+    "Measuring Planck's constant...",
+    "Generating a quantum entanglement...",
+    "Checking Schrödinger's cat...",
+    "Polishing the reflecting telescope..."
+];
+
 export const PHYSICS_HELPER_MESSAGES: string[] = [
     "Ready to test your knowledge? Select your topics and start a quiz!",
     "Pay close attention to the wording of questions. 'Speed' and 'velocity' are not the same!",

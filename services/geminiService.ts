@@ -18,31 +18,22 @@ const quizQuestionsSchema = {
             question: { type: Type.STRING },
             options: { type: Type.ARRAY, items: { type: Type.STRING } },
             correctAnswer: { type: Type.STRING },
-            difficulty: { type: Type.STRING, enum: ['easy', 'medium', 'hard'] }
         },
-        required: ['question', 'options', 'correctAnswer', 'difficulty']
+        required: ['question', 'options', 'correctAnswer']
     }
 };
 
-export const generateQuizQuestions = async (indicators: Indicator[], questionCount: number, seed?: number): Promise<QuizQuestion[]> => {
-    const baseDifficultyCount = Math.floor(questionCount / 3);
-    const remainder = questionCount % 3;
-    const numEasy = baseDifficultyCount + (remainder > 0 ? 1 : 0);
-    const numMedium = baseDifficultyCount + (remainder > 1 ? 1 : 0);
-    const numHard = baseDifficultyCount;
-
-    const prompt = `Generate ${questionCount} unique, multiple-choice quiz questions for an IGCSE Physics student.
-    The questions must be strictly and exclusively based on the following Cambridge IGCSE Physics (0625) syllabus points. Do not include any topics or concepts not explicitly mentioned in this list:
+export const generateQuizQuestions = async (studentName: string, indicators: Indicator[], questionCount: number, seed?: number): Promise<QuizQuestion[]> => {
+    const prompt = `Generate ${questionCount} unique and engaging multiple-choice quiz questions for an IGCSE Physics student named ${studentName}.
+    The questions must be strictly and exclusively based on the following Cambridge IGCSE Physics (0625) syllabus points. Do not test any concepts not explicitly mentioned:
     ${indicators.map(i => `- ${i.name}`).join('\n')}
 
-    IMPORTANT RULES:
-    1.  The questions must be conceptually focused.
-    2.  Absolutely NO calculation questions.
-    3.  Distribute the questions as evenly as possible across all the provided syllabus points.
-    4.  Generate exactly ${numEasy} easy, ${numMedium}, and ${numHard} hard questions.
-    5.  Provide 4 distinct and plausible options and one correct answer for each question.
-    6.  Do not repeat questions.
-    7.  Do not create questions about topics outside of the provided list. For example, do not ask about 'demagnetization' if it is not in the list of syllabus points provided above.`;
+    GUIDELINES FOR HIGH-QUALITY QUESTIONS:
+    1.  **Varied Structure:** Do not use the same question format repeatedly. Vary the structure by asking definitional, conceptual, scenario-based, and 'which of the following is true/false' type questions to keep it interesting.
+    2.  **Conceptual Focus:** Questions must test understanding of concepts, not rote memorization or calculations. Absolutely NO math problems.
+    3.  **Syllabus Coverage:** Distribute the questions as evenly as possible across ALL the provided syllabus points to ensure comprehensive testing.
+    4.  **Plausible Options:** Provide 4 distinct and plausible answer options. The incorrect options (distractors) should be common misconceptions.
+    5.  **Uniqueness:** Ensure every question in this set is unique and not a slight rephrase of another.`;
 
     try {
         const response = await ai.models.generateContent({

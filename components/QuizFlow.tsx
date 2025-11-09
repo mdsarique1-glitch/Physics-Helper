@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useCallback, useRef, memo } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, type QuizQuestion, type QuizResult, type SoloQuizConfig, Indicator } from '../types';
 import { generateQuizQuestions } from '../services/geminiService';
-import { MOTIVATIONAL_QUOTES, PHYSICS_CATEGORIES } from '../constants';
+// FIX: Import PHYSICS_CATEGORIES to resolve reference error.
+import { MOTIVATIONAL_QUOTES, PHYSICS_CATEGORIES, LOADING_MESSAGES } from '../constants';
 import LoadingSpinner from './LoadingSpinner';
 
 const Timer: React.FC<{ seconds: number }> = ({ seconds }) => {
@@ -27,6 +28,8 @@ const QuizView: React.FC<{
     const [incorrectAnswers, setIncorrectAnswers] = useState(0);
     const [isAnswered, setIsAnswered] = useState(false);
     const [timeLeft, setTimeLeft] = useState(config.timeLimit * 60);
+    const [loadingMessage, setLoadingMessage] = useState("Generating your personalized quiz...");
+
     
     const isCompletedRef = useRef(false);
     
@@ -40,6 +43,15 @@ const QuizView: React.FC<{
             });
         }
     }, [onComplete, config.questionCount]);
+
+     useEffect(() => {
+        if (loading) {
+            const interval = setInterval(() => {
+                setLoadingMessage(LOADING_MESSAGES[Math.floor(Math.random() * LOADING_MESSAGES.length)]);
+            }, 2000);
+            return () => clearInterval(interval);
+        }
+    }, [loading]);
 
     useEffect(() => {
         const fetchQuestions = async () => {
@@ -78,7 +90,7 @@ const QuizView: React.FC<{
             }
 
             try {
-                const fetchedQuestions = await generateQuizQuestions(indicatorsForQuiz, config.questionCount, config.seed);
+                const fetchedQuestions = await generateQuizQuestions(studentName, indicatorsForQuiz, config.questionCount, config.seed);
                 if (fetchedQuestions.length < config.questionCount) {
                     throw new Error("Could not generate a full set of quiz questions.");
                 }
@@ -94,7 +106,7 @@ const QuizView: React.FC<{
             }
         };
         fetchQuestions();
-    }, [config, onComplete]);
+    }, [config, onComplete, studentName]);
 
      useEffect(() => {
         if (!config.timerEnabled || loading) return;
@@ -141,7 +153,7 @@ const QuizView: React.FC<{
         }, 1500);
     };
 
-    if (loading) return <div className="flex flex-col items-center justify-center h-64"><LoadingSpinner /><p className="mt-4 text-lg text-gray-600">Generating your personalized quiz...</p></div>;
+    if (loading) return <div className="flex flex-col items-center justify-center h-64"><LoadingSpinner /><p className="mt-4 text-lg text-gray-600 text-center w-3/4">{loadingMessage}</p></div>;
     if (error) return <p className="text-center text-red-500 text-lg">{error}</p>;
     if (questions.length === 0 && !loading) return <p className="text-center text-gray-600 text-lg">No questions available.</p>;
 
@@ -156,10 +168,7 @@ const QuizView: React.FC<{
                 <div className="text-xl font-semibold text-gray-700">Incorrect: <span className="text-red-500">{incorrectAnswers}</span></div>
             </div>
 
-            <div className="mb-6 flex justify-between items-center">
-                <div className={`text-sm font-bold uppercase px-3 py-1 rounded-full ${currentQuestion.difficulty === 'easy' ? 'bg-green-100 text-green-800' : currentQuestion.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}`}>
-                    {currentQuestion.difficulty}
-                </div>
+            <div className="mb-6 flex justify-end items-center">
                 <div className="text-right text-sm text-gray-500">Question {questionNumber} of {config.questionCount}</div>
             </div>
 
@@ -186,52 +195,19 @@ const QuizView: React.FC<{
 };
 
 const TierSeal: React.FC<{ type: 'Gold' | 'Silver' | 'Bronze' }> = ({ type }) => {
-    const themes = {
-        Gold: {
-            gradientFrom: 'from-amber-400',
-            gradientTo: 'to-yellow-500',
-            shadow: 'shadow-yellow-500/50',
-            textColor: 'text-yellow-800',
-        },
-        Silver: {
-            gradientFrom: 'from-slate-400',
-            gradientTo: 'to-gray-500',
-            shadow: 'shadow-slate-500/50',
-            textColor: 'text-gray-800',
-        },
-        Bronze: {
-            gradientFrom: 'from-orange-500',
-            gradientTo: 'to-amber-600',
-            shadow: 'shadow-orange-500/50',
-            textColor: 'text-orange-900',
-        },
+    const theme = {
+        Gold: { sealColor: 'bg-amber-400', ringColor: 'ring-amber-200' },
+        Silver: { sealColor: 'bg-slate-400', ringColor: 'ring-slate-200' },
+        Bronze: { sealColor: 'bg-orange-400', ringColor: 'ring-orange-200' },
     };
-    const theme = themes[type];
+    const { sealColor, ringColor } = theme[type];
 
     return (
-        <div className={`relative w-20 h-20`}>
-            <div className={`absolute inset-0 bg-gradient-to-br ${theme.gradientFrom} ${theme.gradientTo} rounded-full shadow-lg ${theme.shadow} flex items-center justify-center`}>
-                <svg className="w-12 h-12 text-white drop-shadow-md" fill="currentColor" viewBox="0 0 24 24">
-                     <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27z" />
-                </svg>
-            </div>
-            <div className={`absolute -inset-1 rounded-full border-2 border-white/50`}></div>
+        <div className={`w-20 h-20 rounded-full ${sealColor} flex items-center justify-center shadow-lg ring-4 ${ringColor}`}>
+            <svg className="w-12 h-12 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27z" />
+            </svg>
         </div>
-    );
-};
-
-const CornerFlourish: React.FC<{ position: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'; color: string }> = ({ position, color }) => {
-    const posClasses = {
-        'top-left': 'top-2 left-2',
-        'top-right': 'top-2 right-2 transform rotate-90',
-        'bottom-left': 'bottom-2 left-2 transform -rotate-90',
-        'bottom-right': 'bottom-2 right-2 transform rotate-180',
-    };
-    return (
-        <svg className={`absolute w-12 h-12 ${posClasses[position]} ${color}`} viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d="M5 5 H95 V15 H15 V95 H5 V5 Z" fill="currentColor" fillOpacity="0.1"/>
-            <path d="M10 10 H90 V20 H20 V90 H10 V10 Z" stroke="currentColor" strokeWidth="1" strokeOpacity="0.4"/>
-        </svg>
     );
 };
 
@@ -239,7 +215,8 @@ const CertificateView: React.FC<{
     studentName: string;
     result: QuizResult;
     onReset: () => void;
-}> = memo(({ studentName, result, onReset }) => {
+}> = ({ studentName, result, onReset }) => {
+    const certRef = useRef<HTMLDivElement>(null);
     const certData = result.certificateData;
     const loading = !certData;
     
@@ -254,146 +231,136 @@ const CertificateView: React.FC<{
     const tier = getTier(roundedAccuracy);
 
     const theme = {
-        Gold: { color: 'text-amber-500', bgColor: 'bg-amber-50', borderColor: 'border-amber-200' },
-        Silver: { color: 'text-slate-500', bgColor: 'bg-slate-50', borderColor: 'border-slate-200' },
-        Bronze: { color: 'text-orange-600', bgColor: 'bg-orange-50', borderColor: 'border-orange-200' },
+        Gold: { borderColor: 'border-amber-300', bgColor: 'bg-amber-100', textColor: 'text-amber-800' },
+        Silver: { borderColor: 'border-slate-300', bgColor: 'bg-slate-100', textColor: 'text-slate-800' },
+        Bronze: { borderColor: 'border-orange-300', bgColor: 'bg-orange-100', textColor: 'text-orange-800' },
     };
-    const { color, bgColor, borderColor } = theme[tier];
+    const { borderColor, bgColor, textColor } = theme[tier];
 
     return (
-        <div className="max-w-xs mx-auto p-2 sm:p-4 flex flex-col items-center space-y-4">
-             <div className="relative p-6 bg-[#f7f5f2] rounded-lg shadow-2xl w-full text-center overflow-hidden border border-gray-300">
-                <CornerFlourish position="top-left" color={color} />
-                <CornerFlourish position="top-right" color={color} />
-                <CornerFlourish position="bottom-left" color={color} />
-                <CornerFlourish position="bottom-right" color={color} />
-                
+        <div className="max-w-md mx-auto p-2 sm:p-4 flex flex-col items-center space-y-4">
+            <div ref={certRef} className="relative pt-12 pb-8 px-6 bg-white rounded-lg shadow-2xl w-full text-center overflow-hidden">
+                <div className={`absolute top-0 left-0 w-24 h-24 border-t-8 border-l-8 ${borderColor} rounded-tl-lg`}></div>
+                <div className={`absolute bottom-0 right-0 w-24 h-24 border-b-8 border-r-8 ${borderColor} rounded-br-lg`}></div>
+
                 <div className="relative z-10">
-                    <div className="flex justify-center mb-3">
+                    <div className="flex justify-center mb-4">
                         <TierSeal type={tier} />
                     </div>
                     
-                    <p className="text-xs font-semibold uppercase tracking-widest text-gray-500">Certificate of Achievement</p>
-                    <p className="text-xs text-gray-500 mt-2">This certificate is proudly presented to</p>
+                    <h2 className="text-sm font-semibold uppercase tracking-widest text-gray-500">Certificate of Achievement</h2>
+                    <p className="text-gray-600 mt-4">This certificate is awarded to</p>
                     
-                    <h1 className="text-3xl font-serif font-bold text-gray-800 my-2 break-words">
+                    <h1 className="text-4xl font-serif font-bold text-gray-800 my-2">
                         {studentName}
                     </h1>
 
-                    <p className="text-xs text-gray-500">for demonstrating outstanding knowledge in IGCSE Physics.</p>
+                    <p className="text-gray-600">for demonstrating outstanding knowledge in IGCSE Physics.</p>
                     
-                    <div className={`my-4 inline-block px-3 py-1 ${bgColor} ${color} rounded-full font-semibold text-xs border ${borderColor}`}>
+                    <div className={`my-6 inline-block px-4 py-2 ${bgColor} ${textColor} rounded-full font-semibold text-sm`}>
                         {tier} Tier &bull; {roundedAccuracy}% Score
                     </div>
 
-                    {loading ? <div className="py-2"><LoadingSpinner/></div> : (
-                        <div className="text-left space-y-1 mt-3 bg-white/60 p-3 rounded-md border border-gray-200">
-                             <h4 className="font-bold text-xs text-gray-700">Performance Summary:</h4>
-                             <p className="text-gray-600 text-xs italic">"{certData?.summary}"</p>
-                             <h4 className="font-bold text-xs text-gray-700 mt-1">Topics Covered:</h4>
-                             <p className="text-gray-600 text-xs">{result.categories?.join(', ')}</p>
+                    {loading ? <div className="py-4"><LoadingSpinner/></div> : (
+                        <div className="text-left space-y-2 mt-4 bg-gray-50 p-4 rounded-md border border-gray-200">
+                             <h4 className="font-bold text-sm text-gray-700">Performance Summary:</h4>
+                             <p className="text-gray-600 text-sm">{certData?.summary}</p>
+                             <h4 className="font-bold text-sm text-gray-700 mt-2">Topics Covered:</h4>
+                             <p className="text-gray-600 text-sm">{result.categories?.join(', ')}</p>
                         </div>
                     )}
                     
-                     <div className="mt-4 pt-2 border-t border-gray-300/50 flex justify-between items-center text-[10px] text-gray-400">
+                    <div className="mt-8 flex justify-between items-center text-xs text-gray-500">
                         <span>Date: {new Date().toLocaleDateString()}</span>
-                        <span className="font-bold font-serif">Physics Helper</span>
+                        <span className="font-bold">Physics Helper</span>
                     </div>
                 </div>
             </div>
-            <div className="text-center p-2">
-                <p className="text-gray-600 text-xs font-semibold">Take a screenshot to save and share your certificate!</p>
-                <button onClick={onReset} className="mt-3 px-6 py-2 bg-gray-600 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700 transition text-sm">Back to Home</button>
+            <div className="text-center p-4">
+                <p className="text-gray-700 text-sm font-semibold">Take a screenshot to save and share your certificate!</p>
+                <button onClick={onReset} className="mt-4 px-8 py-3 bg-gray-600 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700 transition">Back to Home</button>
             </div>
         </div>
     );
-});
+};
 
 const ImprovementReportView: React.FC<{
     studentName: string;
     result: QuizResult;
     onReset: () => void;
-}> = memo(({ studentName, result, onReset }) => {
+}> = ({ studentName, result, onReset }) => {
+    const reportRef = useRef<HTMLDivElement>(null);
     const report = result.improvementReport;
     const loading = !report;
 
     const accuracy = result.totalQuestions > 0 ? (result.correctAnswers / result.totalQuestions) * 100 : 0;
 
     return (
-        <div className="max-w-xs mx-auto p-2 flex flex-col items-center space-y-4">
-            <div className="p-5 bg-white rounded-xl shadow-xl w-full border-t-4 border-indigo-500">
-                <div className="text-center">
-                    <h2 className="text-xl font-bold text-gray-800">Improvement Report</h2>
-                    <p className="text-xs text-gray-500 mt-1">for <span className="font-semibold">{studentName}</span></p>
-                </div>
+        <div className="max-w-sm mx-auto p-2 flex flex-col items-center space-y-4">
+            <div ref={reportRef} className="p-6 bg-white rounded-lg shadow-xl text-center border-t-4 border-indigo-500 w-full">
+                <h2 className="text-2xl font-bold text-gray-800">Quiz Report</h2>
+                <p className="text-sm text-gray-500 mt-1">for <span className="font-semibold">{studentName}</span></p>
                 
-                <div className="my-5 text-center bg-red-50 p-3 rounded-lg border border-red-200">
-                    <p className="text-4xl font-bold text-red-500">{accuracy.toFixed(0)}<span className="text-2xl">%</span></p>
-                    <p className="text-gray-600 text-xs mt-1">Score ({result.correctAnswers} / {result.totalQuestions} correct)</p>
+                <div className="my-6 text-center">
+                    <p className="text-5xl font-bold text-red-500">{accuracy.toFixed(0)}<span className="text-3xl">%</span></p>
+                    <p className="text-gray-600 text-sm mt-1">Score ({result.correctAnswers} / {result.totalQuestions} correct)</p>
                 </div>
 
-                {loading ? <div className="py-4"><LoadingSpinner/></div> : (
-                    <div className="space-y-4">
-                        <div>
-                            <h3 className="text-sm font-bold text-gray-700">Areas to Improve:</h3>
-                            <ul className="list-disc list-inside text-sm text-gray-600 mt-1 pl-2 space-y-1">
-                                {report?.improvementAreas.map((area, i) => <li key={i}>{area}</li>)}
-                            </ul>
-                        </div>
-                        <div className="p-3 bg-indigo-50 rounded-lg border border-indigo-200">
-                            <p className="text-sm text-indigo-800 italic">"{report?.motivationalMessage}"</p>
-                        </div>
+                <div className="my-4 text-xs text-center text-gray-500">
+                    <p className="font-bold">Topics:</p>
+                    <p>{result.categories?.join(', ')}</p>
+                </div>
+
+                {loading ? <div className="my-6"><LoadingSpinner /></div> : (
+                    <div className="text-left my-6 bg-indigo-50 p-4 rounded-md border-l-4 border-indigo-400">
+                        <h4 className="font-bold text-md text-indigo-800">Focus Areas for Improvement:</h4>
+                        <ul className="list-disc list-inside mt-2 text-indigo-900 space-y-1 text-sm">
+                            {report?.improvementAreas.map((area, i) => <li key={i}>{area}</li>)}
+                        </ul>
+                        <p className="italic text-indigo-900 mt-4 text-sm">"{report?.motivationalMessage}"</p>
                     </div>
                 )}
-                
-                {result.error && (
-                    <div className="mt-4 text-center p-3 bg-red-50 text-red-700 rounded-lg border border-red-200 text-sm">
-                        <p>An error occurred. Your result might be incomplete.</p>
-                    </div>
-                )}
+                <div className="mt-6 pt-4 border-t border-gray-200 flex items-center justify-between text-xs text-gray-500">
+                    <span>{new Date().toLocaleDateString()}</span>
+                    <span className="font-bold">Physics Helper</span>
+                </div>
             </div>
             <div className="text-center p-2">
-                <p className="text-gray-600 text-xs font-semibold">Study hard and try again to earn a certificate!</p>
-                <button onClick={onReset} className="mt-3 px-6 py-2 bg-gray-600 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700 transition text-sm">Back to Home</button>
+                <button onClick={onReset} className="mt-2 px-6 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition text-sm">Try Again</button>
             </div>
         </div>
     );
-});
+};
 
 interface QuizFlowProps {
   initialView: View;
   studentName: string;
   quizConfig: SoloQuizConfig;
-  onQuizComplete: (result: QuizResult) => void;
   quizResult: QuizResult | null;
+  onQuizComplete: (result: QuizResult) => void;
   onReset: () => void;
 }
 
-const QuizFlow: React.FC<QuizFlowProps> = ({
-  initialView,
-  studentName,
-  quizConfig,
-  onQuizComplete,
-  quizResult,
-  onReset,
-}) => {
-  if (initialView === View.QUIZ) {
-    return <QuizView studentName={studentName} config={quizConfig} onComplete={onQuizComplete} />;
-  }
+const QuizFlow: React.FC<QuizFlowProps> = ({ initialView, studentName, quizConfig, quizResult, onQuizComplete, onReset }) => {
+    const accuracy = quizResult && quizResult.totalQuestions > 0 ? (quizResult.correctAnswers / quizResult.totalQuestions) * 100 : 0;
+    const hasCertificate = quizResult && accuracy >= 61 && !quizResult.error;
 
-  if (initialView === View.CERTIFICATE && quizResult) {
-    const accuracy = quizResult.totalQuestions > 0 ? (quizResult.correctAnswers / quizResult.totalQuestions) * 100 : 0;
-    const hasCertificate = accuracy >= 61 && !quizResult.error;
-
-    if (hasCertificate) {
-      return <CertificateView studentName={studentName} result={quizResult} onReset={onReset} />;
-    } else {
-      return <ImprovementReportView studentName={studentName} result={quizResult} onReset={onReset} />;
+    switch (initialView) {
+        case View.QUIZ:
+            return <QuizView studentName={studentName} config={quizConfig} onComplete={onQuizComplete} />;
+        case View.CERTIFICATE:
+            if (!quizResult) {
+                return <p>An error occurred displaying the results.</p>;
+            }
+             if (quizResult.error) {
+                 return <div className="text-center"><p className="text-red-500 text-lg mb-4">We're sorry, but an error occurred while generating your quiz.</p><button onClick={onReset} className="px-6 py-3 bg-indigo-600 text-white rounded-lg">Back to Home</button></div>;
+            }
+            return hasCertificate 
+                ? <CertificateView studentName={studentName} result={quizResult} onReset={onReset} />
+                : <ImprovementReportView studentName={studentName} result={quizResult} onReset={onReset} />;
+        default:
+            return null;
     }
-  }
-
-  // This should not happen in the normal flow, but it's a safe fallback.
-  return null;
 };
 
 export default QuizFlow;
