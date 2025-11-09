@@ -186,48 +186,19 @@ const QuizView: React.FC<{
     );
 };
 
-
-const CertificateBadge: React.FC<{ type: 'Gold' | 'Silver' | 'Bronze' }> = ({ type }) => {
-    const config = {
-        Gold: {
-            gradient: "url(#gold-gradient)",
-            textColor: "text-amber-700",
-            title: "Gold Achievement"
-        },
-        Silver: {
-            gradient: "url(#silver-gradient)",
-            textColor: "text-slate-700",
-            title: "Silver Achievement"
-        },
-        Bronze: {
-            gradient: "url(#bronze-gradient)",
-            textColor: "text-orange-800",
-            title: "Bronze Achievement"
-        },
+const TierSeal: React.FC<{ type: 'Gold' | 'Silver' | 'Bronze' }> = ({ type }) => {
+    const theme = {
+        Gold: { sealColor: 'bg-amber-400', ringColor: 'ring-amber-200' },
+        Silver: { sealColor: 'bg-slate-400', ringColor: 'ring-slate-200' },
+        Bronze: { sealColor: 'bg-orange-400', ringColor: 'ring-orange-200' },
     };
-    const { gradient, textColor, title } = config[type];
+    const { sealColor, ringColor } = theme[type];
 
     return (
-        <div className="flex flex-col items-center gap-4 mb-6">
-            <svg width="120" height="120" viewBox="0 0 120 120">
-                <defs>
-                    <radialGradient id="gold-gradient" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
-                        <stop offset="0%" stopColor="#FFF7B0" />
-                        <stop offset="100%" stopColor="#FFD700" />
-                    </radialGradient>
-                    <radialGradient id="silver-gradient" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
-                        <stop offset="0%" stopColor="#F5F5F5" />
-                        <stop offset="100%" stopColor="#B0B0B0" />
-                    </radialGradient>
-                    <radialGradient id="bronze-gradient" cx="50%" cy="50%" r="50%" fx="50%" fy="50%">
-                        <stop offset="0%" stopColor="#F0D1B3" />
-                        <stop offset="100%" stopColor="#CD7F32" />
-                    </radialGradient>
-                </defs>
-                <path d="M60 2 L75.45 31.18 L108.51 35.21 L84.26 58.82 L90.9 91.82 L60 76.5 L29.1 91.82 L35.74 58.82 L11.49 35.21 L44.55 31.18 Z" fill={gradient}/>
-                <path d="M60 48 L62.83 54.06 L69.42 54.06 L64.3 57.94 L65.66 64.31 L60 60.94 L54.34 64.31 L55.7 57.94 L50.58 54.06 L57.17 54.06 Z" fill="white" opacity="0.9"/>
+        <div className={`w-20 h-20 rounded-full ${sealColor} flex items-center justify-center shadow-lg ring-4 ${ringColor}`}>
+            <svg className="w-12 h-12 text-white" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 17.27L18.18 21l-1.64-7.03L22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21 12 17.27z" />
             </svg>
-            <h3 className={`text-3xl font-bold ${textColor}`}>{title}</h3>
         </div>
     );
 };
@@ -241,8 +212,6 @@ const CertificateView: React.FC<{
     const certData = result.certificateData;
     const loading = !certData;
     
-    const motivationalQuote = MOTIVATIONAL_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)];
-    
     const accuracy = result.totalQuestions > 0 ? (result.correctAnswers / result.totalQuestions) * 100 : 0;
     const roundedAccuracy = Math.round(accuracy);
     
@@ -254,55 +223,53 @@ const CertificateView: React.FC<{
     const tier = getTier(roundedAccuracy);
 
     const theme = {
-        Gold: { bg: 'bg-yellow-100', border: 'border-amber-400' },
-        Silver: { bg: 'bg-slate-200', border: 'border-slate-400' },
-        Bronze: { bg: 'bg-orange-200', border: 'border-orange-400' },
+        Gold: { borderColor: 'border-amber-300', bgColor: 'bg-amber-100', textColor: 'text-amber-800' },
+        Silver: { borderColor: 'border-slate-300', bgColor: 'bg-slate-100', textColor: 'text-slate-800' },
+        Bronze: { borderColor: 'border-orange-300', bgColor: 'bg-orange-100', textColor: 'text-orange-800' },
     };
-    
-    const { bg, border } = theme[tier];
+    const { borderColor, bgColor, textColor } = theme[tier];
 
     return (
-        <div className="max-w-3xl mx-auto p-2 sm:p-4 flex flex-col items-center space-y-4">
-            <div ref={certRef} className={`p-6 md:p-8 rounded-2xl shadow-2xl border-4 ${bg} ${border} text-center w-full`}>
-                <CertificateBadge type={tier} />
+        <div className="max-w-md mx-auto p-2 sm:p-4 flex flex-col items-center space-y-4">
+            <div ref={certRef} className="relative pt-12 pb-8 px-6 bg-white rounded-lg shadow-2xl w-full text-center overflow-hidden">
+                <div className={`absolute top-0 left-0 w-24 h-24 border-t-8 border-l-8 ${borderColor} rounded-tl-lg`}></div>
+                <div className={`absolute bottom-0 right-0 w-24 h-24 border-b-8 border-r-8 ${borderColor} rounded-br-lg`}></div>
 
-                <p className="text-lg text-gray-600 my-2">This certificate is proudly presented to</p>
-                <h1 className="text-4xl font-extrabold text-indigo-600 my-4 tracking-tight">
-                    {studentName}
-                </h1>
-                <p className="text-base text-gray-700">for outstanding performance in the IGCSE Physics Quiz on {new Date().toLocaleDateString()}.</p>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-8 text-center max-w-md mx-auto">
-                    <div className="p-4 bg-white/50 rounded-lg">
-                        <p className="text-3xl font-bold text-green-600">{result.correctAnswers}/{result.totalQuestions}</p>
-                        <p className="text-gray-600">Correct Answers</p>
+                <div className="relative z-10">
+                    <div className="flex justify-center mb-4">
+                        <TierSeal type={tier} />
                     </div>
-                    <div className="p-4 bg-white/50 rounded-lg">
-                        <p className="text-3xl font-bold text-blue-600">{roundedAccuracy}%</p>
-                        <p className="text-gray-600">Score</p>
-                    </div>
-                </div>
+                    
+                    <h2 className="text-sm font-semibold uppercase tracking-widest text-gray-500">Certificate of Achievement</h2>
+                    <p className="text-gray-600 mt-4">This certificate is awarded to</p>
+                    
+                    <h1 className="text-4xl font-serif font-bold text-gray-800 my-2">
+                        {studentName}
+                    </h1>
 
-                {loading ? <div className="py-4"><LoadingSpinner/></div> : (
-                    <div className="text-left space-y-4 my-6 bg-white/60 p-6 rounded-lg">
-                        <div className="mb-4">
-                            <h4 className="font-bold text-lg text-gray-800">Quiz Categories:</h4>
-                            <p className="text-gray-700">{result.categories?.join(', ')}</p>
+                    <p className="text-gray-600">for demonstrating outstanding knowledge in IGCSE Physics.</p>
+                    
+                    <div className={`my-6 inline-block px-4 py-2 ${bgColor} ${textColor} rounded-full font-semibold text-sm`}>
+                        {tier} Tier &bull; {roundedAccuracy}% Score
+                    </div>
+
+                    {loading ? <div className="py-4"><LoadingSpinner/></div> : (
+                        <div className="text-left space-y-2 mt-4 bg-gray-50 p-4 rounded-md border border-gray-200">
+                             <h4 className="font-bold text-sm text-gray-700">Performance Summary:</h4>
+                             <p className="text-gray-600 text-sm">{certData?.summary}</p>
+                             <h4 className="font-bold text-sm text-gray-700 mt-2">Topics Covered:</h4>
+                             <p className="text-gray-600 text-sm">{result.categories?.join(', ')}</p>
                         </div>
-                        <h4 className="font-bold text-lg text-gray-800">Performance Summary:</h4>
-                        <p className="text-gray-700">{certData?.summary}</p>
-                    </div>
-                )}
-                <p className="mt-8 text-gray-500 italic">"{motivationalQuote}"</p>
-                <div className="mt-6 pt-4 border-t-2 border-gray-300/50 flex items-center justify-start">
-                    <div className="text-left">
-                        <p className="font-bold text-lg text-indigo-800">Physics Helper</p>
-                        <p className="text-xs text-gray-600">Your companion for IGCSE Physics</p>
+                    )}
+                    
+                    <div className="mt-8 flex justify-between items-center text-xs text-gray-500">
+                        <span>Date: {new Date().toLocaleDateString()}</span>
+                        <span className="font-bold">Physics Helper</span>
                     </div>
                 </div>
             </div>
             <div className="text-center p-4">
-                <p className="text-gray-700 font-semibold">Take a screenshot to save and share your certificate!</p>
+                <p className="text-gray-700 text-sm font-semibold">Take a screenshot to save and share your certificate!</p>
                 <button onClick={onReset} className="mt-4 px-8 py-3 bg-gray-600 text-white font-semibold rounded-lg shadow-md hover:bg-gray-700 transition">Back to Home</button>
             </div>
         </div>
@@ -317,53 +284,41 @@ const ImprovementReportView: React.FC<{
     const reportRef = useRef<HTMLDivElement>(null);
     const report = result.improvementReport;
     const loading = !report;
-    const motivationalQuote = MOTIVATIONAL_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)];
 
     const accuracy = result.totalQuestions > 0 ? (result.correctAnswers / result.totalQuestions) * 100 : 0;
 
     return (
-        <div className="max-w-2xl mx-auto p-2 sm:p-4 flex flex-col items-center space-y-4">
-            <div ref={reportRef} className="p-6 bg-white rounded-xl shadow-xl text-center border-t-8 border-indigo-500 w-full">
-                <h2 className="text-3xl font-bold text-gray-800">Quiz Report for {studentName}</h2>
-                <p className="text-gray-600 mt-2">Quiz Date: {new Date().toLocaleDateString()}</p>
+        <div className="max-w-sm mx-auto p-2 flex flex-col items-center space-y-4">
+            <div ref={reportRef} className="p-6 bg-white rounded-lg shadow-xl text-center border-t-4 border-indigo-500 w-full">
+                <h2 className="text-2xl font-bold text-gray-800">Quiz Report</h2>
+                <p className="text-sm text-gray-500 mt-1">for <span className="font-semibold">{studentName}</span></p>
                 
-                <div className="my-4 text-center">
-                    <p className="font-bold text-gray-700">Quiz Categories:</p>
-                    <p className="text-gray-600">{result.categories?.join(', ')}</p>
+                <div className="my-6 text-center">
+                    <p className="text-5xl font-bold text-red-500">{accuracy.toFixed(0)}<span className="text-3xl">%</span></p>
+                    <p className="text-gray-600 text-sm mt-1">Score ({result.correctAnswers} / {result.totalQuestions} correct)</p>
                 </div>
 
-                <div className="my-8 flex justify-center items-center gap-4">
-                    <div className="text-right">
-                        <p className="text-4xl font-bold text-red-500">{accuracy.toFixed(0)}%</p>
-                        <p className="text-gray-600">Your Score</p>
-                    </div>
-                    <div className="text-left">
-                        <p className="text-xl font-bold text-gray-700">{result.correctAnswers} / {result.totalQuestions}</p>
-                        <p className="text-gray-600">Correct Answers</p>
-                    </div>
+                <div className="my-4 text-xs text-center text-gray-500">
+                    <p className="font-bold">Topics:</p>
+                    <p>{result.categories?.join(', ')}</p>
                 </div>
 
-                {loading ? <LoadingSpinner /> : (
-                    <div className="text-left my-6 bg-indigo-50 p-6 rounded-lg border-l-4 border-indigo-400">
-                        <h4 className="font-bold text-lg text-indigo-800">Focus Areas for Improvement:</h4>
-                        <ul className="list-disc list-inside mt-2 text-indigo-900 space-y-1">
+                {loading ? <div className="my-6"><LoadingSpinner /></div> : (
+                    <div className="text-left my-6 bg-indigo-50 p-4 rounded-md border-l-4 border-indigo-400">
+                        <h4 className="font-bold text-md text-indigo-800">Focus Areas for Improvement:</h4>
+                        <ul className="list-disc list-inside mt-2 text-indigo-900 space-y-1 text-sm">
                             {report?.improvementAreas.map((area, i) => <li key={i}>{area}</li>)}
                         </ul>
-                        <h4 className="font-bold text-lg text-indigo-800 mt-6">A Quick Note:</h4>
-                        <p className="italic text-indigo-900 mt-1">"{report?.motivationalMessage}"</p>
+                        <p className="italic text-indigo-900 mt-4 text-sm">"{report?.motivationalMessage}"</p>
                     </div>
                 )}
-                <p className="mt-8 text-gray-500 italic">"{motivationalQuote}"</p>
-                <div className="mt-6 pt-4 border-t-2 border-gray-300/50 flex items-center justify-start">
-                    <div className="text-left">
-                        <p className="font-bold text-lg text-indigo-800">Physics Helper</p>
-                        <p className="text-xs text-gray-600">Your companion for IGCSE Physics</p>
-                    </div>
+                <div className="mt-6 pt-4 border-t border-gray-200 flex items-center justify-between text-xs text-gray-500">
+                    <span>{new Date().toLocaleDateString()}</span>
+                    <span className="font-bold">Physics Helper</span>
                 </div>
             </div>
-            <div className="text-center p-4">
-                <p className="text-gray-700 font-semibold">Take a screenshot to save and share your report!</p>
-                <button onClick={onReset} className="mt-4 px-8 py-3 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition">Try Again</button>
+            <div className="text-center p-2">
+                <button onClick={onReset} className="mt-2 px-6 py-2 bg-indigo-600 text-white font-semibold rounded-lg shadow-md hover:bg-indigo-700 transition text-sm">Try Again</button>
             </div>
         </div>
     );
