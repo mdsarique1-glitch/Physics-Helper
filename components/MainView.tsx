@@ -7,18 +7,18 @@ import CertificateShowcase from './CertificateShowcase';
 import QuickRevisionView from './QuickRevisionView';
 
 const decodeChallengeCode = (code: string): SoloQuizConfig => {
-    if (!code || code.length < 6 || code.length > 8) { // Basic validation
-        throw new Error("Invalid challenge code format. Please check the code and try again.");
+    const parts = code.split('-');
+    if (parts.length !== 2 || !parts[0] || !parts[1]) {
+        throw new Error("Invalid challenge code format. It should look like 'ABCD-123'.");
     }
-    
-    const combined = parseInt(code, 36);
-    if (isNaN(combined)) {
+
+    const seed = parseInt(parts[0], 36);
+    const packed = parseInt(parts[1], 36);
+
+    if (isNaN(seed) || isNaN(packed)) {
         throw new Error("Invalid challenge code: The code is corrupted.");
     }
     
-    const seed = combined >> 12;
-    const packed = combined & 0xFFF; // 12-bit mask (4095)
-
     const syllabusLevel = (packed & 1) === 1 ? 'extended' : 'core';
     const timeValue = (packed >> 1) & 3;
     const groupTimeOptions = [0, 5, 10, 15];
@@ -105,7 +105,8 @@ const MainView: React.FC<{
             return;
         }
     
-        const seed = Math.floor(100000 + Math.random() * 900000); // 6-digit seed
+        // Use a 5-digit seed to keep code length reasonable
+        const seed = Math.floor(10000 + Math.random() * 90000);
         const categoryIndices = selectedCategories.map(name =>
             PHYSICS_CATEGORIES.findIndex(cat => cat.name === name)
         ).filter(index => index !== -1);
@@ -122,11 +123,8 @@ const MainView: React.FC<{
         const categoryBitmask = categoryIndices.reduce((acc, index) => acc | (1 << index), 0);
         packed |= (categoryBitmask << 6);
     
-        // Combine seed and packed config into a single number
-        const combined = (seed << 12) | packed;
-        
-        // Convert to a shorter, base-36 string
-        const code = combined.toString(36).toUpperCase();
+        // Convert seed and packed config to separate base-36 strings
+        const code = `${seed.toString(36).toUpperCase()}-${packed.toString(36).toUpperCase()}`;
         setGeneratedChallengeCode(code);
     };
 
