@@ -231,14 +231,10 @@ const CertificateView: React.FC<{
                         {studentName}
                     </h1>
 
-                    <p className="text-gray-600">for demonstrating outstanding knowledge in IGCSE Physics.</p>
+                    <p className="text-gray-600">
+                        for demonstrating outstanding knowledge in IGCSE Physics{result.isGroupChallenge ? " during a group challenge." : "."}
+                    </p>
                     
-                    {result.isGroupChallenge && (
-                        <div className="my-4 inline-block px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full font-semibold text-xs">
-                            Group Challenge
-                        </div>
-                    )}
-
                     <div className={`my-6 inline-block px-4 py-2 ${bgColor} ${textColor} rounded-full font-semibold text-sm`}>
                         {tier} Tier &bull; {roundedAccuracy}% Score
                     </div>

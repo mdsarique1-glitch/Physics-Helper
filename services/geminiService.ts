@@ -93,6 +93,9 @@ export const generateQuizQuestions = async (
         throw new Error("No syllabus points found for the selected categories and syllabus level.");
     }
 
+    // Sort the points alphabetically to ensure the input to the shuffle is always deterministic.
+    allPoints.sort();
+
     const shuffledPoints = shuffleArray(allPoints, prng);
     // Provide a generous number of points to the AI, ensuring it has enough context.
     const selectedPoints = shuffledPoints.slice(0, Math.min(shuffledPoints.length, questionCount * 5)); 
