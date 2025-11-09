@@ -8,10 +8,14 @@ export interface Indicator {
 export interface SubTopic {
   name: string;
   indicators: Indicator[];
+  // FIX: Add isSupplement property to SubTopic interface to match usage in constants.tsx
+  isSupplement?: boolean;
 }
 
 export interface Topic {
   name: string;
+  // FIX: Add isSupplement property to Topic interface to match usage in constants.tsx
+  isSupplement?: boolean;
   indicators?: Indicator[];
   subTopics?: SubTopic[];
 }

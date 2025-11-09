@@ -1,6 +1,6 @@
 import { GoogleGenAI, Type } from "@google/genai";
 // FIX: Import RevisionNote to be used in generateRevisionNotes function.
-import type { QuizQuestion, CertificateData, Indicator, Topic, SoloImprovementReport, RevisionNote } from '../types';
+import type { QuizQuestion, CertificateData, Indicator, Topic, SoloImprovementReport, RevisionNote, Category, SubTopic } from '../types';
 
 const API_KEY = process.env.API_KEY;
 if (!API_KEY) {
@@ -9,6 +9,7 @@ if (!API_KEY) {
 
 const ai = new GoogleGenAI({ apiKey: API_KEY });
 const modelFlash = 'gemini-2.5-flash';
+const modelPro = 'gemini-2.5-pro';
 
 const quizQuestionsSchema = {
     type: Type.ARRAY,
@@ -23,25 +24,98 @@ const quizQuestionsSchema = {
     }
 };
 
-export const generateQuizQuestions = async (studentName: string, indicators: Indicator[], questionCount: number, seed?: number): Promise<QuizQuestion[]> => {
-    const prompt = `Generate ${questionCount} unique and engaging multiple-choice quiz questions for an IGCSE Physics student named ${studentName}.
-    The questions must be strictly and exclusively based on the following Cambridge IGCSE Physics (0625) syllabus points. Do not test any concepts not explicitly mentioned:
-    ${indicators.map(i => `- ${i.name}`).join('\n')}
+const shuffleArray = <T>(array: T[]): T[] => {
+    const newArray = [...array];
+    for (let i = newArray.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+    }
+    return newArray;
+};
 
-    GUIDELINES FOR HIGH-QUALITY QUESTIONS:
-    1.  **Varied Structure:** Do not use the same question format repeatedly. Vary the structure by asking definitional, conceptual, scenario-based, and 'which of the following is true/false' type questions to keep it interesting.
-    2.  **Conceptual Focus:** Questions must test understanding of concepts, not rote memorization or calculations. Absolutely NO math problems.
-    3.  **Syllabus Coverage:** Distribute the questions as evenly as possible across ALL the provided syllabus points to ensure comprehensive testing.
-    4.  **Plausible Options:** Provide 4 distinct and plausible answer options. The incorrect options (distractors) should be common misconceptions.
-    5.  **Uniqueness:** Ensure every question in this set is unique and not a slight rephrase of another.`;
+export const generateQuizQuestions = async (
+    studentName: string,
+    categories: Category[],
+    questionCount: number,
+    syllabusLevel: 'core' | 'extended',
+    seed?: number
+): Promise<QuizQuestion[]> => {
+
+    const formatSyllabus = (cats: Category[]): string => {
+        const shuffledCategories = shuffleArray(cats);
+
+        return shuffledCategories.map(category => {
+            let categoryString = `Category: ${category.name}\n`;
+            
+            // FIX: Filter topics based on syllabus level to avoid including supplementary topics in core quizzes.
+            const shuffledTopics = shuffleArray(category.topics)
+                .filter(topic => syllabusLevel === 'extended' || !topic.isSupplement);
+
+            shuffledTopics.forEach(topic => {
+                categoryString += `  Topic: ${topic.name}\n`;
+                
+                const filterAndFormatIndicators = (indicators: Indicator[]): string => {
+                    return shuffleArray(indicators)
+                        .filter(ind => syllabusLevel === 'extended' || !ind.isSupplement)
+                        .map(ind => `      - ${ind.name}\n`)
+                        .join('');
+                };
+
+                if (topic.indicators) {
+                    categoryString += filterAndFormatIndicators(topic.indicators);
+                }
+                if (topic.subTopics) {
+                    // FIX: Filter sub-topics based on syllabus level to avoid including supplementary sub-topics in core quizzes.
+                    const shuffledSubTopics = shuffleArray(topic.subTopics)
+                        .filter(subTopic => syllabusLevel === 'extended' || !subTopic.isSupplement);
+
+                    shuffledSubTopics.forEach(subTopic => {
+                        categoryString += `    Sub-topic: ${subTopic.name}\n`;
+                        if (subTopic.indicators) {
+                           categoryString += filterAndFormatIndicators(subTopic.indicators);
+                        }
+                    });
+                }
+            });
+            return categoryString;
+        }).join('\n');
+    };
+
+    const syllabusContent = formatSyllabus(categories);
+
+    if (!syllabusContent.trim()) {
+        throw new Error("No syllabus points found for the selected categories and syllabus level.");
+    }
+
+    const prompt = `You are an expert IGCSE Physics tutor. Your task is to generate exactly ${questionCount} high-quality, unique, and engaging multiple-choice quiz questions for a student named ${studentName}.
+
+**Syllabus Content to use:**
+The questions must be created strictly and exclusively from the detailed IGCSE Physics syllabus points provided below. The syllabus content has been intentionally randomized to ensure unbiased topic selection.
+\`\`\`
+${syllabusContent}
+\`\`\`
+
+**Mandatory Question Generation Process:**
+To ensure a fair and comprehensive quiz, you MUST follow this process:
+1.  **Analyze Syllabus Structure:** First, carefully review all the provided categories, topics, and sub-topics to understand the breadth of the material.
+2.  **Plan for Broad Coverage:** Create a mental plan to distribute the ${questionCount} questions as evenly as possible across ALL provided topics and sub-topics. Your goal is to achieve maximum coverage. Do not concentrate questions on only a few points or the first few topics listed. For example, if a category has 5 topics, and you need 5 questions, pull one from each topic.
+3.  **Generate Questions:** Generate each question according to your plan, ensuring each one directly assesses a specific syllabus indicator.
+
+**Critical Guidelines for Each Question:**
+-   **Conceptual Focus:** Questions must test a deep understanding of concepts, not just rote memorization. Absolutely NO calculation-based questions.
+-   **Varied Question Styles:** Use a mix of question formats: definitions, scenarios, "which of the following is true/false", etc. Avoid repetitive phrasing.
+-   **Plausible Options:** Provide 4 distinct and plausible answer options. Incorrect options (distractors) must be well-crafted to target common student misconceptions.
+-   **Syllabus Adherence:** Do not introduce any concepts or information not explicitly mentioned in the provided syllabus content.
+-   **Uniqueness:** Every question generated must be unique.`;
 
     try {
         const response = await ai.models.generateContent({
-            model: modelFlash,
+            model: modelPro,
             contents: prompt,
             config: {
                 responseMimeType: "application/json",
                 responseSchema: quizQuestionsSchema,
+                thinkingConfig: { thinkingBudget: 32768 },
                 ...(seed && { seed }),
             },
         });

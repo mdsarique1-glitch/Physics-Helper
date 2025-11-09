@@ -55,48 +55,24 @@ const QuizView: React.FC<{
 
     useEffect(() => {
         const fetchQuestions = async () => {
-            const indicatorsForQuiz: Indicator[] = config.categories.flatMap(categoryName => {
-                const category = PHYSICS_CATEGORIES.find(c => c.name === categoryName);
-                if (!category) return [];
+            const selectedCategories = PHYSICS_CATEGORIES.filter(c => config.categories.includes(c.name));
 
-                const allIndicators: Indicator[] = [];
-
-                category.topics.forEach(topic => {
-                    if (topic.indicators) {
-                        allIndicators.push(...topic.indicators);
-                    }
-                    if (topic.subTopics) {
-                        topic.subTopics.forEach(subTopic => {
-                            if (subTopic.indicators) {
-                                allIndicators.push(...subTopic.indicators);
-                            }
-                        });
-                    }
-                });
-
-                return allIndicators;
-            }).filter(indicator => {
-                if (config.syllabusLevel === 'core') {
-                    return !indicator.isSupplement;
-                }
-                return true; // for 'extended', include all
-            });
-
-            if (indicatorsForQuiz.length === 0) {
-                setError("No syllabus points found for the selected categories and syllabus level. Please select different options.");
+            if (selectedCategories.length === 0) {
+                setError("No categories selected for the quiz. Please select different options.");
                 onComplete({ correctAnswers: 0, incorrectAnswers: 0, totalQuestions: 0, error: true });
                 setLoading(false);
                 return;
             }
 
             try {
-                const fetchedQuestions = await generateQuizQuestions(studentName, indicatorsForQuiz, config.questionCount, config.seed);
+                const fetchedQuestions = await generateQuizQuestions(studentName, selectedCategories, config.questionCount, config.syllabusLevel, config.seed);
                 if (fetchedQuestions.length < config.questionCount) {
                     throw new Error("Could not generate a full set of quiz questions.");
                 }
                 setQuestions(fetchedQuestions);
             } catch (err) {
-                setError("Failed to start the quiz. An error occurred while generating questions.");
+                const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";
+                setError(`Failed to start the quiz. ${errorMessage}`);
                 if (!isCompletedRef.current) {
                     isCompletedRef.current = true;
                     onComplete({ correctAnswers: 0, incorrectAnswers: 0, totalQuestions: 0, error: true });
