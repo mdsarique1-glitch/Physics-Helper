@@ -122,12 +122,15 @@ To ensure a fair and comprehensive quiz, you MUST follow this process:
 
     try {
         const response = await ai.models.generateContent({
-            model: modelPro,
+            model: modelFlash, // Switched to the faster model
             contents: prompt,
             config: {
+                // Added a system instruction to prime the model for its expert role
+                systemInstruction: "You are an expert IGCSE Physics tutor specializing in creating high-quality, syllabus-aligned multiple-choice questions.",
                 responseMimeType: "application/json",
                 responseSchema: quizQuestionsSchema,
-                thinkingConfig: { thinkingBudget: 32768 },
+                // Instructed the model to use its maximum thinking time to ensure high-quality questions
+                thinkingConfig: { thinkingBudget: 24576 },
                 ...(seed && { seed }),
             },
         });
