@@ -76,9 +76,26 @@ export interface RevisionNote {
     points: RevisionPoint[];
 }
 
+export interface Participant {
+    name: string;
+    score: number | null;
+    status: 'JOINED' | 'COMPLETED';
+}
+
+export interface GroupChallenge {
+    id: string; // The join code
+    title: string;
+    organizerName: string;
+    config: SoloQuizConfig;
+    createdAt: number; // Timestamp
+    status: 'LOBBY' | 'IN_PROGRESS' | 'COMPLETED';
+    participants: Participant[];
+}
+
 
 export enum View {
   MAIN = 'main',
   QUIZ = 'quiz',
   CERTIFICATE = 'certificate',
+  GROUP_LOBBY = 'group_lobby',
 }
