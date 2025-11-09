@@ -1,3 +1,5 @@
+
+
 import { GoogleGenAI, Type } from "@google/genai";
 // FIX: Import RevisionNote to be used in generateRevisionNotes function.
 import type { QuizQuestion, CertificateData, Indicator, Topic, SoloImprovementReport, RevisionNote, Category, SubTopic } from '../types';
@@ -24,10 +26,20 @@ const quizQuestionsSchema = {
     }
 };
 
-const shuffleArray = <T>(array: T[]): T[] => {
+// Mulberry32: A simple, seeded pseudo-random number generator.
+const mulberry32 = (seed: number) => {
+    return () => {
+        let t = seed += 0x6D2B79F5;
+        t = Math.imul(t ^ t >>> 15, t | 1);
+        t ^= t + Math.imul(t ^ t >>> 7, t | 61);
+        return ((t ^ t >>> 14) >>> 0) / 4294967296;
+    }
+};
+
+const shuffleArray = <T>(array: T[], prng: () => number = Math.random): T[] => {
     const newArray = [...array];
     for (let i = newArray.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
+        const j = Math.floor(prng() * (i + 1));
         [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
     }
     return newArray;
@@ -40,22 +52,22 @@ export const generateQuizQuestions = async (
     syllabusLevel: 'core' | 'extended',
     seed?: number
 ): Promise<QuizQuestion[]> => {
+    const prng = seed ? mulberry32(seed) : Math.random;
 
     const formatSyllabus = (cats: Category[]): string => {
-        const shuffledCategories = shuffleArray(cats);
+        const shuffledCategories = shuffleArray(cats, prng);
 
         return shuffledCategories.map(category => {
             let categoryString = `Category: ${category.name}\n`;
             
-            // FIX: Filter topics based on syllabus level to avoid including supplementary topics in core quizzes.
-            const shuffledTopics = shuffleArray(category.topics)
+            const shuffledTopics = shuffleArray(category.topics, prng)
                 .filter(topic => syllabusLevel === 'extended' || !topic.isSupplement);
 
             shuffledTopics.forEach(topic => {
                 categoryString += `  Topic: ${topic.name}\n`;
                 
                 const filterAndFormatIndicators = (indicators: Indicator[]): string => {
-                    return shuffleArray(indicators)
+                    return shuffleArray(indicators, prng)
                         .filter(ind => syllabusLevel === 'extended' || !ind.isSupplement)
                         .map(ind => `      - ${ind.name}\n`)
                         .join('');
@@ -65,8 +77,7 @@ export const generateQuizQuestions = async (
                     categoryString += filterAndFormatIndicators(topic.indicators);
                 }
                 if (topic.subTopics) {
-                    // FIX: Filter sub-topics based on syllabus level to avoid including supplementary sub-topics in core quizzes.
-                    const shuffledSubTopics = shuffleArray(topic.subTopics)
+                    const shuffledSubTopics = shuffleArray(topic.subTopics, prng)
                         .filter(subTopic => syllabusLevel === 'extended' || !subTopic.isSupplement);
 
                     shuffledSubTopics.forEach(subTopic => {
@@ -87,7 +98,8 @@ export const generateQuizQuestions = async (
         throw new Error("No syllabus points found for the selected categories and syllabus level.");
     }
 
-    const prompt = `You are an expert IGCSE Physics tutor. Your task is to generate exactly ${questionCount} high-quality, unique, and engaging multiple-choice quiz questions for a student named ${studentName}.
+    const nameForPrompt = seed ? "a group of students" : studentName;
+    const prompt = `You are an expert IGCSE Physics tutor. Your task is to generate exactly ${questionCount} high-quality, unique, and engaging multiple-choice quiz questions for ${nameForPrompt}.
 
 **Syllabus Content to use:**
 The questions must be created strictly and exclusively from the detailed IGCSE Physics syllabus points provided below. The syllabus content has been intentionally randomized to ensure unbiased topic selection.
@@ -139,10 +151,38 @@ const certificateDataSchema = {
     required: ["summary"]
 };
 
-export const getCertificateData = async (studentName: string, correctAnswers: number, totalQuestions: number, topics: string[]): Promise<CertificateData> => {
-    const prompt = `An IGCSE Physics student named ${studentName} just completed a quiz on the topics: ${topics.join(', ')}. They scored ${correctAnswers} out of ${totalQuestions}.
-    
-    Based on this, generate a short, encouraging, and positive performance summary to be displayed on their certificate. It should celebrate their achievement and strong performance on the quiz topics.`;
+export const getCertificateData = async (studentName: string, correctAnswers: number, totalQuestions: number, topics: string[], isGroupChallenge?: boolean): Promise<CertificateData> => {
+    let prompt: string;
+
+    if (isGroupChallenge) {
+        prompt = `
+Task: Generate a short, positive performance summary for a student's certificate from a group challenge.
+
+**Context:**
+- Type: Group Challenge
+- Score: ${correctAnswers} out of ${totalQuestions}
+- Topics Covered: ${topics.join(', ')}
+
+**Instructions:**
+- The summary must celebrate the achievement in the context of a group challenge.
+- Do NOT mention any student names.
+
+**Required Output (JSON):**
+- **summary**: A single string for the certificate summary.
+`;
+    } else {
+        prompt = `
+Task: Generate a short, positive performance summary for an IGCSE Physics student's certificate.
+
+**Student Profile:**
+- Name: ${studentName}
+- Score: ${correctAnswers} out of ${totalQuestions}
+- Topics Covered: ${topics.join(', ')}
+
+**Required Output (JSON):**
+- **summary**: A single string celebrating the student's achievement on the quiz topics.
+`;
+    }
 
     try {
         const response = await ai.models.generateContent({
@@ -178,11 +218,19 @@ const soloImprovementReportSchema = {
 
 export const getSoloImprovementReport = async (studentName: string, correctAnswers: number, totalQuestions: number, topics: string[]): Promise<SoloImprovementReport> => {
     const accuracy = ((correctAnswers / totalQuestions) * 100).toFixed(0);
-    const prompt = `An IGCSE Physics student named ${studentName} completed a quiz on the topics: ${topics.join(', ')}. They scored ${correctAnswers} out of ${totalQuestions} (${accuracy}%), which is below the 61% required for a certificate. 
-    
-    Generate a constructive report that includes:
-    1. A list of 2-3 key areas for improvement, based on the topics they were tested on. Be specific (e.g., "Understanding the difference between speed and velocity", "Applying the principle of moments").
-    2. A short, positive, and motivational message encouraging them to review these topics and try the quiz again to earn a certificate.`;
+    const prompt = `
+Task: Generate a constructive improvement report for an IGCSE Physics student who did not pass their quiz.
+
+**Student Profile:**
+- Name: ${studentName}
+- Score: ${correctAnswers} out of ${totalQuestions} (${accuracy}%)
+- Topics Covered: ${topics.join(', ')}
+
+**Required Output (JSON):**
+1.  **improvementAreas**: An array of 2-3 specific, actionable topics from the list above that the student should review. For example, "Distinguishing between scalar and vector quantities" or "Applying the principle of moments".
+2.  **motivationalMessage**: A brief, encouraging message to motivate the student to study and try again.
+
+Generate a JSON object that strictly follows this structure.`;
 
     try {
         const response = await ai.models.generateContent({

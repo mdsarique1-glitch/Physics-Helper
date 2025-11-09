@@ -51,6 +51,7 @@ export interface QuizResult {
   certificateData?: CertificateData;
   improvementReport?: SoloImprovementReport;
   categories?: string[];
+  isGroupChallenge?: boolean;
 }
 
 export interface CertificateData {

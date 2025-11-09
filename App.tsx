@@ -29,7 +29,7 @@ const App: React.FC = () => {
 
     try {
         if (hasCertificate) {
-            const data = await getCertificateData(studentName, result.correctAnswers, result.totalQuestions, quizConfig.categories);
+            const data = await getCertificateData(studentName, result.correctAnswers, result.totalQuestions, quizConfig.categories, result.isGroupChallenge);
             result.certificateData = data;
         } else if (!result.error) {
             const report = await getSoloImprovementReport(studentName, result.correctAnswers, result.totalQuestions, quizConfig.categories);

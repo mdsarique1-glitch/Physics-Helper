@@ -40,9 +40,10 @@ const QuizView: React.FC<{
                 correctAnswers: finalCorrect,
                 incorrectAnswers: finalIncorrect,
                 totalQuestions: config.questionCount,
+                isGroupChallenge: !!config.seed
             });
         }
-    }, [onComplete, config.questionCount]);
+    }, [onComplete, config.questionCount, config.seed]);
 
      useEffect(() => {
         if (loading) {
@@ -65,9 +66,7 @@ const QuizView: React.FC<{
             }
 
             try {
-                // Use a generic name for group quizzes to ensure same questions, but student's name for solo quizzes
-                const nameForPrompt = config.seed ? "a group of students" : studentName;
-                const fetchedQuestions = await generateQuizQuestions(nameForPrompt, selectedCategories, config.questionCount, config.syllabusLevel, config.seed);
+                const fetchedQuestions = await generateQuizQuestions(studentName, selectedCategories, config.questionCount, config.syllabusLevel, config.seed);
                 if (fetchedQuestions.length < config.questionCount) {
                     throw new Error("Could not generate a full set of quiz questions.");
                 }
@@ -235,6 +234,12 @@ const CertificateView: React.FC<{
 
                     <p className="text-gray-600">for demonstrating outstanding knowledge in IGCSE Physics.</p>
                     
+                    {result.isGroupChallenge && (
+                        <div className="my-4 inline-block px-3 py-1 bg-indigo-100 text-indigo-800 rounded-full font-semibold text-xs">
+                            Group Challenge
+                        </div>
+                    )}
+
                     <div className={`my-6 inline-block px-4 py-2 ${bgColor} ${textColor} rounded-full font-semibold text-sm`}>
                         {tier} Tier &bull; {roundedAccuracy}% Score
                     </div>
