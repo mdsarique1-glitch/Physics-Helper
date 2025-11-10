@@ -224,10 +224,7 @@ ${questionStyleGuidelines}
         return validatedQuestions;
     };
 
-    return withRetry(apiCall).catch(error => {
-        console.error(`Error generating ${subject} quiz questions after retries:`, error);
-        throw new Error(`Failed to generate ${subject} quiz questions from Gemini API.`);
-    });
+    return withRetry(apiCall);
 };
 
 const certificateDataSchema = {
