@@ -1,7 +1,7 @@
 
 
 import React, { useState, useEffect } from 'react';
-import { PHYSICS_CATEGORIES, PHYSICS_HELPER_MESSAGES } from '../constants';
+import { SUBJECTS, SCIENCE_HELPER_MESSAGES } from '../constants';
 import type { SoloQuizConfig } from '../types';
 import CertificateShowcase from './CertificateShowcase';
 import QuickRevisionView from './QuickRevisionView';
@@ -27,14 +27,18 @@ const decodeChallengeCode = (code: string): SoloQuizConfig => {
     const questionValue = (packed >> 3) & 7;
     const questionOptions = [5, 10, 15, 20, 25];
     const questionCount = questionOptions[questionValue] || 10;
+    const subjectValue = (packed >> 12) & 1;
+    const subject = subjectValue === 1 ? 'biology' : 'physics';
+    const categoriesData = SUBJECTS[subject];
+
     const categoryBitmask = (packed >> 6) & 63; // 6 bits for categories
     const categoryIndices: number[] = [];
-    for (let i = 0; i < PHYSICS_CATEGORIES.length; i++) {
+    for (let i = 0; i < categoriesData.length; i++) {
         if ((categoryBitmask >> i) & 1) {
             categoryIndices.push(i);
         }
     }
-    const categories = categoryIndices.map(i => PHYSICS_CATEGORIES[i]?.name).filter((name): name is string => !!name);
+    const categories = categoryIndices.map(i => categoriesData[i]?.name).filter((name): name is string => !!name);
 
     if (categories.length === 0) {
         throw new Error("No categories found in challenge code.");
@@ -46,6 +50,7 @@ const decodeChallengeCode = (code: string): SoloQuizConfig => {
         timeLimit,
         timerEnabled,
         syllabusLevel,
+        subject,
         seed
     };
 };
@@ -56,7 +61,7 @@ const AssistantMessage: React.FC<{ message: string }> = ({ message }) => (
             <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 text-indigo-600 mr-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
-            <h3 className="text-xl font-bold text-indigo-900">Message from Physics Helper</h3>
+            <h3 className="text-xl font-bold text-indigo-900">Message from Science Helper</h3>
         </div>
         <p className="text-indigo-800 text-base italic pl-9">"{message}"</p>
     </div>
@@ -66,6 +71,7 @@ const AssistantMessage: React.FC<{ message: string }> = ({ message }) => (
 const MainView: React.FC<{ 
     onStartQuiz: (name: string, config: SoloQuizConfig) => void;
 }> = ({ onStartQuiz }) => {
+    const [subject, setSubject] = useState<'physics' | 'biology'>('physics');
     const [quizMode, setQuizMode] = useState<'solo' | 'group' | 'revision'>('solo');
     
     // Solo & Group state
@@ -74,25 +80,30 @@ const MainView: React.FC<{
     const [syllabusLevel, setSyllabusLevel] = useState<'core' | 'extended'>('extended');
 
     // Solo Config
-    const [soloQuizConfig, setSoloQuizConfig] = useState<Omit<SoloQuizConfig, 'categories' | 'seed' | 'syllabusLevel'>>({ questionCount: 15, timerEnabled: false, timeLimit: 15 });
+    const [soloQuizConfig, setSoloQuizConfig] = useState<Omit<SoloQuizConfig, 'categories' | 'seed' | 'syllabusLevel' | 'subject'>>({ questionCount: 15, timerEnabled: false, timeLimit: 15 });
     
     // Group Challenge State
     const [organizerName, setOrganizerName] = useState('');
     const [joinCode, setJoinCode] = useState('');
     const [generatedChallengeCode, setGeneratedChallengeCode] = useState('');
-    const [groupQuizConfig, setGroupQuizConfig] = useState<Omit<SoloQuizConfig, 'categories' | 'seed' | 'syllabusLevel'>>({ questionCount: 10, timerEnabled: false, timeLimit: 10 });
+    const [groupQuizConfig, setGroupQuizConfig] = useState<Omit<SoloQuizConfig, 'categories' | 'seed' | 'syllabusLevel' | 'subject'>>({ questionCount: 10, timerEnabled: false, timeLimit: 10 });
     const [challengeTitle, setChallengeTitle] = useState('');
 
     // Common state
     const [helperMessage, setHelperMessage] = useState('');
 
     useEffect(() => {
-        setHelperMessage(PHYSICS_HELPER_MESSAGES[Math.floor(Math.random() * PHYSICS_HELPER_MESSAGES.length)]);
+        setHelperMessage(SCIENCE_HELPER_MESSAGES[Math.floor(Math.random() * SCIENCE_HELPER_MESSAGES.length)]);
     }, []);
+    
+    useEffect(() => {
+        setSelectedCategories([]);
+    }, [subject]);
+
 
     const handleStartSoloQuizClick = () => {
         if (studentName && selectedCategories.length > 0) {
-            const config: SoloQuizConfig = { ...soloQuizConfig, categories: selectedCategories, syllabusLevel };
+            const config: SoloQuizConfig = { ...soloQuizConfig, categories: selectedCategories, syllabusLevel, subject };
             onStartQuiz(studentName, config);
         } else {
             alert("Please enter your name and select at least one category.");
@@ -105,10 +116,10 @@ const MainView: React.FC<{
             return;
         }
     
-        // Use a 5-digit seed to keep code length reasonable
         const seed = Math.floor(10000 + Math.random() * 90000);
+        const categoriesData = SUBJECTS[subject];
         const categoryIndices = selectedCategories.map(name =>
-            PHYSICS_CATEGORIES.findIndex(cat => cat.name === name)
+            categoriesData.findIndex(cat => cat.name === name)
         ).filter(index => index !== -1);
     
         let packed = 0;
@@ -122,8 +133,9 @@ const MainView: React.FC<{
         packed |= ((questionIndex > -1 ? questionIndex : 0) << 3);
         const categoryBitmask = categoryIndices.reduce((acc, index) => acc | (1 << index), 0);
         packed |= (categoryBitmask << 6);
+        const subjectValue = subject === 'biology' ? 1 : 0;
+        packed |= (subjectValue << 12);
     
-        // Convert seed and packed config to separate base-36 strings
         const code = `${seed.toString(36).toUpperCase()}-${packed.toString(36).toUpperCase()}`;
         setGeneratedChallengeCode(code);
     };
@@ -151,11 +163,13 @@ const MainView: React.FC<{
             alert(message);
         }
     }
+    
+    const currentCategories = SUBJECTS[subject];
 
     const renderContent = () => {
         switch(quizMode) {
             case 'revision':
-                return <QuickRevisionView />;
+                return <QuickRevisionView subject={subject} />;
             case 'solo':
                 return (
                     <div className="space-y-6">
@@ -171,7 +185,7 @@ const MainView: React.FC<{
                                     <div>
                                         <p className="text-lg font-medium text-gray-700 mb-2">Select quiz categories:</p>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                            {PHYSICS_CATEGORIES.map(category => (
+                                            {currentCategories.map(category => (
                                                 <div key={category.name} className="flex items-center">
                                                     <input type="checkbox" id={`category-${category.name}`} checked={selectedCategories.includes(category.name)} onChange={() => setSelectedCategories(prev => prev.includes(category.name) ? prev.filter(c => c !== category.name) : [...prev, category.name])} className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
                                                     <label htmlFor={`category-${category.name}`} className="ml-3 text-gray-700">{category.name}</label>
@@ -316,7 +330,7 @@ const MainView: React.FC<{
                             <div>
                                 <label className="block font-medium text-gray-700 mb-2">Categories:</label>
                                 <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto p-2 border rounded-md">
-                                    {PHYSICS_CATEGORIES.map(category => (
+                                    {currentCategories.map(category => (
                                         <label key={category.name} className="flex items-center text-sm">
                                             <input type="checkbox" checked={selectedCategories.includes(category.name)} onChange={() => setSelectedCategories(c => c.includes(category.name) ? c.filter(cat => cat !== category.name) : [...c, category.name])} className="h-4 w-4 rounded border-gray-300 text-indigo-600" />
                                             <span className="ml-2 text-gray-700">{category.name}</span>
@@ -354,12 +368,19 @@ const MainView: React.FC<{
     const navButtonClass = (buttonMode: typeof quizMode) => 
         `px-6 py-3 text-lg font-semibold rounded-lg transition-colors duration-300 ${quizMode === buttonMode ? 'bg-indigo-600 text-white shadow-md' : 'bg-white text-gray-700 hover:bg-gray-100'}`;
 
+    const subjectButtonClass = (buttonSubject: typeof subject) => 
+        `px-6 py-2 text-lg font-bold rounded-full transition-all duration-300 transform ${subject === buttonSubject ? 'bg-indigo-600 text-white shadow-lg scale-105' : 'bg-white text-gray-800 hover:bg-gray-200'}`;
+
     return (
         <div className="space-y-8 max-w-5xl mx-auto">
+             <div className="flex justify-center items-center gap-4 p-2 bg-gray-100 rounded-full">
+                <button onClick={() => setSubject('physics')} className={subjectButtonClass('physics')}>Physics</button>
+                <button onClick={() => setSubject('biology')} className={subjectButtonClass('biology')}>Biology</button>
+            </div>
             <section className="bg-white rounded-xl shadow-lg border border-gray-200">
                 <div className="p-6 border-b">
-                    <h2 className="text-2xl md:text-3xl font-extrabold text-gray-800">
-                        IGCSE Physics Assessment Hub
+                    <h2 className="text-2xl md:text-3xl font-extrabold text-gray-800 capitalize">
+                        IGCSE {subject} Assessment Hub
                     </h2>
                     <p className="mt-2 text-gray-600">
                         Test your knowledge, challenge friends, or revise key topics from the 2026-2028 syllabus.

@@ -1,6 +1,7 @@
 
-import React, { useState } from 'react';
-import { PHYSICS_CATEGORIES } from '../constants';
+
+import React, { useState, useEffect } from 'react';
+import { SUBJECTS } from '../constants';
 import { generateRevisionNotes } from '../services/geminiService';
 import type { Topic, RevisionNote, RevisionPoint } from '../types';
 import LoadingSpinner from './LoadingSpinner';
@@ -95,14 +96,14 @@ const RevisionPointCard: React.FC<{ point: RevisionPoint }> = ({ point }) => (
 );
 
 
-const RevisionTopicView: React.FC<{ topic: Topic }> = ({ topic }) => {
+const RevisionTopicView: React.FC<{ topic: Topic; subject: 'physics' | 'biology' }> = ({ topic, subject }) => {
     const [notes, setNotes] = useState<RevisionNote[] | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     React.useEffect(() => {
         const fetchNotes = async () => {
-            const cacheKey = `revision-notes-${topic.name}`;
+            const cacheKey = `revision-notes-${subject}-${topic.name}`;
             try {
                 const cachedNotes = sessionStorage.getItem(cacheKey);
                 if (cachedNotes) {
@@ -117,7 +118,7 @@ const RevisionTopicView: React.FC<{ topic: Topic }> = ({ topic }) => {
             setIsLoading(true);
             setError(null);
             try {
-                const fetchedNotes = await generateRevisionNotes(topic);
+                const fetchedNotes = await generateRevisionNotes(topic, subject);
                 setNotes(fetchedNotes);
                 try {
                     sessionStorage.setItem(cacheKey, JSON.stringify(fetchedNotes));
@@ -131,7 +132,7 @@ const RevisionTopicView: React.FC<{ topic: Topic }> = ({ topic }) => {
             }
         };
         fetchNotes();
-    }, [topic]);
+    }, [topic, subject]);
 
     return (
         <div className="p-4 md:p-6 bg-slate-50">
@@ -157,8 +158,18 @@ const RevisionTopicView: React.FC<{ topic: Topic }> = ({ topic }) => {
     );
 };
 
-const QuickRevisionView: React.FC = () => {
+interface QuickRevisionViewProps {
+    subject: 'physics' | 'biology';
+}
+
+const QuickRevisionView: React.FC<QuickRevisionViewProps> = ({ subject }) => {
     const [openCategory, setOpenCategory] = useState<string | null>(null);
+    
+    useEffect(() => {
+        setOpenCategory(null);
+    }, [subject]);
+
+    const categories = SUBJECTS[subject];
 
     return (
         <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
@@ -169,7 +180,7 @@ const QuickRevisionView: React.FC = () => {
                  </p>
             </div>
             <div>
-                {PHYSICS_CATEGORIES.map(category => (
+                {categories.map(category => (
                     <div key={category.name} className="border-b last:border-b-0">
                         <CollapsibleSection
                             title={category.name}
@@ -184,7 +195,7 @@ const QuickRevisionView: React.FC = () => {
                                         title={topic.name}
                                         titleClassName="text-lg font-semibold text-gray-800 pl-8"
                                     >
-                                        <RevisionTopicView topic={topic} />
+                                        <RevisionTopicView topic={topic} subject={subject} />
                                     </CollapsibleSection>
                                 ))}
                             </div>

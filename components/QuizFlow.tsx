@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, type QuizQuestion, type QuizResult, type SoloQuizConfig, Indicator } from '../types';
 import { generateQuizQuestions } from '../services/geminiService';
-import { MOTIVATIONAL_QUOTES, PHYSICS_CATEGORIES, LOADING_MESSAGES } from '../constants';
+import { MOTIVATIONAL_QUOTES, SUBJECTS, LOADING_MESSAGES } from '../constants';
 import LoadingSpinner from './LoadingSpinner';
 
 const Timer: React.FC<{ seconds: number }> = ({ seconds }) => {
@@ -55,7 +55,8 @@ const QuizView: React.FC<{
 
     useEffect(() => {
         const fetchQuestions = async () => {
-            const selectedCategories = PHYSICS_CATEGORIES.filter(c => config.categories.includes(c.name));
+            const allCategoriesForSubject = SUBJECTS[config.subject];
+            const selectedCategories = allCategoriesForSubject.filter(c => config.categories.includes(c.name));
 
             if (selectedCategories.length === 0) {
                 setError("No categories selected for the quiz. Please select different options.");
@@ -65,7 +66,7 @@ const QuizView: React.FC<{
             }
 
             try {
-                const fetchedQuestions = await generateQuizQuestions(studentName, selectedCategories, config.questionCount, config.syllabusLevel, config.seed);
+                const fetchedQuestions = await generateQuizQuestions(studentName, selectedCategories, config.questionCount, config.syllabusLevel, config.subject, config.seed);
                 if (fetchedQuestions.length < config.questionCount) {
                     throw new Error("Could not generate a full set of quiz questions.");
                 }
@@ -212,6 +213,7 @@ const CertificateView: React.FC<{
         Bronze: { borderColor: 'border-orange-300', bgColor: 'bg-orange-100', textColor: 'text-orange-800' },
     };
     const { borderColor, bgColor, textColor } = theme[tier];
+    const subjectName = result.subject ? result.subject.charAt(0).toUpperCase() + result.subject.slice(1) : "Science";
 
     return (
         <div className="max-w-md mx-auto p-2 sm:p-4 flex flex-col items-center space-y-4">
@@ -232,7 +234,7 @@ const CertificateView: React.FC<{
                     </h1>
 
                     <p className="text-gray-600">
-                        for demonstrating outstanding knowledge in IGCSE Physics{result.isGroupChallenge ? " during a group challenge." : "."}
+                        for demonstrating outstanding knowledge in IGCSE {subjectName}{result.isGroupChallenge ? " during a group challenge." : "."}
                     </p>
                     
                     <div className={`my-6 inline-block px-4 py-2 ${bgColor} ${textColor} rounded-full font-semibold text-sm`}>
@@ -250,7 +252,7 @@ const CertificateView: React.FC<{
                     
                     <div className="mt-8 flex justify-between items-center text-xs text-gray-500">
                         <span>Date: {new Date().toLocaleDateString()}</span>
-                        <span className="font-bold">Physics Helper</span>
+                        <span className="font-bold">IGCSE Science Helper</span>
                     </div>
                 </div>
             </div>
@@ -274,6 +276,7 @@ const ImprovementReportView: React.FC<{
     const loading = !report;
 
     const accuracy = result.totalQuestions > 0 ? (result.correctAnswers / result.totalQuestions) * 100 : 0;
+    const subjectName = result.subject ? result.subject.charAt(0).toUpperCase() + result.subject.slice(1) : "Science";
 
     return (
         <div className="max-w-sm mx-auto p-2 flex flex-col items-center space-y-4">
@@ -287,7 +290,9 @@ const ImprovementReportView: React.FC<{
                 </div>
 
                 <div className="my-4 text-xs text-center text-gray-500">
-                    <p className="font-bold">Topics:</p>
+                    <p className="font-bold">Subject:</p>
+                    <p>IGCSE {subjectName}</p>
+                    <p className="font-bold mt-2">Topics:</p>
                     <p>{result.categories?.join(', ')}</p>
                 </div>
 
@@ -302,7 +307,7 @@ const ImprovementReportView: React.FC<{
                 )}
                 <div className="mt-6 pt-4 border-t border-gray-200 flex items-center justify-between text-xs text-gray-500">
                     <span>{new Date().toLocaleDateString()}</span>
-                    <span className="font-bold">Physics Helper</span>
+                    <span className="font-bold">IGCSE Science Helper</span>
                 </div>
             </div>
             <div className="text-center p-2">

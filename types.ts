@@ -36,6 +36,7 @@ export interface SoloQuizConfig {
     timeLimit: number; // in minutes
     categories: string[];
     syllabusLevel: 'core' | 'extended';
+    subject: 'physics' | 'biology';
     seed?: number;
 }
 
@@ -43,12 +44,14 @@ export interface SoloQuizConfig {
 export interface QuizResult {
   correctAnswers: number;
   incorrectAnswers: number;
+
   totalQuestions: number;
   rank?: number;
   error?: boolean;
   certificateData?: CertificateData;
   improvementReport?: SoloImprovementReport;
   categories?: string[];
+  subject?: 'physics' | 'biology';
   isGroupChallenge?: boolean;
 }
 

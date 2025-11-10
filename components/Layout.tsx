@@ -31,7 +31,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <header className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white shadow-md w-full sticky top-0 z-10">
         <div className="container mx-auto px-4 py-3 text-center">
           <h1 className="text-xl md:text-2xl font-bold tracking-wide">
-            Physics Helper
+            IGCSE Science Helper
           </h1>
         </div>
       </header>

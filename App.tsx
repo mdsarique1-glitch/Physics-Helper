@@ -29,10 +29,10 @@ const App: React.FC = () => {
 
     try {
         if (hasCertificate) {
-            const data = await getCertificateData(studentName, result.correctAnswers, result.totalQuestions, quizConfig.categories, result.isGroupChallenge);
+            const data = await getCertificateData(studentName, result.correctAnswers, result.totalQuestions, quizConfig.categories, quizConfig.subject, result.isGroupChallenge);
             result.certificateData = data;
         } else if (!result.error) {
-            const report = await getSoloImprovementReport(studentName, result.correctAnswers, result.totalQuestions, quizConfig.categories);
+            const report = await getSoloImprovementReport(studentName, result.correctAnswers, result.totalQuestions, quizConfig.categories, quizConfig.subject);
             result.improvementReport = report;
         }
     } catch (e) {
@@ -40,6 +40,7 @@ const App: React.FC = () => {
     }
     
     result.categories = quizConfig.categories;
+    result.subject = quizConfig.subject;
     setQuizResult(result);
     setView(View.CERTIFICATE);
   };
