@@ -19,7 +19,10 @@ const quizQuestionsSchema = {
         properties: {
             question: { type: Type.STRING },
             options: { type: Type.ARRAY, items: { type: Type.STRING } },
-            correctAnswer: { type: Type.STRING },
+            correctAnswer: { 
+                type: Type.STRING,
+                description: "The text of the correct answer. This MUST be an exact match to one of the strings provided in the 'options' array."
+            },
         },
         required: ['question', 'options', 'correctAnswer']
     }
@@ -118,10 +121,11 @@ To ensure a fair and comprehensive quiz, you MUST follow this process:
 
 **Critical Guidelines for Each Question:**
 -   **Conceptual Focus:** Questions must test a deep understanding of concepts, not just rote memorization. Absolutely NO calculation-based questions.
--   **Varied Question Styles:** Use a mix of question formats: definitions, scenarios, "which of the following is true/false", etc. Avoid repetitive phrasing.
+-   **Correct Answer Match:** The value for 'correctAnswer' must be an exact, verbatim copy of one of the strings from the 'options' array.
 -   **Plausible Options:** Provide 4 distinct and plausible answer options. Incorrect options (distractors) must be well-crafted to target common student misconceptions.
 -   **Syllabus Adherence:** Do not introduce any concepts or information not explicitly mentioned in the provided syllabus content.
--   **Uniqueness:** Every question generated must be unique.`;
+-   **Uniqueness:** Every question generated must be unique.
+-   **Varied Question Styles:** Use a mix of question formats: definitions, scenarios, "which of the following is true/false", etc. Avoid repetitive phrasing.`;
 
     try {
         const response = await ai.models.generateContent({
@@ -142,7 +146,41 @@ To ensure a fair and comprehensive quiz, you MUST follow this process:
             console.error("Gemini API did not return an array for quiz questions:", parsed);
             throw new Error("Invalid format for quiz questions received from API.");
         }
-        return parsed.map((q: any) => ({ ...q, options: q.options.slice(0, 4) }));
+        
+        // Use a separate PRNG for shuffling options if needed, to not interfere with question selection logic
+        const prngForShuffle = seed ? mulberry32(seed + 1) : Math.random;
+
+        const validatedQuestions = parsed.map((q: any) => {
+            if (!q.question || !Array.isArray(q.options) || !q.correctAnswer) {
+                // Pass through malformed questions, they might fail later but won't be auto-corrected.
+                return { ...q, options: q.options?.slice(0, 4) || [] };
+            }
+
+            const options = q.options.slice(0, 4);
+            const correctAnswer = q.correctAnswer;
+
+            // 1. Check for an exact match
+            if (options.includes(correctAnswer)) {
+                return { ...q, options };
+            }
+
+            // 2. If no exact match, try a lenient match (case-insensitive, trimmed)
+            const saneCorrectAnswer = correctAnswer.trim().toLowerCase();
+            const matchingOption = options.find((opt: string) => opt.trim().toLowerCase() === saneCorrectAnswer);
+            if (matchingOption) {
+                return { ...q, options, correctAnswer: matchingOption };
+            }
+            
+            // 3. Fallback: Correct the options list to include the intended answer
+            console.warn(`Correct answer from API ("${correctAnswer}") was not in options. Auto-correcting question options.`, { question: q.question, options: options });
+            const newOptions = [...options];
+            newOptions[3] = correctAnswer; // Replace the last option
+            
+            return { ...q, options: shuffleArray(newOptions, prngForShuffle), correctAnswer: correctAnswer };
+        });
+
+        return validatedQuestions;
+
     } catch (error) {
         console.error("Error generating quiz questions:", error);
         throw new Error("Failed to generate quiz questions from Gemini API.");
