@@ -40,6 +40,7 @@ export interface SoloQuizConfig {
     seed?: number;
     organizerName?: string;
     challengeTitle?: string;
+    challengeCode?: string;
 }
 
 

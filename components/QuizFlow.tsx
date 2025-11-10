@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, type QuizQuestion, type QuizResult, type SoloQuizConfig } from '../types';
-import { generateQuizQuestions } from '../services/geminiService';
+import { generateQuizQuestions, getFriendlyErrorMessage } from '../services/geminiService';
 import { BIOLOGY_CATEGORIES, PHYSICS_CATEGORIES, LOADING_MESSAGES } from '../constants';
 import LoadingSpinner from './LoadingSpinner';
 
@@ -57,8 +57,8 @@ const QuizView: React.FC<{
         const fetchQuestions = async () => {
             setLoading(true);
 
-            if (config.seed) { // Caching logic for group quizzes
-                const cacheKey = `group-quiz-${config.seed}`;
+            if (config.challengeCode) { // Caching logic for group quizzes
+                const cacheKey = `group-quiz-${config.challengeCode}`;
                 try {
                     const cachedData = sessionStorage.getItem(cacheKey);
                     if (cachedData) {
@@ -92,8 +92,8 @@ const QuizView: React.FC<{
                     throw new Error("The AI failed to generate any questions for this topic. This can happen with very specific topic combinations. Please try again with different options.");
                 }
                 setQuestions(fetchedQuestions);
-                 if (config.seed) {
-                    const cacheKey = `group-quiz-${config.seed}`;
+                 if (config.challengeCode) {
+                    const cacheKey = `group-quiz-${config.challengeCode}`;
                     try {
                         sessionStorage.setItem(cacheKey, JSON.stringify(fetchedQuestions));
                     } catch (e) {
@@ -101,8 +101,8 @@ const QuizView: React.FC<{
                     }
                 }
             } catch (err) {
-                const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";
-                const fullErrorMessage = `Failed to start the quiz. ${errorMessage}`;
+                const friendlyMessage = getFriendlyErrorMessage(err);
+                const fullErrorMessage = `Failed to start the quiz. ${friendlyMessage}`;
                 setError(fullErrorMessage);
                 if (!isCompletedRef.current) {
                     isCompletedRef.current = true;

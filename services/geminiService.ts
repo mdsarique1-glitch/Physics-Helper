@@ -420,3 +420,22 @@ export const generateRevisionNotes = async (topic: Topic, subject: 'physics' | '
         throw new Error(`Failed to generate ${subject} revision notes from Gemini API.`);
     });
 };
+
+export const getFriendlyErrorMessage = (error: unknown): string => {
+    if (error instanceof Error) {
+        const message = error.message;
+        try {
+            const parsed = JSON.parse(message);
+            if (parsed.error && parsed.error.message) {
+                if (parsed.error.code === 503 || parsed.error.status === 'UNAVAILABLE') {
+                    return "The AI model is currently busy and could not generate the quiz. Please try again in a moment.";
+                }
+                return `An AI error occurred: ${parsed.error.message}`;
+            }
+        } catch (e) {
+            // Not a valid JSON, return the original message
+            return message;
+        }
+    }
+    return "An unexpected error occurred.";
+};

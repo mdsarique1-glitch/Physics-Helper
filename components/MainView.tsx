@@ -196,7 +196,9 @@ const MainView: React.FC<{
             return;
         }
         try {
-            const config = decodeChallengeCode(joinCode.trim().toUpperCase());
+            const code = joinCode.trim().toUpperCase();
+            const config = decodeChallengeCode(code);
+            config.challengeCode = code;
             onStartQuiz(studentName, config);
         } catch (error) {
             const message = error instanceof Error ? error.message : "An unknown error occurred.";
@@ -207,6 +209,7 @@ const MainView: React.FC<{
     const startChallengeForOrganizer = () => {
         try {
             const config = decodeChallengeCode(generatedChallengeCode);
+            config.challengeCode = generatedChallengeCode;
             onStartQuiz(organizerName, config);
         } catch (error) {
             const message = error instanceof Error ? error.message : "Could not start the challenge due to an error.";
