@@ -1,7 +1,7 @@
 
 
 import React, { useState, useEffect } from 'react';
-import { SUBJECTS, SCIENCE_HELPER_MESSAGES } from '../constants';
+import { PHYSICS_CATEGORIES, BIOLOGY_CATEGORIES, PHYSICS_HELPER_MESSAGES } from '../constants';
 import type { SoloQuizConfig } from '../types';
 import CertificateShowcase from './CertificateShowcase';
 import QuickRevisionView from './QuickRevisionView';
@@ -18,39 +18,39 @@ const decodeChallengeCode = (code: string): SoloQuizConfig => {
     if (isNaN(seed) || isNaN(packed)) {
         throw new Error("Invalid challenge code: The code is corrupted.");
     }
-    
-    const syllabusLevel = (packed & 1) === 1 ? 'extended' : 'core';
-    const timeValue = (packed >> 1) & 3;
+
+    const subject = (packed & 1) === 1 ? 'biology' : 'physics';
+    const ALL_CATEGORIES = subject === 'biology' ? BIOLOGY_CATEGORIES : PHYSICS_CATEGORIES;
+
+    const syllabusLevel = ((packed >> 1) & 1) === 1 ? 'extended' : 'core';
+    const timeValue = (packed >> 2) & 3;
     const groupTimeOptions = [0, 5, 10, 15];
     const timeLimit = groupTimeOptions[timeValue] || 0;
     const timerEnabled = timeLimit > 0;
-    const questionValue = (packed >> 3) & 7;
+    const questionValue = (packed >> 4) & 7;
     const questionOptions = [5, 10, 15, 20, 25];
     const questionCount = questionOptions[questionValue] || 10;
-    const subjectValue = (packed >> 12) & 1;
-    const subject = subjectValue === 1 ? 'biology' : 'physics';
-    const categoriesData = SUBJECTS[subject];
-
-    const categoryBitmask = (packed >> 6) & 63; // 6 bits for categories
+    
+    const categoryBitmask = (packed >> 7);
     const categoryIndices: number[] = [];
-    for (let i = 0; i < categoriesData.length; i++) {
+    for (let i = 0; i < ALL_CATEGORIES.length; i++) {
         if ((categoryBitmask >> i) & 1) {
             categoryIndices.push(i);
         }
     }
-    const categories = categoryIndices.map(i => categoriesData[i]?.name).filter((name): name is string => !!name);
+    const categories = categoryIndices.map(i => ALL_CATEGORIES[i]?.name).filter((name): name is string => !!name);
 
     if (categories.length === 0) {
         throw new Error("No categories found in challenge code.");
     }
 
     return {
+        subject,
         categories,
         questionCount,
         timeLimit,
         timerEnabled,
         syllabusLevel,
-        subject,
         seed
     };
 };
@@ -93,13 +93,18 @@ const MainView: React.FC<{
     const [helperMessage, setHelperMessage] = useState('');
 
     useEffect(() => {
-        setHelperMessage(SCIENCE_HELPER_MESSAGES[Math.floor(Math.random() * SCIENCE_HELPER_MESSAGES.length)]);
+        setHelperMessage(PHYSICS_HELPER_MESSAGES[Math.floor(Math.random() * PHYSICS_HELPER_MESSAGES.length)]);
     }, []);
-    
-    useEffect(() => {
-        setSelectedCategories([]);
-    }, [subject]);
 
+    const handleSubjectChange = (newSubject: 'physics' | 'biology') => {
+        if (subject !== newSubject) {
+            setSubject(newSubject);
+            setSelectedCategories([]);
+            setStudentName('');
+            setOrganizerName('');
+            setGeneratedChallengeCode('');
+        }
+    };
 
     const handleStartSoloQuizClick = () => {
         if (studentName && selectedCategories.length > 0) {
@@ -116,25 +121,25 @@ const MainView: React.FC<{
             return;
         }
     
+        const ALL_CATEGORIES = subject === 'biology' ? BIOLOGY_CATEGORIES : PHYSICS_CATEGORIES;
         const seed = Math.floor(10000 + Math.random() * 90000);
-        const categoriesData = SUBJECTS[subject];
         const categoryIndices = selectedCategories.map(name =>
-            categoriesData.findIndex(cat => cat.name === name)
+            ALL_CATEGORIES.findIndex(cat => cat.name === name)
         ).filter(index => index !== -1);
     
         let packed = 0;
+        const subjectValue = subject === 'biology' ? 1 : 0;
+        packed |= subjectValue;
         const syllabusValue = syllabusLevel === 'extended' ? 1 : 0;
-        packed |= syllabusValue;
+        packed |= (syllabusValue << 1);
         const groupTimeOptions = [0, 5, 10, 15];
         const timeIndex = groupTimeOptions.indexOf(groupQuizConfig.timerEnabled ? groupQuizConfig.timeLimit : 0);
-        packed |= ((timeIndex > -1 ? timeIndex : 0) << 1);
+        packed |= ((timeIndex > -1 ? timeIndex : 0) << 2);
         const questionOptions = [5, 10, 15, 20, 25];
         const questionIndex = questionOptions.indexOf(groupQuizConfig.questionCount);
-        packed |= ((questionIndex > -1 ? questionIndex : 0) << 3);
+        packed |= ((questionIndex > -1 ? questionIndex : 0) << 4);
         const categoryBitmask = categoryIndices.reduce((acc, index) => acc | (1 << index), 0);
-        packed |= (categoryBitmask << 6);
-        const subjectValue = subject === 'biology' ? 1 : 0;
-        packed |= (subjectValue << 12);
+        packed |= (categoryBitmask << 7);
     
         const code = `${seed.toString(36).toUpperCase()}-${packed.toString(36).toUpperCase()}`;
         setGeneratedChallengeCode(code);
@@ -163,17 +168,18 @@ const MainView: React.FC<{
             alert(message);
         }
     }
-    
-    const currentCategories = SUBJECTS[subject];
 
     const renderContent = () => {
+        const ALL_CATEGORIES = subject === 'biology' ? BIOLOGY_CATEGORIES : PHYSICS_CATEGORIES;
+        const subjectTitle = subject.charAt(0).toUpperCase() + subject.slice(1);
+
         switch(quizMode) {
             case 'revision':
                 return <QuickRevisionView subject={subject} />;
             case 'solo':
                 return (
                     <div className="space-y-6">
-                         <h2 className="text-3xl font-bold text-gray-800 text-center">Solo Quiz Challenge</h2>
+                         <h2 className="text-3xl font-bold text-gray-800 text-center">Solo {subjectTitle} Quiz Challenge</h2>
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                            <div className="md:col-span-2 space-y-6">
                                <div className="space-y-6">
@@ -185,7 +191,7 @@ const MainView: React.FC<{
                                     <div>
                                         <p className="text-lg font-medium text-gray-700 mb-2">Select quiz categories:</p>
                                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                            {currentCategories.map(category => (
+                                            {ALL_CATEGORIES.map(category => (
                                                 <div key={category.name} className="flex items-center">
                                                     <input type="checkbox" id={`category-${category.name}`} checked={selectedCategories.includes(category.name)} onChange={() => setSelectedCategories(prev => prev.includes(category.name) ? prev.filter(c => c !== category.name) : [...prev, category.name])} className="h-5 w-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500" />
                                                     <label htmlFor={`category-${category.name}`} className="ml-3 text-gray-700">{category.name}</label>
@@ -269,9 +275,8 @@ const MainView: React.FC<{
                  const groupTimeOptions = [5, 10, 15];
                  return (
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                        {/* Create Group Challenge Card */}
                         <div className="p-8 bg-white rounded-xl shadow-lg border border-gray-200 space-y-4">
-                            <h2 className="text-2xl font-bold text-gray-800">Create a Group Challenge</h2>
+                            <h2 className="text-2xl font-bold text-gray-800">Create a {subjectTitle} Group Challenge</h2>
                              <div className="p-3 bg-blue-50 border-l-4 border-blue-400 text-blue-800 text-sm rounded-r-lg">
                                 <p><span className="font-semibold">How it works:</span> Set up the quiz options and generate a unique code. Share it with your friends to ensure everyone gets the same questions. Good luck!</p>
                             </div>
@@ -330,7 +335,7 @@ const MainView: React.FC<{
                             <div>
                                 <label className="block font-medium text-gray-700 mb-2">Categories:</label>
                                 <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto p-2 border rounded-md">
-                                    {currentCategories.map(category => (
+                                    {ALL_CATEGORIES.map(category => (
                                         <label key={category.name} className="flex items-center text-sm">
                                             <input type="checkbox" checked={selectedCategories.includes(category.name)} onChange={() => setSelectedCategories(c => c.includes(category.name) ? c.filter(cat => cat !== category.name) : [...c, category.name])} className="h-4 w-4 rounded border-gray-300 text-indigo-600" />
                                             <span className="ml-2 text-gray-700">{category.name}</span>
@@ -342,7 +347,6 @@ const MainView: React.FC<{
                                 Create Challenge Code
                             </button>
                         </div>
-                        {/* Join Group Challenge Card */}
                         <div className="p-8 bg-white rounded-xl shadow-lg border border-gray-200 space-y-4">
                             <h2 className="text-2xl font-bold text-gray-800">Join a Group Challenge</h2>
                             <div className="p-3 bg-indigo-50 border-l-4 border-indigo-400 text-indigo-800 text-sm rounded-r-lg">
@@ -367,24 +371,28 @@ const MainView: React.FC<{
 
     const navButtonClass = (buttonMode: typeof quizMode) => 
         `px-6 py-3 text-lg font-semibold rounded-lg transition-colors duration-300 ${quizMode === buttonMode ? 'bg-indigo-600 text-white shadow-md' : 'bg-white text-gray-700 hover:bg-gray-100'}`;
-
-    const subjectButtonClass = (buttonSubject: typeof subject) => 
-        `px-6 py-2 text-lg font-bold rounded-full transition-all duration-300 transform ${subject === buttonSubject ? 'bg-indigo-600 text-white shadow-lg scale-105' : 'bg-white text-gray-800 hover:bg-gray-200'}`;
+    
+    const subjectButtonClass = (buttonSubject: 'physics' | 'biology') => 
+        `px-4 py-2 rounded-md font-semibold text-sm transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${subject === buttonSubject ? 'bg-indigo-600 text-white shadow' : 'bg-white text-gray-600 hover:bg-gray-100'}`;
 
     return (
         <div className="space-y-8 max-w-5xl mx-auto">
-             <div className="flex justify-center items-center gap-4 p-2 bg-gray-100 rounded-full">
-                <button onClick={() => setSubject('physics')} className={subjectButtonClass('physics')}>Physics</button>
-                <button onClick={() => setSubject('biology')} className={subjectButtonClass('biology')}>Biology</button>
-            </div>
             <section className="bg-white rounded-xl shadow-lg border border-gray-200">
                 <div className="p-6 border-b">
-                    <h2 className="text-2xl md:text-3xl font-extrabold text-gray-800 capitalize">
-                        IGCSE {subject} Assessment Hub
-                    </h2>
-                    <p className="mt-2 text-gray-600">
-                        Test your knowledge, challenge friends, or revise key topics from the 2026-2028 syllabus.
-                    </p>
+                     <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                        <div>
+                            <h2 className="text-2xl md:text-3xl font-extrabold text-gray-800">
+                                IGCSE Science Assessment Hub
+                            </h2>
+                            <p className="mt-2 text-gray-600">
+                                Test your knowledge in Physics or Biology from the 2026-2028 syllabus.
+                            </p>
+                        </div>
+                        <div className="flex-shrink-0 flex items-center space-x-2 bg-gray-200 p-1 rounded-lg">
+                            <button onClick={() => handleSubjectChange('physics')} className={subjectButtonClass('physics')}>Physics</button>
+                            <button onClick={() => handleSubjectChange('biology')} className={subjectButtonClass('biology')}>Biology</button>
+                        </div>
+                    </div>
                 </div>
                 <div className="flex justify-center gap-2 border-b bg-gray-50 p-2 rounded-b-xl">
                     <button onClick={() => setQuizMode('solo')} className={navButtonClass('solo')}>Solo Quiz</button>

@@ -1,6 +1,8 @@
+
 import React from 'react';
 import type { Category } from './types';
 
+// Physics Icons
 const MotionIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -42,40 +44,39 @@ const SpaceIcon = () => (
     </svg>
 );
 
-const CellIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9 17a5 5 0 01-4.9-4H4a8 8 0 0116 0h-.1a5 5 0 01-4.9 4H9z" />
-        <circle cx="12" cy="12" r="3" />
+// Biology Icons
+const CellularIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M10 21a9 9 0 100-18 9 9 0 000 18z" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M10 7a3 3 0 100 6 3 3 0 000-6z" />
     </svg>
 );
 
-const PlantIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-        <path strokeLinecap="round" strokeLinejoin="round" d="M8 14A4 4 0 0012 18a4 4 0 004-4v-2a4 4 0 00-4-4h-2a4 4 0 00-4 4v2z" transform="rotate(-45 12 12)" />
+const PhysiologyIcon = () => (
+     <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 18.657A8 8 0 016.343 7.343S7 9 9 10c2.236 1.12 4.472-1.12 6.708-2.24C17.944 6.64 19 6 19 6c1.06 1.06.94 3.32-.23 5.48-1.17 2.16-3.41 3.32-5.12 3.32-1.71 0-2.88-1.16-2.88-2.32 0-1.16.8-2.32 1.6-2.32.8 0 1.6.8 1.6 1.6" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9.172 14.828a4 4 0 005.656 0M9 10s-2 2-2 4" />
     </svg>
 );
 
-const HumanIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+const HumanHealthIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
         <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
     </svg>
 );
 
-const DnaIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01" transform="scale(0.8) translate(2,2)"/>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M4 12c0-2.21 1.79-4 4-4s4 1.79 4 4-1.79 4-4 4-4-1.79-4-4zm12 0c0-2.21 1.79-4 4-4s4 1.79 4 4-1.79 4-4 4-4-1.79-4-4zM8 12h8" />
+const GeneticsIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 10-7.07 0M19.07 12.93a7 7 0 00-9.9 0" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M8.465 15.536a5 5 0 107.07 0M12.93 19.07a7 7 0 009.9 0" />
     </svg>
 );
 
 const EcologyIcon = () => (
-    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-        <path strokeLinecap="round" strokeLinejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2h1a2 2 0 002-2v-1a2 2 0 012-2h1.945M12 21c-4.97 0-9-4.03-9-9s4.03-9 9-9 9 4.03 9 9-4.03 9-9 9z" />
-        <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m8-9h-1M4 12H3m15.364-5.364l-.707.707M5.343 17.657l-.707.707m12.728 0l-.707-.707M5.343 6.343l-.707-.707" />
+    <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2h1a2 2 0 002-2v-1a2 2 0 012-2h1.945M12 22a10 10 0 110-20 10 10 0 010 20z" />
     </svg>
 );
-
 
 export const PHYSICS_CATEGORIES: Category[] = [
     {
@@ -799,357 +800,627 @@ export const PHYSICS_CATEGORIES: Category[] = [
 
 export const BIOLOGY_CATEGORIES: Category[] = [
     {
-        name: 'Cell Biology & Organisation',
-        icon: <CellIcon />,
+        name: 'Cellular Biology & Biochemistry',
+        icon: <CellularIcon />,
         topics: [
             {
                 name: 'Characteristics and classification of living organisms',
-                indicators: [
-                    { name: 'Describe the characteristics of living organisms (movement, respiration, sensitivity, growth, reproduction, excretion, nutrition)' },
-                    { name: 'State that organisms can be classified into groups by the features that they share' },
-                    { name: 'Describe a species as a group of organisms that can reproduce to produce fertile offspring' },
-                    { name: 'Describe the binomial system of naming species' },
-                    { name: 'Construct and use dichotomous keys' },
-                    { name: 'Explain that classification systems aim to reflect evolutionary relationships', isSupplement: true },
-                    { name: 'Explain that sequences of bases in DNA are used as a means of classification', isSupplement: true },
-                    { name: 'State the main features of the five kingdoms: animal, plant, fungus, prokaryote, protoctist', isSupplement: true },
-                    { name: 'State the features of viruses (protein coat and genetic material)', isSupplement: true }
+                subTopics: [
+                    {
+                        name: 'Characteristics of living organisms',
+                        indicators: [
+                            { name: 'Describe the characteristics of living organisms by describing: (a) movement (b) respiration (c) sensitivity (d) growth (e) reproduction (f) excretion (g) nutrition' },
+                        ],
+                    },
+                    {
+                        name: 'Concept and uses of classification systems',
+                        indicators: [
+                            { name: 'State that organisms can be classified into groups by the features that they share' },
+                            { name: 'Describe a species as a group of organisms that can reproduce to produce fertile offspring' },
+                            { name: 'Describe the binomial system of naming species' },
+                            { name: 'Construct and use dichotomous keys' },
+                            { name: 'Explain that classification systems aim to reflect evolutionary relationships', isSupplement: true },
+                            { name: 'Explain that the sequences of bases in DNA are used as a means of classification', isSupplement: true },
+                            { name: 'Explain that groups of organisms which share a more recent ancestor have more similar DNA base sequences', isSupplement: true },
+                        ],
+                    },
+                    {
+                        name: 'Features of organisms',
+                        indicators: [
+                            { name: 'State the main features used to place animals and plants into the appropriate kingdoms' },
+                            { name: 'State the main features used to place organisms into groups within the animal kingdom (vertebrates and arthropods)' },
+                            { name: 'Classify organisms using the features of vertebrates and arthropods' },
+                            { name: 'State the main features used to place all organisms into one of the five kingdoms: animal, plant, fungus, prokaryote, protoctist', isSupplement: true },
+                            { name: 'State the main features used to place organisms into groups within the plant kingdom (ferns and flowering plants)', isSupplement: true },
+                            { name: 'Classify organisms using the features of the five kingdoms and plant groups', isSupplement: true },
+                            { name: 'State the features of viruses, limited to a protein coat and genetic material', isSupplement: true },
+                        ],
+                    },
                 ]
             },
             {
                 name: 'Organisation of the organism',
-                indicators: [
-                    { name: 'Describe and compare the structure of a plant cell and an animal cell' },
-                    { name: 'Describe the structure of a bacterial cell' },
-                    { name: 'Identify cell structures in diagrams and images' },
-                    { name: 'Describe the functions of cell structures' },
-                    { name: 'State that new cells are produced by division of existing cells' },
-                    { name: 'State that specialised cells have specific functions (ciliated cells, root hair cells, palisade mesophyll cells, neurones, red blood cells, sperm and egg cells)' },
-                    { name: 'Describe the meaning of cell, tissue, organ, organ system and organism' },
-                    { name: 'State and use the formula: magnification = image size ÷ actual size' },
-                    { name: 'Calculate magnification and size of biological specimens using millimetres' },
-                    { name: 'Convert measurements between millimetres (mm) and micrometres (μm)', isSupplement: true }
+                subTopics: [
+                     {
+                        name: 'Cell structure',
+                        indicators: [
+                            { name: 'Describe and compare the structure of a plant cell with an animal cell' },
+                            { name: 'Describe the structure of a bacterial cell' },
+                            { name: 'Identify cell structures in diagrams and images' },
+                            { name: 'Describe the functions of the cell structures' },
+                            { name: 'State that new cells are produced by division of existing cells' },
+                            { name: 'State that specialised cells have specific functions' },
+                            { name: 'Describe the meaning of the terms: cell, tissue, organ, organ system and organism' },
+                        ],
+                    },
+                    {
+                        name: 'Size of specimens',
+                        indicators: [
+                            { name: 'State and use the formula: magnification = image size ÷ actual size' },
+                            { name: 'Calculate magnification and size of biological specimens using millimetres' },
+                            { name: 'Convert measurements between millimetres (mm) and micrometres (μm)', isSupplement: true },
+                        ]
+                    }
                 ]
             },
             {
                 name: 'Movement into and out of cells',
-                indicators: [
-                    { name: 'Describe diffusion as the net movement of particles down a concentration gradient' },
-                    { name: 'State that energy for diffusion comes from kinetic energy of random movement' },
-                    { name: 'Describe the importance of diffusion of gases and solutes' },
-                    { name: 'Investigate factors that influence diffusion (surface area, temperature, concentration gradient, distance)' },
-                    { name: 'Describe the role of water as a solvent' },
-                    { name: 'State that water diffuses through partially permeable membranes by osmosis' },
-                    { name: 'Investigate and describe the effects on plant tissues of immersing them in solutions of different concentrations' },
-                    { name: 'State that plants are supported by turgor pressure' },
-                    { name: 'Describe osmosis in terms of water potential', isSupplement: true },
-                    { name: 'Explain the effects on plant cells of immersing them in solutions of different concentrations (turgid, plasmolysis, flaccid)', isSupplement: true },
-                    { name: 'Explain the importance of water potential in water uptake by organisms', isSupplement: true },
-                    { name: 'Describe active transport as the movement of particles against a concentration gradient, using energy from respiration' },
-                    { name: 'Explain the importance of active transport (e.g., ion uptake by root hairs)', isSupplement: true },
-                    { name: 'State that protein carriers move molecules during active transport', isSupplement: true }
+                subTopics: [
+                    {
+                        name: 'Diffusion',
+                        indicators: [
+                            { name: 'Describe diffusion as the net movement of particles down a concentration gradient' },
+                            { name: 'State that the energy for diffusion comes from the kinetic energy of random movement' },
+                            { name: 'State that some substances move into and out of cells by diffusion' },
+                            { name: 'Describe the importance of diffusion of gases and solutes' },
+                            { name: 'Investigate the factors that influence diffusion (surface area, temperature, concentration gradient, distance)' },
+                        ]
+                    },
+                    {
+                        name: 'Osmosis',
+                        indicators: [
+                            { name: 'Describe the role of water as a solvent' },
+                            { name: 'State that water diffuses through partially permeable membranes by osmosis' },
+                            { name: 'State that water moves into and out of cells by osmosis' },
+                            { name: 'Investigate osmosis using materials such as dialysis tubing' },
+                            { name: 'Investigate and describe the effects on plant tissues of immersing them in solutions of different concentrations' },
+                            { name: 'State that plants are supported by the pressure of water inside the cells' },
+                            { name: 'Describe osmosis as the net movement of water molecules from a region of higher water potential to a region of lower water potential', isSupplement: true },
+                            { name: 'Explain the effects on plant cells of immersing them in solutions of different concentrations using the terms: turgid, turgor pressure, plasmolysis, flaccid', isSupplement: true },
+                            { name: 'Explain the importance of water potential and osmosis in the uptake and loss of water by organisms', isSupplement: true },
+                        ]
+                    },
+                    {
+                        name: 'Active transport',
+                        indicators: [
+                            { name: 'Describe active transport as the movement of particles against a concentration gradient using energy from respiration' },
+                            { name: 'Explain the importance of active transport as a process for movement across membranes (e.g. ion uptake by root hairs)', isSupplement: true },
+                            { name: 'State that protein carriers move molecules or ions across a membrane during active transport', isSupplement: true },
+                        ]
+                    }
                 ]
             },
             {
                 name: 'Biological molecules',
                 indicators: [
-                    { name: 'List the chemical elements in carbohydrates, fats and proteins' },
-                    { name: 'State that large molecules are made from smaller molecules (starch from glucose, proteins from amino acids, fats and oils from fatty acids and glycerol)' },
-                    { name: 'Describe the use of tests for starch (iodine), reducing sugars (Benedict’s), proteins (biuret), and fats (ethanol emulsion)' },
-                    { name: 'Describe the structure of a DNA molecule (two strands, double helix, bases A, T, C, G)', isSupplement: true }
+                    { name: 'List the chemical elements that make up: carbohydrates, fats and proteins' },
+                    { name: 'State that large molecules are made from smaller molecules (e.g. starch from glucose)' },
+                    { name: 'Describe the use of: iodine, Benedict\'s solution, biuret, ethanol emulsion, and DCPIP tests' },
+                    { name: 'Describe the structure of a DNA molecule: two strands, double helix, bases, A with T, C with G', isSupplement: true },
                 ]
             },
             {
                 name: 'Enzymes',
                 indicators: [
-                    { name: 'Describe a catalyst as a substance that increases reaction rate and is not changed' },
-                    { name: 'Describe enzymes as biological catalysts (proteins)' },
-                    { name: 'Describe why enzymes are important for sustaining life' },
-                    { name: 'Describe enzyme action (complementary shape of active site and substrate)' },
+                    { name: 'Describe a catalyst as a substance that increases the rate of a chemical reaction and is not changed by the reaction' },
+                    { name: 'Describe enzymes as proteins that function as biological catalysts' },
+                    { name: 'Describe why enzymes are important in all living organisms' },
+                    { name: 'Describe enzyme action with reference to the active site and substrate' },
                     { name: 'Investigate and describe the effect of changes in temperature and pH on enzyme activity' },
-                    { name: 'Explain enzyme action with reference to active site, enzyme-substrate complex', isSupplement: true },
-                    { name: 'Explain the specificity of enzymes', isSupplement: true },
-                    { name: 'Explain the effect of temperature on enzyme activity (kinetic energy, collisions, denaturation)', isSupplement: true },
-                    { name: 'Explain the effect of pH on enzyme activity (shape, fit, denaturation)', isSupplement: true }
+                    { name: 'Explain enzyme action with reference to: active site, enzyme-substrate complex, substrate and product', isSupplement: true },
+                    { name: 'Explain the specificity of enzymes in terms of the complementary shape and fit of the active site with the substrate', isSupplement: true },
+                    { name: 'Explain the effect of changes in temperature on enzyme activity', isSupplement: true },
+                    { name: 'Explain the effect of changes in pH on enzyme activity', isSupplement: true },
                 ]
             }
         ]
     },
     {
-        name: 'Plant Biology',
-        icon: <PlantIcon />,
+        name: 'Plant and Animal Physiology',
+        icon: <PhysiologyIcon />,
         topics: [
-            {
-                name: 'Plant nutrition',
-                indicators: [
-                    { name: 'Describe photosynthesis as the process of making carbohydrates from raw materials using light energy' },
+            { name: 'Plant nutrition', subTopics: [
+                { name: 'Photosynthesis', indicators: [
+                    { name: 'Describe photosynthesis as the process by which plants synthesise carbohydrates from raw materials using energy from light' },
                     { name: 'State the word equation for photosynthesis' },
-                    { name: 'State that chlorophyll is a green pigment in chloroplasts' },
-                    { name: 'State that chlorophyll transfers light energy into chemical energy' },
-                    { name: 'Outline the use and storage of carbohydrates made in photosynthesis (starch, cellulose, glucose, sucrose, nectar)' },
-                    { name: 'Explain the importance of nitrate ions and magnesium ions' },
+                    { name: 'State that chlorophyll is a green pigment found in chloroplasts' },
+                    { name: 'State that chlorophyll transfers energy from light into chemical energy' },
+                    { name: 'Outline the subsequent use and storage of the carbohydrates made in photosynthesis' },
+                    { name: 'Explain the importance of nitrate ions and magnesium ions for plants' },
                     { name: 'Investigate the need for chlorophyll, light and carbon dioxide for photosynthesis' },
-                    { name: 'Investigate the effect of varying light intensity, CO2 concentration and temperature on the rate of photosynthesis' },
+                    { name: 'Investigate and describe the effects of varying light intensity, CO2 concentration and temperature on the rate of photosynthesis' },
+                    { name: 'Investigate the effect of light and dark conditions on gas exchange in an aquatic plant' },
                     { name: 'State the balanced chemical equation for photosynthesis', isSupplement: true },
                     { name: 'Identify and explain the limiting factors of photosynthesis', isSupplement: true },
-                    { name: 'Explain how leaf structures (large surface area, thinness) are adaptations for photosynthesis' },
-                    { name: 'Identify structures in a dicotyledonous leaf' },
-                    { name: 'Explain how leaf structures adapt leaves for photosynthesis' }
-                ]
-            },
-            {
-                name: 'Transport in plants',
-                indicators: [
+                ]},
+                { name: 'Leaf structure', indicators: [
+                    { name: 'State that most leaves have a large surface area and are thin, and explain how these features are adaptations for photosynthesis' },
+                    { name: 'Identify structures in the leaf of a dicotyledonous plant' },
+                    { name: 'Explain how the structures of the leaf adapt it for photosynthesis' },
+                ]},
+            ]},
+            { name: 'Human nutrition', subTopics: [
+                { name: 'Diet', indicators: [
+                    { name: 'Describe what is meant by a balanced diet' },
+                    { name: 'State the principal dietary sources and importance of: carbohydrates, fats, proteins, vitamins C & D, calcium, iron, fibre, water' },
+                    { name: 'State the causes of scurvy and rickets' },
+                ]},
+                { name: 'Digestive system', indicators: [
+                    { name: 'Identify the main organs of the digestive system' },
+                    { name: 'Describe the functions of the organs of the digestive system in relation to: ingestion, digestion, absorption, assimilation, egestion' },
+                ]},
+                { name: 'Physical digestion', indicators: [
+                    { name: 'Describe physical digestion' },
+                    { name: 'State that physical digestion increases the surface area for enzymes' },
+                    { name: 'Identify the types of human teeth' },
+                    { name: 'Describe the structure of human teeth' },
+                    { name: 'Describe the functions of the types of human teeth' },
+                    { name: 'Describe the function of the stomach in physical digestion' },
+                    { name: 'Outline the role of bile in emulsifying fats and oils', isSupplement: true },
+                ]},
+                { name: 'Chemical digestion', indicators: [
+                    { name: 'Describe chemical digestion' },
+                    { name: 'State the role of chemical digestion in producing small soluble molecules' },
+                    { name: 'Describe the functions of amylase, proteases and lipase' },
+                    { name: 'State where amylase, protease and lipase are secreted and where they act' },
+                    { name: 'Describe the functions of hydrochloric acid in gastric juice' },
+                    { name: 'Describe the digestion of starch by amylase and maltase', isSupplement: true },
+                    { name: 'Describe the digestion of protein by pepsin and trypsin', isSupplement: true },
+                    { name: 'Explain that bile is an alkaline mixture that neutralises acidic food from the stomach', isSupplement: true },
+                ]},
+                { name: 'Absorption', indicators: [
+                    { name: 'State that the small intestine is the region where nutrients are absorbed' },
+                    { name: 'State that most water is absorbed from the small intestine' },
+                    { name: 'Explain the significance of villi and microvilli in increasing the internal surface area', isSupplement: true },
+                    { name: 'Describe the structure of a villus', isSupplement: true },
+                    { name: 'Describe the roles of capillaries and lacteals in villi', isSupplement: true },
+                ]},
+            ]},
+            { name: 'Transport in plants', subTopics: [
+                { name: 'Xylem and phloem', indicators: [
                     { name: 'State the functions of xylem and phloem' },
                     { name: 'Identify the position of xylem and phloem in roots, stems and leaves' },
                     { name: 'Relate the structure of xylem vessels to their function', isSupplement: true },
+                ]},
+                { name: 'Water uptake', indicators: [
                     { name: 'Identify root hair cells and state their functions' },
-                    { name: 'State that the large surface area of root hairs increases uptake of water and mineral ions' },
+                    { name: 'State that the large surface area of root hairs increases water uptake' },
                     { name: 'Outline the pathway taken by water through the root, stem and leaf' },
+                    { name: 'Investigate the pathway of water through a plant' },
+                ]},
+                { name: 'Transpiration', indicators: [
                     { name: 'Describe transpiration as the loss of water vapour from leaves' },
                     { name: 'State that water evaporates from mesophyll cells and diffuses through stomata' },
-                    { name: 'Investigate the effect of temperature and wind speed on transpiration rate' },
+                    { name: 'Investigate the effects of temperature and wind speed on transpiration rate' },
                     { name: 'Explain how water vapour loss is related to internal surface area and stomata', isSupplement: true },
-                    { name: 'Explain the mechanism of water movement up the xylem (transpiration pull)', isSupplement: true },
+                    { name: 'Explain the mechanism of water movement upwards in the xylem (transpiration pull)', isSupplement: true },
                     { name: 'Explain the effects of temperature, wind speed and humidity on transpiration rate', isSupplement: true },
                     { name: 'Explain how and why wilting occurs', isSupplement: true },
-                    { name: 'Describe translocation as the movement of sucrose and amino acids in phloem', isSupplement: true },
-                    { name: 'Describe sources and sinks in translocation', isSupplement: true },
-                    { name: 'Explain why parts of a plant may act as a source and a sink at different times', isSupplement: true }
-                ]
-            }
+                ]},
+                { name: 'Translocation', isSupplement: true, indicators: [
+                    { name: 'Describe translocation as the movement of sucrose and amino acids in phloem from sources to sinks', isSupplement: true },
+                    { name: 'Describe sources and sinks in plants', isSupplement: true },
+                    { name: 'Explain why some parts of a plant may act as a source and a sink at different times', isSupplement: true },
+                ]},
+            ]},
+            { name: 'Transport in animals', subTopics: [
+                { name: 'Circulatory systems', indicators: [
+                    { name: 'Describe the circulatory system as a system of blood vessels with a pump and valves' },
+                    { name: 'Describe the single circulation of a fish', isSupplement: true },
+                    { name: 'Describe the double circulation of a mammal', isSupplement: true },
+                    { name: 'Explain the advantages of a double circulation', isSupplement: true },
+                ]},
+                { name: 'Heart', indicators: [
+                    { name: 'Identify the structures of the mammalian heart' },
+                    { name: 'State that blood is pumped away from the heart in arteries and returns in veins' },
+                    { name: 'State that heart activity may be monitored by ECG, pulse rate and listening to sounds of valves' },
+                    { name: 'Investigate and describe the effect of physical activity on the heart rate' },
+                    { name: 'Describe coronary heart disease and its risk factors' },
+                    { name: 'Discuss the roles of diet and exercise in reducing the risk of coronary heart disease' },
+                    { name: 'Identify the atrioventricular and semilunar valves in the heart', isSupplement: true },
+                    { name: 'Explain the relative thickness of the muscle walls of the heart chambers', isSupplement: true },
+                    { name: 'Explain the importance of the septum', isSupplement: true },
+                    { name: 'Describe the functioning of the heart in terms of contraction of muscles and action of valves', isSupplement: true },
+                    { name: 'Explain the effect of physical activity on the heart rate', isSupplement: true },
+                ]},
+                { name: 'Blood vessels', indicators: [
+                    { name: 'Describe the structure of arteries, veins and capillaries' },
+                    { name: 'State the functions of capillaries' },
+                    { name: 'Identify the main blood vessels to and from the heart, lungs and kidney' },
+                    { name: 'Explain how the structure of arteries and veins is related to the pressure of the blood', isSupplement: true },
+                    { name: 'Explain how the structure of capillaries is related to their functions', isSupplement: true },
+                    { name: 'Identify the main blood vessels to and from the liver', isSupplement: true },
+                ]},
+                { name: 'Blood', indicators: [
+                    { name: 'List the components of blood' },
+                    { name: 'Identify red and white blood cells' },
+                    { name: 'State the functions of red blood cells, white blood cells, platelets and plasma' },
+                    { name: 'State the roles of blood clotting' },
+                    { name: 'Identify lymphocytes and phagocytes', isSupplement: true },
+                    { name: 'State the functions of lymphocytes and phagocytes', isSupplement: true },
+                    { name: 'Describe the process of clotting (fibrinogen to fibrin)', isSupplement: true },
+                ]},
+            ]},
         ]
     },
     {
-        name: 'Human Biology',
-        icon: <HumanIcon />,
+        name: 'Human Health and Physiology',
+        icon: <HumanHealthIcon />,
         topics: [
-            {
-                name: 'Human nutrition',
-                indicators: [
-                    { name: 'Describe what is meant by a balanced diet' },
-                    { name: 'State dietary sources and importance of carbohydrates, fats, proteins, vitamins C and D, mineral ions (calcium, iron), fibre, water' },
-                    { name: 'Identify main organs of the digestive system' },
-                    { name: 'Describe the functions of the organs of the digestive system' },
-                    { name: 'Describe physical and chemical digestion' },
-                    { name: 'Describe the functions of enzymes in digestion (amylase, protease, lipase)' },
-                    { name: 'Describe the functions of hydrochloric acid in the stomach' },
-                    { name: 'State that the small intestine is where nutrients are absorbed' },
-                    { name: 'Outline the role of bile in emulsifying fats', isSupplement: true },
-                    { name: 'Describe the digestion of starch (amylase, maltase) and protein (pepsin, trypsin)', isSupplement: true },
-                    { name: 'Explain the significance of villi and microvilli', isSupplement: true },
-                    { name: 'Describe the structure of a villus and the roles of capillaries and lacteals', isSupplement: true }
-                ]
-            },
-            {
-                name: 'Transport in animals',
-                indicators: [
-                    { name: 'Describe the circulatory system' },
-                    { name: 'Describe the single circulation of a fish', isSupplement: true },
-                    { name: 'Describe the double circulation of a mammal and its advantages', isSupplement: true },
-                    { name: 'Identify structures of the mammalian heart' },
-                    { name: 'State that blood is pumped away from the heart in arteries and returns in veins' },
-                    { name: 'Describe coronary heart disease and its risk factors' },
-                    { name: 'Describe the structure of arteries, veins and capillaries' },
-                    { name: 'List the components of blood (red blood cells, white blood cells, platelets, plasma)' },
-                    { name: 'State the functions of blood components' },
-                    { name: 'State the roles of blood clotting' },
-                    { name: 'Explain how the structure of arteries and veins is related to blood pressure', isSupplement: true },
-                    { name: 'Identify lymphocytes and phagocytes and state their functions', isSupplement: true },
-                    { name: 'Describe the process of clotting (fibrinogen to fibrin)', isSupplement: true }
-                ]
-            },
-            {
-                name: 'Diseases and immunity',
-                indicators: [
-                    { name: 'Describe a pathogen as a disease-causing organism' },
-                    { name: 'Describe a transmissible disease' },
-                    { name: 'State that a pathogen is transmitted by direct or indirect contact' },
-                    { name: 'Describe the body defences (skin, mucus, stomach acid, etc.)' },
-                    { name: 'Explain the importance of hygiene and a clean water supply in controlling disease spread' },
-                    { name: 'Describe active immunity', isSupplement: true },
-                    { name: 'Describe antibodies and their role', isSupplement: true },
-                    { name: 'Outline the process of vaccination', isSupplement: true },
-                    { name: 'Explain the role of vaccination in controlling disease spread', isSupplement: true },
-                    { name: 'Explain passive immunity', isSupplement: true }
-                ]
-            },
-            {
-                name: 'Gas exchange and Respiration',
-                indicators: [
-                    { name: 'Describe the features of gas exchange surfaces in humans' },
-                    { name: 'Identify parts of the breathing system' },
-                    { name: 'Investigate differences between inspired and expired air' },
-                    { name: 'Investigate the effects of physical activity on breathing rate' },
-                    { name: 'Explain the role of ribs, intercostal muscles and diaphragm in ventilation', isSupplement: true },
-                    { name: 'Explain the link between physical activity and breathing rate (CO2 concentration)', isSupplement: true },
+            { name: 'Diseases and immunity', indicators: [
+                { name: 'Describe a pathogen' },
+                { name: 'Describe a transmissible disease' },
+                { name: 'State how pathogens are transmitted' },
+                { name: 'Describe the body defences: skin, hairs in nose, mucus, stomach acid, white blood cells' },
+                { name: 'Explain the importance of hygiene and sanitation in controlling disease spread' },
+                { name: 'Describe active immunity', isSupplement: true },
+                { name: 'State that each pathogen has its own antigens', isSupplement: true },
+                { name: 'Describe antibodies and their function', isSupplement: true },
+                { name: 'State that specific antibodies fit specific antigens', isSupplement: true },
+                { name: 'Explain how active immunity is gained (infection or vaccination)', isSupplement: true },
+                { name: 'Outline the process of vaccination', isSupplement: true },
+                { name: 'Explain the role of vaccination in controlling the spread of diseases', isSupplement: true },
+                { name: 'Explain that passive immunity is short-term', isSupplement: true },
+                { name: 'Explain the importance of breast-feeding for passive immunity', isSupplement: true },
+                { name: 'State that memory cells are not produced in passive immunity', isSupplement: true },
+                { name: 'Describe cholera', isSupplement: true },
+                { name: 'Explain how the cholera bacterium causes diarrhoea', isSupplement: true },
+            ]},
+            { name: 'Gas exchange in humans', indicators: [
+                { name: 'Describe the features of gas exchange surfaces in humans' },
+                { name: 'Identify the parts of the breathing system' },
+                { name: 'Investigate the differences between inspired and expired air using limewater' },
+                { name: 'Describe the differences in composition between inspired and expired air' },
+                { name: 'Investigate and describe the effects of physical activity on breathing' },
+                { name: 'Identify the internal and external intercostal muscles', isSupplement: true },
+                { name: 'State the function of cartilage in the trachea', isSupplement: true },
+                { name: 'Explain the role of ribs, intercostal muscles and diaphragm in ventilation', isSupplement: true },
+                { name: 'Explain the differences in composition between inspired and expired air', isSupplement: true },
+                { name: 'Explain the link between physical activity and breathing rate', isSupplement: true },
+                { name: 'Explain the role of goblet cells, mucus and ciliated cells', isSupplement: true },
+            ]},
+            { name: 'Respiration', subTopics: [
+                { name: 'Respiration', indicators: [
                     { name: 'State the uses of energy in living organisms' },
-                    { name: 'Describe aerobic and anaerobic respiration' },
-                    { name: 'State the word equations for aerobic and anaerobic respiration' },
-                    { name: 'State the balanced chemical equations for aerobic and anaerobic respiration', isSupplement: true },
-                    { name: 'State that lactic acid builds up during vigorous exercise causing an oxygen debt', isSupplement: true },
-                    { name: 'Outline how the oxygen debt is removed after exercise', isSupplement: true }
-                ]
-            },
-            {
-                name: 'Excretion, Coordination and Response',
-                indicators: [
-                    { name: 'State that CO2 is excreted through the lungs, and urea and excess salts by the kidneys' },
-                    { name: 'Identify organs of the urinary system' },
-                    { name: 'Outline the structure and function of a nephron', isSupplement: true },
-                    { name: 'Describe the role of the liver in assimilation of amino acids and formation of urea', isSupplement: true },
+                    { name: 'Investigate and describe the effect of temperature on respiration in yeast' },
+                ]},
+                { name: 'Aerobic respiration', indicators: [
+                    { name: 'Describe aerobic respiration' },
+                    { name: 'State the word equation for aerobic respiration' },
+                    { name: 'State the balanced chemical equation for aerobic respiration', isSupplement: true },
+                ]},
+                { name: 'Anaerobic respiration', indicators: [
+                    { name: 'Describe anaerobic respiration' },
+                    { name: 'State that anaerobic respiration releases much less energy than aerobic' },
+                    { name: 'State the word equation for anaerobic respiration in yeast' },
+                    { name: 'State the word equation for anaerobic respiration in muscles' },
+                    { name: 'State the balanced chemical equation for anaerobic respiration in yeast', isSupplement: true },
+                    { name: 'State that lactic acid builds up in muscles during vigorous exercise causing an oxygen debt', isSupplement: true },
+                    { name: 'Outline how the oxygen debt is removed after exercise', isSupplement: true },
+                ]},
+            ]},
+            { name: 'Excretion in humans', indicators: [
+                { name: 'State that carbon dioxide is excreted through the lungs' },
+                { name: 'State that the kidneys excrete urea and excess water and ions' },
+                { name: 'Identify the kidneys, ureters, bladder and urethra' },
+                { name: 'Identify the structure of the kidney (cortex and medulla)', isSupplement: true },
+                { name: 'Outline the structure and function of a nephron and its blood vessels', isSupplement: true },
+                { name: 'Describe the role of the liver in assimilation of amino acids', isSupplement: true },
+                { name: 'State that urea is formed in the liver from excess amino acids', isSupplement: true },
+                { name: 'Describe deamination', isSupplement: true },
+                { name: 'Explain the importance of excretion (toxicity of urea)', isSupplement: true },
+            ]},
+            { name: 'Coordination and response', subTopics: [
+                { name: 'Coordination and response', indicators: [
+                    { name: 'State that electrical impulses travel along neurones' },
                     { name: 'Describe the mammalian nervous system (CNS and PNS)' },
-                    { name: 'Describe a simple reflex arc and a reflex action' },
-                    { name: 'Describe a synapse' },
-                    { name: 'Describe the structure of a synapse and the events that occur there', isSupplement: true },
+                    { name: 'Describe the role of the nervous system' },
+                    { name: 'Identify sensory, relay and motor neurones' },
+                    { name: 'Describe a simple reflex arc' },
+                    { name: 'Describe a reflex action' },
+                    { name: 'Describe a synapse as a junction between two neurones' },
+                    { name: 'Describe the structure of a synapse', isSupplement: true },
+                    { name: 'Describe the events at a synapse', isSupplement: true },
+                    { name: 'State that synapses ensure that impulses travel in one direction only', isSupplement: true },
+                ]},
+                { name: 'Sense organs', indicators: [
                     { name: 'Describe sense organs as groups of receptor cells' },
-                    { name: 'Identify structures of the eye and their functions' },
+                    { name: 'Identify the structures of the eye' },
+                    { name: 'Describe the function of each part of the eye' },
                     { name: 'Explain the pupil reflex' },
+                    { name: 'Explain the pupil reflex in terms of antagonistic muscle action', isSupplement: true },
                     { name: 'Explain accommodation to view near and distant objects', isSupplement: true },
+                    { name: 'Describe the distribution of rods and cones in the retina', isSupplement: true },
+                    { name: 'Outline the function of rods and cones', isSupplement: true },
+                    { name: 'Identify the fovea and state its function', isSupplement: true },
+                ]},
+                { name: 'Hormones', indicators: [
                     { name: 'Describe a hormone' },
-                    { name: 'Identify endocrine glands and the hormones they secrete' },
-                    { name: 'Describe the effects of adrenaline' },
+                    { name: 'Identify specific endocrine glands and the hormones they secrete' },
+                    { name: 'Describe adrenaline and its effects' },
                     { name: 'Compare nervous and hormonal control' },
+                    { name: 'State that glucagon is secreted by the pancreas', isSupplement: true },
+                    { name: 'Describe the role of adrenaline in the control of metabolic activity', isSupplement: true },
+                ]},
+                { name: 'Homeostasis', indicators: [
                     { name: 'Describe homeostasis' },
+                    { name: 'State that insulin decreases blood glucose concentration' },
                     { name: 'Explain homeostatic control by negative feedback', isSupplement: true },
                     { name: 'Describe the control of blood glucose concentration (insulin and glucagon)', isSupplement: true },
-                    { name: 'Describe gravitropism and phototropism' },
-                    { name: 'Explain the role of auxin in controlling shoot growth', isSupplement: true }
-                ]
-            },
-            {
-                name: 'Reproduction',
-                indicators: [
-                    { name: 'Describe asexual and sexual reproduction' },
-                    { name: 'Identify parts of an insect-pollinated flower' },
-                    { name: 'Describe pollination, and distinguish between self- and cross-pollination', isSupplement: true },
-                    { name: 'Describe fertilisation in plants' },
-                    { name: 'Identify parts of the male and female reproductive systems' },
+                    { name: 'Outline the treatment of Type 1 diabetes', isSupplement: true },
+                    { name: 'Identify structures of the skin', isSupplement: true },
+                    { name: 'Describe the maintenance of constant body temperature in mammals', isSupplement: true },
+                    { name: 'Describe the role of vasodilation and vasoconstriction in temperature control', isSupplement: true },
+                ]},
+                 { name: 'Tropic responses', indicators: [
+                    { name: 'Describe gravitropism' },
+                    { name: 'Describe phototropism' },
+                    { name: 'Investigate and describe gravitropism and phototropism' },
+                    { name: 'Explain phototropism and gravitropism of a shoot', isSupplement: true },
+                    { name: 'Explain the role of auxin in controlling shoot growth', isSupplement: true },
+                ]},
+            ]},
+            { name: 'Drugs', indicators: [
+                { name: 'Describe a drug' },
+                { name: 'Describe the use of antibiotics for bacterial infections' },
+                { name: 'State that some bacteria are resistant to antibiotics' },
+                { name: 'State that antibiotics kill bacteria but do not affect viruses' },
+                { name: 'Explain how using antibiotics only when essential can limit the development of resistant bacteria such as MRSA', isSupplement: true },
+            ]},
+        ]
+    },
+    {
+        name: 'Genetics and Reproduction',
+        icon: <GeneticsIcon />,
+        topics: [
+            { name: 'Reproduction', subTopics: [
+                { name: 'Asexual reproduction', indicators: [
+                    { name: 'Describe asexual reproduction' },
+                    { name: 'Identify examples of asexual reproduction' },
+                    { name: 'Discuss the advantages and disadvantages of asexual reproduction', isSupplement: true },
+                ]},
+                { name: 'Sexual reproduction', indicators: [
+                    { name: 'Describe sexual reproduction' },
+                    { name: 'Describe fertilisation' },
+                    { name: 'State that nuclei of gametes are haploid and that the nucleus of a zygote is diploid', isSupplement: true },
+                    { name: 'Discuss the advantages and disadvantages of sexual reproduction', isSupplement: true },
+                ]},
+                { name: 'Sexual reproduction in plants', indicators: [
+                    { name: 'Identify and draw the parts of an insect-pollinated flower' },
+                    { name: 'State the functions of the parts of a flower' },
+                    { name: 'Identify and describe the anthers and stigmas of a wind-pollinated flower' },
+                    { name: 'Distinguish between the pollen grains of insect- and wind-pollinated flowers' },
+                    { name: 'Describe pollination' },
+                    { name: 'State that fertilisation occurs when a pollen nucleus fuses with a nucleus in an ovule' },
+                    { name: 'Describe the structural adaptations of insect- and wind-pollinated flowers' },
+                    { name: 'Investigate the environmental conditions that affect germination' },
+                    { name: 'Describe self-pollination', isSupplement: true },
+                    { name: 'Describe cross-pollination', isSupplement: true },
+                    { name: 'Discuss the potential effects of self- and cross-pollination on a population', isSupplement: true },
+                    { name: 'Describe the growth of the pollen tube and its entry into the ovule', isSupplement: true },
+                ]},
+                { name: 'Sexual reproduction in humans', indicators: [
+                    { name: 'Identify and state the functions of the male reproductive system' },
+                    { name: 'Identify and state the functions of the female reproductive system' },
                     { name: 'Describe fertilisation in humans' },
-                    { name: 'Explain adaptive features of sperm and egg cells' },
-                    { name: 'Describe the function of the placenta and umbilical cord', isSupplement: true },
+                    { name: 'Explain the adaptive features of sperm' },
+                    { name: 'Explain the adaptive features of egg cells' },
+                    { name: 'Compare male and female gametes' },
+                    { name: 'State that a zygote forms an embryo' },
+                    { name: 'Identify and state the functions of the umbilical cord, placenta, amniotic sac and amniotic fluid' },
+                    { name: 'Describe the function of the placenta and umbilical cord in exchange of materials', isSupplement: true },
+                    { name: 'State that some pathogens and toxins can pass across the placenta', isSupplement: true },
+                ]},
+                { name: 'Sex hormones in humans', indicators: [
                     { name: 'Describe the roles of testosterone and oestrogen' },
                     { name: 'Describe the menstrual cycle' },
-                    { name: 'Explain the role of hormones in controlling the menstrual cycle (FSH, LH, progesterone, oestrogen)', isSupplement: true },
-                    { name: 'Describe a sexually transmitted infection (STI) and how its spread is controlled' }
-                ]
-            }
-        ]
-    },
-    {
-        name: 'Inheritance, Variation and Selection',
-        icon: <DnaIcon />,
-        topics: [
-            {
-                name: 'Inheritance',
-                indicators: [
-                    { name: 'State that chromosomes are made of DNA, which contains genes' },
-                    { name: 'Define gene and allele' },
+                    { name: 'Describe the sites of production of oestrogen and progesterone', isSupplement: true },
+                    { name: 'Explain the role of hormones in controlling the menstrual cycle and pregnancy (FSH, LH, progesterone, oestrogen)', isSupplement: true },
+                ]},
+                { name: 'Sexually transmitted infections', indicators: [
+                    { name: 'Describe a sexually transmitted infection (STI)' },
+                    { name: 'State that human immunodeficiency virus (HIV) is a pathogen that causes an STI' },
+                    { name: 'State that HIV infection may lead to AIDS' },
+                    { name: 'Describe the methods of transmission of HIV' },
+                    { name: 'Explain how the spread of STIs is controlled' },
+                ]},
+            ]},
+            { name: 'Inheritance', subTopics: [
+                { name: 'Chromosomes, genes and proteins', indicators: [
+                    { name: 'State that chromosomes are made of DNA, containing genes' },
+                    { name: 'Define a gene as a length of DNA that codes for a protein' },
+                    { name: 'Define an allele as an alternative form of a gene' },
                     { name: 'Describe the inheritance of sex in humans (X and Y chromosomes)' },
-                    { name: 'Explain that the sequence of bases in a gene determines the sequence of amino acids in a protein', isSupplement: true },
-                    { name: 'Explain how a protein is made (mRNA, ribosomes)', isSupplement: true },
-                    { name: 'Describe mitosis and its role in growth, repair, and asexual reproduction', isSupplement: true },
-                    { name: 'Describe meiosis as a reduction division involved in the production of gametes', isSupplement: true },
-                    { name: 'Describe inheritance and define genotype, phenotype, homozygous, heterozygous, dominant, and recessive' },
-                    { name: 'Use genetic diagrams and Punnett squares to predict results of monohybrid crosses' },
-                    { name: 'Explain how to use a test cross', isSupplement: true },
-                    { name: 'Describe codominance and explain the inheritance of ABO blood groups', isSupplement: true },
-                    { name: 'Describe a sex-linked characteristic', isSupplement: true }
-                ]
-            },
-            {
-                name: 'Variation and selection',
-                indicators: [
-                    { name: 'Describe variation as differences between individuals of the same species' },
-                    { name: 'State the differences between continuous and discontinuous variation' },
-                    { name: 'State that discontinuous variation is caused by genes only, and continuous variation by both genes and environment' },
+                    { name: 'State that the sequence of bases in a gene determines the sequence of amino acids', isSupplement: true },
+                    { name: 'Explain that different sequences of amino acids give different shapes to protein molecules', isSupplement: true },
+                    { name: 'Explain that DNA controls cell function by controlling the production of proteins', isSupplement: true },
+                    { name: 'Explain how a protein is made (mRNA, ribosome)', isSupplement: true },
+                    { name: 'Explain that many genes in a particular cell are not expressed', isSupplement: true },
+                    { name: 'Describe a haploid nucleus', isSupplement: true },
+                    { name: 'Describe a diploid nucleus', isSupplement: true },
+                    { name: 'State that in a diploid cell, there are 23 pairs of chromosomes', isSupplement: true },
+                ]},
+                { name: 'Mitosis', isSupplement: true, indicators: [
+                    { name: 'Describe mitosis as nuclear division giving rise to genetically identical cells', isSupplement: true },
+                    { name: 'State the role of mitosis (growth, repair, replacement, asexual reproduction)', isSupplement: true },
+                    { name: 'State that exact replication of chromosomes occurs before mitosis', isSupplement: true },
+                    { name: 'State that during mitosis, copies of chromosomes separate, maintaining the chromosome number', isSupplement: true },
+                    { name: 'Describe stem cells', isSupplement: true },
+                ]},
+                { name: 'Meiosis', isSupplement: true, indicators: [
+                    { name: 'State that meiosis is involved in the production of gametes', isSupplement: true },
+                    { name: 'Describe meiosis as a reduction division in which the chromosome number is halved', isSupplement: true },
+                ]},
+                { name: 'Monohybrid inheritance', indicators: [
+                    { name: 'Describe inheritance' },
+                    { name: 'Describe genotype' },
+                    { name: 'Describe phenotype' },
+                    { name: 'Describe homozygous' },
+                    { name: 'State that two identical homozygous individuals that breed together will be pure-breeding' },
+                    { name: 'Describe heterozygous' },
+                    { name: 'State that a heterozygous individual will not be pure-breeding' },
+                    { name: 'Describe a dominant allele' },
+                    { name: 'Describe a recessive allele' },
+                    { name: 'Interpret pedigree diagrams' },
+                    { name: 'Use genetic diagrams to predict the results of monohybrid crosses' },
+                    { name: 'Use Punnett squares' },
+                    { name: 'Explain how to use a test cross to identify an unknown genotype', isSupplement: true },
+                    { name: 'Describe codominance', isSupplement: true },
+                    { name: 'Explain the inheritance of ABO blood groups', isSupplement: true },
+                    { name: 'Describe a sex-linked characteristic', isSupplement: true },
+                    { name: 'Describe red-green colour blindness as an example of sex linkage', isSupplement: true },
+                    { name: 'Use genetic diagrams to predict results of crosses involving codominance or sex linkage', isSupplement: true },
+                ]},
+            ]},
+            { name: 'Variation and selection', subTopics: [
+                { name: 'Variation', indicators: [
+                    { name: 'Describe variation' },
+                    { name: 'State that continuous variation results in a range of phenotypes' },
+                    { name: 'State that discontinuous variation results in a limited number of phenotypes' },
+                    { name: 'State that discontinuous variation is caused by genes only, and continuous is caused by genes and environment' },
+                    { name: 'Investigate and describe examples of continuous and discontinuous variation' },
                     { name: 'Describe mutation as genetic change' },
+                    { name: 'State that mutation is the way in which new alleles are formed' },
+                    { name: 'State that ionising radiation and some chemicals increase the rate of mutation' },
                     { name: 'Describe gene mutation as a random change in the base sequence of DNA', isSupplement: true },
+                    { name: 'State that mutation, meiosis, random mating and random fertilisation are sources of genetic variation', isSupplement: true },
+                ]},
+                { name: 'Adaptive features', indicators: [
                     { name: 'Describe an adaptive feature' },
+                    { name: 'Interpret images or other information to describe a species\' adaptive features' },
                     { name: 'Explain the adaptive features of hydrophytes and xerophytes', isSupplement: true },
+                ]},
+                { name: 'Selection', indicators: [
                     { name: 'Describe natural selection' },
                     { name: 'Describe selective breeding' },
-                    { name: 'Describe adaptation as a process resulting from natural selection', isSupplement: true },
+                    { name: 'Outline how selective breeding is carried out' },
+                    { name: 'Describe adaptation as the process resulting from natural selection', isSupplement: true },
                     { name: 'Describe the development of antibiotic resistant bacteria as an example of natural selection', isSupplement: true },
-                    { name: 'Outline the differences between natural and artificial selection', isSupplement: true }
-                ]
-            }
+                    { name: 'Outline the differences between natural and artificial selection', isSupplement: true },
+                ]},
+            ]},
         ]
     },
     {
-        name: 'Ecology & Biotechnology',
+        name: 'Ecology and Biotechnology',
         icon: <EcologyIcon />,
         topics: [
-            {
-                name: 'Organisms and their environment',
-                indicators: [
-                    { name: 'State that the Sun is the principal source of energy for biological systems' },
+            { name: 'Organisms and their environment', subTopics: [
+                { name: 'Energy flow', indicators: [
+                    { name: 'State that the Sun is the principal source of energy input to biological systems' },
                     { name: 'Describe the flow of energy through living organisms' },
-                    { name: 'Describe food chains and food webs' },
-                    { name: 'Describe producers and consumers (primary, secondary, tertiary)' },
-                    { name: 'Draw and interpret pyramids of numbers and biomass' },
+                ]},
+                { name: 'Food chains and food webs', indicators: [
+                    { name: 'Describe a food chain' },
+                    { name: 'Construct and interpret simple food chains' },
+                    { name: 'Describe a food web' },
+                    { name: 'Describe a producer' },
+                    { name: 'Describe a consumer' },
+                    { name: 'State that consumers may be classed as primary, secondary, tertiary and quaternary' },
+                    { name: 'Describe a herbivore' },
+                    { name: 'Describe a carnivore' },
+                    { name: 'Describe a decomposer' },
+                    { name: 'Use food chains and food webs to describe the impact of humans' },
+                    { name: 'Draw, describe and interpret pyramids of numbers and pyramids of biomass' },
+                    { name: 'Discuss the advantages of using a pyramid of biomass over a pyramid of numbers' },
                     { name: 'Describe a trophic level' },
-                    { name: 'Draw and interpret pyramids of energy', isSupplement: true },
-                    { name: 'Explain why energy transfer between trophic levels is not efficient', isSupplement: true },
+                    { name: 'Identify trophic levels in food webs, chains and pyramids' },
+                    { name: 'Draw, describe and interpret pyramids of energy', isSupplement: true },
+                    { name: 'Discuss the advantages of using a pyramid of energy', isSupplement: true },
+                    { name: 'Explain why the transfer of energy from one trophic level to another is often not efficient', isSupplement: true },
+                    { name: 'Explain, in terms of energy loss, why food chains usually have fewer than five trophic levels', isSupplement: true },
+                    { name: 'Explain why it is more energy efficient for humans to eat crop plants than livestock', isSupplement: true },
+                ]},
+                { name: 'Nutrient cycles', indicators: [
                     { name: 'Describe the carbon cycle' },
-                    { name: 'Describe the nitrogen cycle', isSupplement: true },
-                    { name: 'Describe populations, communities, and ecosystems' },
-                    { name: 'Identify factors affecting population growth (food supply, competition, predation, disease)' },
-                    { name: 'Interpret population growth curves' },
-                    { name: 'Explain the factors that lead to each phase in the sigmoid curve of population growth', isSupplement: true }
-                ]
-            },
-            {
-                name: 'Human influences on ecosystems',
-                indicators: [
-                    { name: 'Describe how humans have increased food production' },
-                    { name: 'Describe advantages and disadvantages of monocultures and intensive livestock production' },
-                    { name: 'Describe biodiversity and reasons for habitat destruction' },
+                    { name: 'Describe the nitrogen cycle with reference to decomposition, nitrification, nitrogen fixation, absorption, protein production, feeding, deamination, denitrification', isSupplement: true },
+                    { name: 'State the roles of microorganisms in the nitrogen cycle', isSupplement: true },
+                ]},
+                { name: 'Populations', indicators: [
+                    { name: 'Describe a population' },
+                    { name: 'Describe a community' },
+                    { name: 'Describe an ecosystem' },
+                    { name: 'Identify and state the factors affecting the rate of population growth (food supply, competition, predation, disease)' },
+                    { name: 'Identify the phases in the sigmoid curve of population growth' },
+                    { name: 'Interpret graphs and diagrams of population growth' },
+                    { name: 'Explain the factors that lead to each phase in the sigmoid curve of population growth', isSupplement: true },
+                ]},
+            ]},
+            { name: 'Human influences on ecosystems', subTopics: [
+                { name: 'Food supply', indicators: [
+                    { name: 'Describe how humans have increased food production (machinery, fertilisers, insecticides, herbicides, selective breeding)' },
+                    { name: 'Describe the advantages and disadvantages of large-scale monocultures of crop plants' },
+                    { name: 'Describe the advantages and disadvantages of intensive livestock production' },
+                ]},
+                { name: 'Habitat destruction', indicators: [
+                    { name: 'Describe biodiversity' },
+                    { name: 'Describe the reasons for habitat destruction' },
+                    { name: 'State that humans can have a negative impact on habitats by altering food webs' },
                     { name: 'Explain the undesirable effects of deforestation' },
+                ]},
+                { name: 'Pollution', indicators: [
                     { name: 'Describe the effects of untreated sewage and excess fertiliser on aquatic ecosystems' },
+                    { name: 'Describe the effects of non-biodegradable plastics' },
+                    { name: 'Describe the sources and effects of air pollution by methane and carbon dioxide' },
                     { name: 'Explain the process of eutrophication of water', isSupplement: true },
-                    { name: 'Describe effects of non-biodegradable plastics' },
-                    { name: 'Describe air pollution by methane and CO2 (greenhouse effect, climate change)' },
+                ]},
+                { name: 'Conservation', indicators: [
                     { name: 'Describe a sustainable resource' },
+                    { name: 'State that some resources can be conserved and managed sustainably (forests, fish stocks)' },
                     { name: 'Explain why organisms become endangered or extinct' },
                     { name: 'Describe how endangered species can be conserved (monitoring, education, captive breeding, seed banks)' },
-                    { name: 'Explain how forests and fish stocks can be conserved', isSupplement: true }
-                ]
-            },
-            {
-                name: 'Biotechnology and genetic modification',
-                indicators: [
-                    { name: 'State that bacteria are useful in biotechnology' },
+                    { name: 'Explain how forests can be conserved', isSupplement: true },
+                    { name: 'Explain how fish stocks can be conserved', isSupplement: true },
+                    { name: 'Describe the reasons for conservation programmes', isSupplement: true },
+                    { name: 'Describe the use of artificial insemination (AI) and in vitro fertilisation (IVF) in captive breeding', isSupplement: true },
+                    { name: 'Explain the risks to a species if its population size decreases', isSupplement: true },
+                ]},
+            ]},
+            { name: 'Biotechnology and genetic modification', subTopics: [
+                { name: 'Biotechnology and genetic modification', indicators: [
+                    { name: 'State that bacteria are useful in biotechnology and genetic modification' },
                     { name: 'Discuss why bacteria are useful in biotechnology and genetic modification', isSupplement: true },
-                    { name: 'Describe the role of anaerobic respiration in yeast (biofuels, bread-making)' },
+                ]},
+                { name: 'Biotechnology', indicators: [
+                    { name: 'Describe the role of anaerobic respiration in yeast during production of ethanol for biofuels' },
+                    { name: 'Describe the role of anaerobic respiration in yeast during bread-making' },
                     { name: 'Describe the use of pectinase in fruit juice production' },
+                    { name: 'Investigate and describe the use of biological washing powders that contain enzymes' },
                     { name: 'Explain the use of lactase to produce lactose-free milk', isSupplement: true },
-                    { name: 'Describe how fermenters can be used for large-scale production', isSupplement: true },
+                    { name: 'Describe how fermenters can be used for the large-scale production of useful products', isSupplement: true },
+                    { name: 'Describe and explain the conditions that need to be controlled in a fermenter', isSupplement: true },
+                ]},
+                { name: 'Genetic modification', indicators: [
                     { name: 'Describe genetic modification' },
+                    { name: 'Outline examples of genetic modification: human proteins in bacteria, herbicide resistance, insect resistance, improved nutrition' },
                     { name: 'Outline the process of genetic modification using bacterial production of a human protein as an example', isSupplement: true },
-                    { name: 'Outline examples of genetic modification (human proteins in bacteria, herbicide/insect resistance in crops)' },
-                    { name: 'Discuss the advantages and disadvantages of genetically modifying crops', isSupplement: true }
-                ]
-            }
+                    { name: 'Discuss the advantages and disadvantages of genetically modifying crops', isSupplement: true },
+                ]},
+            ]},
         ]
     }
 ];
 
-export const SUBJECTS = {
-    physics: PHYSICS_CATEGORIES,
-    biology: BIOLOGY_CATEGORIES,
-};
 
-
-export const SCIENCE_HELPER_MESSAGES = [
+export const PHYSICS_HELPER_MESSAGES = [
     "Practice makes perfect! Try a solo quiz to sharpen your skills.",
-    "Challenge a friend to a group quiz and see who's the real science whiz!",
+    "Challenge a friend to a group quiz and see who's the real physics whiz!",
     "Feeling unsure about a topic? Head to the Quick Revision section for a refresher.",
-    "Every great scientist started with the basics. Keep building your knowledge!",
+    "Every great physicist started with the basics. Keep building your knowledge!",
     "Don't forget to check both Core and Extended syllabus options for a full workout.",
-    "The universe is full of wonders. Let's explore them together!",
+    "The universe is governed by the laws of physics. Let's explore them together!",
     "Stuck on a concept? Generating revision notes can provide a new perspective.",
-    "A journey of a thousand miles begins with a single concept. Let's get started!"
+    "A journey of a thousand miles begins with a single formula. Let's get started!"
 ];
 
 export const MOTIVATIONAL_QUOTES = [
@@ -1161,10 +1432,10 @@ export const MOTIVATIONAL_QUOTES = [
 ];
 
 export const LOADING_MESSAGES = [
-    "Calibrating the microscope...",
+    "Calibrating the flux capacitor...",
     "Reticulating splines...",
-    "Consulting with Darwin's ghost...",
-    "Sequencing the genome for your questions...",
+    "Consulting with Newton's ghost...",
+    "Calculating escape velocity...",
     "Polishing the reflecting telescope...",
     "Warming up the Bunsen burner...",
     "Assembling molecules for your questions...",

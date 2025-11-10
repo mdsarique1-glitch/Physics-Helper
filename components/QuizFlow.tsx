@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { View, type QuizQuestion, type QuizResult, type SoloQuizConfig, Indicator } from '../types';
+import { View, type QuizQuestion, type QuizResult, type SoloQuizConfig } from '../types';
 import { generateQuizQuestions } from '../services/geminiService';
-import { MOTIVATIONAL_QUOTES, SUBJECTS, LOADING_MESSAGES } from '../constants';
+import { BIOLOGY_CATEGORIES, PHYSICS_CATEGORIES, LOADING_MESSAGES } from '../constants';
 import LoadingSpinner from './LoadingSpinner';
 
 const Timer: React.FC<{ seconds: number }> = ({ seconds }) => {
@@ -39,10 +39,11 @@ const QuizView: React.FC<{
                 correctAnswers: finalCorrect,
                 incorrectAnswers: finalIncorrect,
                 totalQuestions: config.questionCount,
-                isGroupChallenge: !!config.seed
+                isGroupChallenge: !!config.seed,
+                subject: config.subject,
             });
         }
-    }, [onComplete, config.questionCount, config.seed]);
+    }, [onComplete, config]);
 
      useEffect(() => {
         if (loading) {
@@ -55,12 +56,12 @@ const QuizView: React.FC<{
 
     useEffect(() => {
         const fetchQuestions = async () => {
-            const allCategoriesForSubject = SUBJECTS[config.subject];
-            const selectedCategories = allCategoriesForSubject.filter(c => config.categories.includes(c.name));
+            const allCategories = config.subject === 'biology' ? BIOLOGY_CATEGORIES : PHYSICS_CATEGORIES;
+            const selectedCategories = allCategories.filter(c => config.categories.includes(c.name));
 
             if (selectedCategories.length === 0) {
                 setError("No categories selected for the quiz. Please select different options.");
-                onComplete({ correctAnswers: 0, incorrectAnswers: 0, totalQuestions: 0, error: true });
+                onComplete({ correctAnswers: 0, incorrectAnswers: 0, totalQuestions: 0, error: true, subject: config.subject });
                 setLoading(false);
                 return;
             }
@@ -76,7 +77,7 @@ const QuizView: React.FC<{
                 setError(`Failed to start the quiz. ${errorMessage}`);
                 if (!isCompletedRef.current) {
                     isCompletedRef.current = true;
-                    onComplete({ correctAnswers: 0, incorrectAnswers: 0, totalQuestions: 0, error: true });
+                    onComplete({ correctAnswers: 0, incorrectAnswers: 0, totalQuestions: 0, error: true, subject: config.subject });
                 }
             } finally {
                 setLoading(false);
@@ -92,7 +93,6 @@ const QuizView: React.FC<{
             setTimeLeft(t => {
                 if (t <= 1) {
                     clearInterval(timer);
-                    // Quiz ends, calculate results with remaining unanswered as incorrect
                     const unanswered = config.questionCount - (correctAnswers + incorrectAnswers);
                     completeQuiz(correctAnswers, incorrectAnswers + unanswered);
                     return 0;
@@ -101,7 +101,7 @@ const QuizView: React.FC<{
             });
         }, 1000);
         return () => clearInterval(timer);
-    }, [config.timerEnabled, loading, correctAnswers, incorrectAnswers, config.questionCount, completeQuiz]);
+    }, [config, loading, correctAnswers, incorrectAnswers, completeQuiz]);
 
     const handleAnswer = (selectedOption: string) => {
         if (isAnswered || questions.length === 0) return;
@@ -213,7 +213,8 @@ const CertificateView: React.FC<{
         Bronze: { borderColor: 'border-orange-300', bgColor: 'bg-orange-100', textColor: 'text-orange-800' },
     };
     const { borderColor, bgColor, textColor } = theme[tier];
-    const subjectName = result.subject ? result.subject.charAt(0).toUpperCase() + result.subject.slice(1) : "Science";
+    const subjectTitle = result.subject ? result.subject.charAt(0).toUpperCase() + result.subject.slice(1) : "Science";
+
 
     return (
         <div className="max-w-md mx-auto p-2 sm:p-4 flex flex-col items-center space-y-4">
@@ -234,7 +235,7 @@ const CertificateView: React.FC<{
                     </h1>
 
                     <p className="text-gray-600">
-                        for demonstrating outstanding knowledge in IGCSE {subjectName}{result.isGroupChallenge ? " during a group challenge." : "."}
+                        for demonstrating outstanding knowledge in IGCSE {subjectTitle}{result.isGroupChallenge ? " during a group challenge." : "."}
                     </p>
                     
                     <div className={`my-6 inline-block px-4 py-2 ${bgColor} ${textColor} rounded-full font-semibold text-sm`}>
@@ -252,7 +253,7 @@ const CertificateView: React.FC<{
                     
                     <div className="mt-8 flex justify-between items-center text-xs text-gray-500">
                         <span>Date: {new Date().toLocaleDateString()}</span>
-                        <span className="font-bold">IGCSE Science Helper</span>
+                        <span className="font-bold">Science Helper</span>
                     </div>
                 </div>
             </div>
@@ -274,14 +275,14 @@ const ImprovementReportView: React.FC<{
     const reportRef = useRef<HTMLDivElement>(null);
     const report = result.improvementReport;
     const loading = !report;
+    const subjectTitle = result.subject ? result.subject.charAt(0).toUpperCase() + result.subject.slice(1) : "Science";
 
     const accuracy = result.totalQuestions > 0 ? (result.correctAnswers / result.totalQuestions) * 100 : 0;
-    const subjectName = result.subject ? result.subject.charAt(0).toUpperCase() + result.subject.slice(1) : "Science";
 
     return (
         <div className="max-w-sm mx-auto p-2 flex flex-col items-center space-y-4">
             <div ref={reportRef} className="p-6 bg-white rounded-lg shadow-xl text-center border-t-4 border-indigo-500 w-full">
-                <h2 className="text-2xl font-bold text-gray-800">Quiz Report</h2>
+                <h2 className="text-2xl font-bold text-gray-800">Quiz Report - IGCSE {subjectTitle}</h2>
                 <p className="text-sm text-gray-500 mt-1">for <span className="font-semibold">{studentName}</span></p>
                 
                 <div className="my-6 text-center">
@@ -290,9 +291,7 @@ const ImprovementReportView: React.FC<{
                 </div>
 
                 <div className="my-4 text-xs text-center text-gray-500">
-                    <p className="font-bold">Subject:</p>
-                    <p>IGCSE {subjectName}</p>
-                    <p className="font-bold mt-2">Topics:</p>
+                    <p className="font-bold">Topics:</p>
                     <p>{result.categories?.join(', ')}</p>
                 </div>
 
@@ -307,7 +306,7 @@ const ImprovementReportView: React.FC<{
                 )}
                 <div className="mt-6 pt-4 border-t border-gray-200 flex items-center justify-between text-xs text-gray-500">
                     <span>{new Date().toLocaleDateString()}</span>
-                    <span className="font-bold">IGCSE Science Helper</span>
+                    <span className="font-bold">Science Helper</span>
                 </div>
             </div>
             <div className="text-center p-2">

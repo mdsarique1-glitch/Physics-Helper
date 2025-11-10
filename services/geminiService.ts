@@ -2,7 +2,6 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
 import type { QuizQuestion, CertificateData, Indicator, Topic, SoloImprovementReport, RevisionNote, Category, SubTopic } from '../types';
-import { SUBJECTS } from "../constants";
 
 const API_KEY = process.env.API_KEY;
 if (!API_KEY) {
@@ -58,7 +57,6 @@ export const generateQuizQuestions = async (
 ): Promise<QuizQuestion[]> => {
     const prng = seed ? mulberry32(seed) : Math.random;
 
-    // New robust method: Flatten all syllabus points into a single list, then shuffle it once.
     const getAllSyllabusPoints = (cats: Category[]): string[] => {
         const points: string[] = [];
         cats.forEach(category => {
@@ -98,21 +96,19 @@ export const generateQuizQuestions = async (
         throw new Error("No syllabus points found for the selected categories and syllabus level.");
     }
 
-    // Sort the points alphabetically to ensure the input to the shuffle is always deterministic.
     allPoints.sort();
 
     const shuffledPoints = shuffleArray(allPoints, prng);
-    // Provide a generous number of points to the AI, ensuring it has enough context.
     const selectedPoints = shuffledPoints.slice(0, Math.min(shuffledPoints.length, questionCount * 5)); 
     const syllabusContent = selectedPoints.join('\n');
 
     const nameForPrompt = seed ? "a group of students" : studentName;
-    const subjectName = subject.charAt(0).toUpperCase() + subject.slice(1);
+    const subjectTitle = subject.charAt(0).toUpperCase() + subject.slice(1);
 
-    const prompt = `You are an expert IGCSE ${subjectName} tutor. Your task is to generate exactly ${questionCount} high-quality, unique, and engaging multiple-choice quiz questions for ${nameForPrompt}.
+    const prompt = `You are an expert IGCSE ${subjectTitle} tutor. Your task is to generate exactly ${questionCount} high-quality, unique, and engaging multiple-choice quiz questions for ${nameForPrompt}.
 
 **Syllabus Content to use:**
-The questions must be created strictly and exclusively from the detailed IGCSE ${subjectName} syllabus points provided below. The syllabus content has been intentionally randomized to ensure unbiased topic selection.
+The questions must be created strictly and exclusively from the detailed IGCSE ${subjectTitle} syllabus points provided below. The syllabus content has been intentionally randomized to ensure unbiased topic selection.
 \`\`\`
 ${syllabusContent}
 \`\`\`
@@ -136,7 +132,7 @@ To ensure a fair and comprehensive quiz, you MUST follow this process:
             model: modelFlash,
             contents: prompt,
             config: {
-                systemInstruction: `You are an expert IGCSE ${subjectName} tutor specializing in creating high-quality, syllabus-aligned multiple-choice questions.`,
+                systemInstruction: `You are an expert IGCSE ${subjectTitle} tutor specializing in creating high-quality, syllabus-aligned multiple-choice questions.`,
                 responseMimeType: "application/json",
                 responseSchema: quizQuestionsSchema,
                 thinkingConfig: { thinkingBudget: 24576 },
@@ -179,8 +175,8 @@ To ensure a fair and comprehensive quiz, you MUST follow this process:
         return validatedQuestions;
 
     } catch (error) {
-        console.error("Error generating quiz questions:", error);
-        throw new Error("Failed to generate quiz questions from Gemini API.");
+        console.error(`Error generating ${subject} quiz questions:`, error);
+        throw new Error(`Failed to generate ${subject} quiz questions from Gemini API.`);
     }
 };
 
@@ -194,14 +190,14 @@ const certificateDataSchema = {
 
 export const getCertificateData = async (studentName: string, correctAnswers: number, totalQuestions: number, topics: string[], subject: 'physics' | 'biology', isGroupChallenge?: boolean): Promise<CertificateData> => {
     let prompt: string;
-    const subjectName = subject.charAt(0).toUpperCase() + subject.slice(1);
+    const subjectTitle = subject.charAt(0).toUpperCase() + subject.slice(1);
 
     if (isGroupChallenge) {
         prompt = `
 Task: Generate a short, positive performance summary for a student's certificate from a group challenge.
 
 **Context:**
-- Subject: IGCSE ${subjectName}
+- Subject: IGCSE ${subjectTitle}
 - Type: Group Challenge
 - Score: ${correctAnswers} out of ${totalQuestions}
 - Topics Covered: ${topics.join(', ')}
@@ -215,7 +211,7 @@ Task: Generate a short, positive performance summary for a student's certificate
 `;
     } else {
         prompt = `
-Task: Generate a short, positive performance summary for an IGCSE ${subjectName} student's certificate.
+Task: Generate a short, positive performance summary for an IGCSE ${subjectTitle} student's certificate.
 
 **Student Profile:**
 - Name: ${studentName}
@@ -261,9 +257,9 @@ const soloImprovementReportSchema = {
 
 export const getSoloImprovementReport = async (studentName: string, correctAnswers: number, totalQuestions: number, topics: string[], subject: 'physics' | 'biology'): Promise<SoloImprovementReport> => {
     const accuracy = ((correctAnswers / totalQuestions) * 100).toFixed(0);
-    const subjectName = subject.charAt(0).toUpperCase() + subject.slice(1);
+    const subjectTitle = subject.charAt(0).toUpperCase() + subject.slice(1);
     const prompt = `
-Task: Generate a constructive improvement report for an IGCSE ${subjectName} student who did not pass their quiz.
+Task: Generate a constructive improvement report for an IGCSE ${subjectTitle} student who did not pass their quiz.
 
 **Student Profile:**
 - Name: ${studentName}
@@ -271,7 +267,7 @@ Task: Generate a constructive improvement report for an IGCSE ${subjectName} stu
 - Topics Covered: ${topics.join(', ')}
 
 **Required Output (JSON):**
-1.  **improvementAreas**: An array of 2-3 specific, actionable topics from the list above that the student should review. For example, "Distinguishing between scalar and vector quantities" or "The role of the liver in assimilation".
+1.  **improvementAreas**: An array of 2-3 specific, actionable topics from the list above that the student should review. For example, for Physics: "Distinguishing between scalar and vector quantities". For Biology: "The role of osmosis in plant cells".
 2.  **motivationalMessage**: A brief, encouraging message to motivate the student to study and try again.
 
 Generate a JSON object that strictly follows this structure.`;
@@ -306,7 +302,7 @@ const revisionNotesSchema = {
                     type: Type.OBJECT,
                     properties: {
                         description: { type: Type.STRING, description: "A detailed explanation of the concept, including definitions. Can use basic HTML for formatting like <strong>, <em>, <sub>, <sup>." },
-                        formula: { type: Type.STRING, description: "The relevant formula, if any. Use HTML for special characters (e.g., F = ma, E = mc<sup>2</sup>). Use 'N/A' if not applicable." },
+                        formula: { type: Type.STRING, description: "The relevant formula, if any. Use HTML for special characters (e.g., E = mc<sup>2</sup>). Use 'N/A' if not applicable." },
                         symbolExplanation: { type: Type.STRING, description: "Explanation of symbols in the formula. Use 'N/A' if no formula. Can use basic HTML." },
                         siUnit: { type: Type.STRING, description: "The SI unit for the main quantity. Use 'N/A' if not applicable." },
                         tableData: {
@@ -330,9 +326,9 @@ const revisionNotesSchema = {
 export const generateRevisionNotes = async (topic: Topic, subject: 'physics' | 'biology'): Promise<RevisionNote[]> => {
     const indicatorsList = topic.indicators?.map(i => i.name).join('; ') || 'N/A';
     const subTopicsList = topic.subTopics?.map(st => `Sub-topic: ${st.name}, Indicators: ${st.indicators.map(i => i.name).join('; ')}`).join('\\n') || 'N/A';
-    const subjectName = subject.charAt(0).toUpperCase() + subject.slice(1);
+    const subjectTitle = subject.charAt(0).toUpperCase() + subject.slice(1);
 
-    const prompt = `Generate concise revision notes for an IGCSE ${subjectName} student on the topic "${topic.name}".
+    const prompt = `Generate concise revision notes for an IGCSE ${subjectTitle} student on the topic "${topic.name}".
     The notes must cover the following syllabus points (indicators):
     - For the main topic: ${indicatorsList}
     - For sub-topics:
@@ -341,7 +337,7 @@ export const generateRevisionNotes = async (topic: Topic, subject: 'physics' | '
     IMPORTANT INSTRUCTIONS:
     1.  Organize the notes by sub-topic. If there are no named sub-topics, group related indicators under logical headings.
     2.  For each concept/indicator, provide a clear 'description'.
-    3.  If a concept has a formula, provide the 'formula' using HTML for formatting (e.g., F = ma, E<sub>k</sub> = ½mv<sup>2</sup>, C<sub>6</sub>H<sub>12</sub>O<sub>6</sub>). If no formula, use "N/A".
+    3.  If a concept has a formula, provide the 'formula' using HTML for formatting (e.g., F = ma, E<sub>k</sub> = ½mv<sup>2</sup>). If no formula, use "N/A".
     4.  If a formula is provided, explain the symbols in 'symbolExplanation'. If no formula, use "N/A".
     5.  Provide the 'siUnit' where applicable. If not, use "N/A".
     6.  Use the 'tableData' field ONLY for information that is best represented in a table (e.g., comparing properties, types of waves). For other content, use the description.
@@ -359,7 +355,7 @@ export const generateRevisionNotes = async (topic: Topic, subject: 'physics' | '
         });
         return JSON.parse(response.text) as RevisionNote[];
     } catch (error) {
-        console.error(`Error generating revision notes for topic "${topic.name}":`, error);
-        throw new Error("Failed to generate revision notes from Gemini API.");
+        console.error(`Error generating ${subject} revision notes for topic "${topic.name}":`, error);
+        throw new Error(`Failed to generate ${subject} revision notes from Gemini API.`);
     }
 };

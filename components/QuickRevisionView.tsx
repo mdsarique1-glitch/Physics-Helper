@@ -1,7 +1,6 @@
 
-
-import React, { useState, useEffect } from 'react';
-import { SUBJECTS } from '../constants';
+import React, { useState } from 'react';
+import { PHYSICS_CATEGORIES, BIOLOGY_CATEGORIES } from '../constants';
 import { generateRevisionNotes } from '../services/geminiService';
 import type { Topic, RevisionNote, RevisionPoint } from '../types';
 import LoadingSpinner from './LoadingSpinner';
@@ -96,7 +95,7 @@ const RevisionPointCard: React.FC<{ point: RevisionPoint }> = ({ point }) => (
 );
 
 
-const RevisionTopicView: React.FC<{ topic: Topic; subject: 'physics' | 'biology' }> = ({ topic, subject }) => {
+const RevisionTopicView: React.FC<{ topic: Topic, subject: 'physics' | 'biology' }> = ({ topic, subject }) => {
     const [notes, setNotes] = useState<RevisionNote[] | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -158,18 +157,9 @@ const RevisionTopicView: React.FC<{ topic: Topic; subject: 'physics' | 'biology'
     );
 };
 
-interface QuickRevisionViewProps {
-    subject: 'physics' | 'biology';
-}
-
-const QuickRevisionView: React.FC<QuickRevisionViewProps> = ({ subject }) => {
+const QuickRevisionView: React.FC<{ subject: 'physics' | 'biology' }> = ({ subject }) => {
     const [openCategory, setOpenCategory] = useState<string | null>(null);
-    
-    useEffect(() => {
-        setOpenCategory(null);
-    }, [subject]);
-
-    const categories = SUBJECTS[subject];
+    const categories = subject === 'biology' ? BIOLOGY_CATEGORIES : PHYSICS_CATEGORIES;
 
     return (
         <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
