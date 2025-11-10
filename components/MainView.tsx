@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useEffect } from 'react';
 import { PHYSICS_CATEGORIES, BIOLOGY_CATEGORIES, PHYSICS_HELPER_MESSAGES } from '../constants';
 import type { SoloQuizConfig } from '../types';
@@ -67,6 +68,8 @@ const AssistantMessage: React.FC<{ message: string }> = ({ message }) => (
     </div>
 );
 
+const GROUP_TIME_OPTIONS_ENCODE = [0, 5, 10, 15];
+const GROUP_TIME_OPTIONS_DISPLAY = [5, 10, 15];
 
 const MainView: React.FC<{ 
     onStartQuiz: (name: string, config: SoloQuizConfig) => void;
@@ -134,8 +137,7 @@ const MainView: React.FC<{
         packed |= subjectValue;
         const syllabusValue = syllabusLevel === 'extended' ? 1 : 0;
         packed |= (syllabusValue << 1);
-        const groupTimeOptions = [0, 5, 10, 15];
-        const timeIndex = groupTimeOptions.indexOf(groupQuizConfig.timerEnabled ? groupQuizConfig.timeLimit : 0);
+        const timeIndex = GROUP_TIME_OPTIONS_ENCODE.indexOf(groupQuizConfig.timerEnabled ? groupQuizConfig.timeLimit : 0);
         packed |= ((timeIndex > -1 ? timeIndex : 0) << 2);
         const questionOptions = [5, 10, 15, 20, 25];
         const questionIndex = questionOptions.indexOf(groupQuizConfig.questionCount);
@@ -275,7 +277,6 @@ const MainView: React.FC<{
                         </div>
                     );
                 }
-                 const groupTimeOptions = [5, 10, 15];
                  return (
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                         <div className="p-8 bg-white rounded-xl shadow-lg border border-gray-200 space-y-4">
@@ -315,7 +316,7 @@ const MainView: React.FC<{
                                             onChange={e => setGroupQuizConfig(c => ({...c, timeLimit: Number(e.target.value)}))} 
                                             className="flex-grow p-2 bg-white border border-gray-300 rounded text-sm"
                                         >
-                                            {groupTimeOptions.map(time => (
+                                            {GROUP_TIME_OPTIONS_DISPLAY.map(time => (
                                                 <option key={time} value={time}>{time} mins</option>
                                             ))}
                                         </select>

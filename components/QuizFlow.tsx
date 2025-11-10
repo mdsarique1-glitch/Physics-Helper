@@ -1,5 +1,6 @@
 
 
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, type QuizQuestion, type QuizResult, type SoloQuizConfig } from '../types';
 import { generateQuizQuestions } from '../services/geminiService';
@@ -33,18 +34,18 @@ const QuizView: React.FC<{
 
     const isCompletedRef = useRef(false);
     
-    const completeQuiz = useCallback((finalCorrect: number, finalIncorrect: number) => {
+    const completeQuiz = useCallback((finalCorrect: number, finalIncorrect: number, totalQuestions: number) => {
         if (!isCompletedRef.current) {
             isCompletedRef.current = true;
             onComplete({
                 correctAnswers: finalCorrect,
                 incorrectAnswers: finalIncorrect,
-                totalQuestions: config.questionCount,
+                totalQuestions: totalQuestions,
                 isGroupChallenge: !!config.seed,
                 subject: config.subject,
             });
         }
-    }, [onComplete, config]);
+    }, [onComplete, config.seed, config.subject]);
 
      useEffect(() => {
         if (loading) {
@@ -58,6 +59,25 @@ const QuizView: React.FC<{
     useEffect(() => {
         const fetchQuestions = async () => {
             setLoading(true);
+
+            if (config.seed) { // Caching logic for group quizzes
+                const cacheKey = `group-quiz-${config.seed}`;
+                try {
+                    const cachedData = sessionStorage.getItem(cacheKey);
+                    if (cachedData) {
+                        const parsedQuestions: QuizQuestion[] = JSON.parse(cachedData);
+                        if (Array.isArray(parsedQuestions) && parsedQuestions.length > 0) {
+                           setQuestions(parsedQuestions);
+                           setLoading(false);
+                           return;
+                        }
+                    }
+                } catch (e) {
+                    console.warn("Could not retrieve cached quiz, fetching fresh.", e);
+                    sessionStorage.removeItem(cacheKey);
+                }
+            }
+
             const allCategories = config.subject === 'biology' ? BIOLOGY_CATEGORIES : PHYSICS_CATEGORIES;
             const selectedCategories = allCategories.filter(c => config.categories.includes(c.name));
 
@@ -74,6 +94,14 @@ const QuizView: React.FC<{
                     throw new Error("Could not generate a full set of quiz questions.");
                 }
                 setQuestions(fetchedQuestions);
+                 if (config.seed) {
+                    const cacheKey = `group-quiz-${config.seed}`;
+                    try {
+                        sessionStorage.setItem(cacheKey, JSON.stringify(fetchedQuestions));
+                    } catch (e) {
+                        console.warn("Could not cache quiz:", e);
+                    }
+                }
             } catch (err) {
                 const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";
                 setError(`Failed to start the quiz. ${errorMessage}`);
@@ -95,15 +123,15 @@ const QuizView: React.FC<{
             setTimeLeft(t => {
                 if (t <= 1) {
                     clearInterval(timer);
-                    const unanswered = config.questionCount - (correctAnswers + incorrectAnswers);
-                    completeQuiz(correctAnswers, incorrectAnswers + unanswered);
+                    const unanswered = questions.length - (correctAnswers + incorrectAnswers);
+                    completeQuiz(correctAnswers, incorrectAnswers + unanswered, questions.length);
                     return 0;
                 }
                 return t - 1;
             });
         }, 1000);
         return () => clearInterval(timer);
-    }, [config, loading, questions, correctAnswers, incorrectAnswers, completeQuiz]);
+    }, [config.timerEnabled, loading, questions, correctAnswers, incorrectAnswers, completeQuiz]);
 
     const handleAnswer = (selectedOption: string) => {
         if (isAnswered || questions.length === 0) return;
@@ -124,8 +152,8 @@ const QuizView: React.FC<{
         
         setTimeout(() => {
             setIsAnswered(false);
-            if (currentQuestionIndex + 1 >= config.questionCount) {
-                completeQuiz(updatedCorrect, updatedIncorrect);
+            if (currentQuestionIndex + 1 >= questions.length) {
+                completeQuiz(updatedCorrect, updatedIncorrect, questions.length);
             } else {
                 setCurrentQuestionIndex(i => i + 1);
             }
@@ -148,7 +176,7 @@ const QuizView: React.FC<{
             </div>
 
             <div className="mb-6 flex justify-end items-center">
-                <div className="text-right text-sm text-gray-500">Question {questionNumber} of {config.questionCount}</div>
+                <div className="text-right text-sm text-gray-500">Question {questionNumber} of {questions.length}</div>
             </div>
 
             <div className="bg-gray-50 p-6 rounded-lg mb-6 min-h-[100px]">
