@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, type QuizQuestion, type QuizResult, type SoloQuizConfig } from '../types';
 import { generateQuizQuestions } from '../services/geminiService';
@@ -29,7 +30,6 @@ const QuizView: React.FC<{
     const [isAnswered, setIsAnswered] = useState(false);
     const [timeLeft, setTimeLeft] = useState(config.timeLimit * 60);
     const [loadingMessage, setLoadingMessage] = useState("Generating your personalized quiz...");
-    const [retries, setRetries] = useState(0);
 
     const isCompletedRef = useRef(false);
     
@@ -74,24 +74,19 @@ const QuizView: React.FC<{
                     throw new Error("Could not generate a full set of quiz questions.");
                 }
                 setQuestions(fetchedQuestions);
-                setLoading(false);
             } catch (err) {
-                 if (retries < 2) {
-                    console.warn(`Quiz generation failed, retrying... (${retries + 1})`);
-                    setTimeout(() => setRetries(retries + 1), 1000 * (retries + 1)); // a simple backoff
-                } else {
-                    const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";
-                    setError(`Failed to start the quiz after multiple attempts. ${errorMessage}`);
-                    if (!isCompletedRef.current) {
-                        isCompletedRef.current = true;
-                        onComplete({ correctAnswers: 0, incorrectAnswers: 0, totalQuestions: 0, error: true, subject: config.subject });
-                    }
-                    setLoading(false);
+                const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";
+                setError(`Failed to start the quiz. ${errorMessage}`);
+                if (!isCompletedRef.current) {
+                    isCompletedRef.current = true;
+                    onComplete({ correctAnswers: 0, incorrectAnswers: 0, totalQuestions: 0, error: true, subject: config.subject });
                 }
+            } finally {
+                setLoading(false);
             }
         };
         fetchQuestions();
-    }, [config, onComplete, studentName, retries]);
+    }, [config, onComplete, studentName]);
 
      useEffect(() => {
         if (!config.timerEnabled || loading || questions.length === 0) return;

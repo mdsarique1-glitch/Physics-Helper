@@ -28,6 +28,23 @@ const quizQuestionsSchema = {
     }
 };
 
+const withRetry = async <T>(fn: () => Promise<T>, retries = 2, delay = 500): Promise<T> => {
+    let lastError: Error | null = new Error('Retry logic failed without catching an error.');
+    for (let i = 0; i <= retries; i++) {
+        try {
+            return await fn();
+        } catch (error) {
+            lastError = error as Error;
+            if (i < retries) {
+                console.warn(`API call attempt ${i + 1} of ${retries + 1} failed. Retrying in ${delay * (i + 1)}ms...`, lastError.message);
+                await new Promise(res => setTimeout(res, delay * (i + 1)));
+            }
+        }
+    }
+    console.error(`API call failed after ${retries + 1} attempts.`);
+    throw lastError;
+};
+
 // Mulberry32: A simple, seeded pseudo-random number generator.
 const mulberry32 = (seed: number) => {
     return () => {
@@ -126,8 +143,8 @@ To ensure a fair and comprehensive quiz, you MUST follow this process:
 -   **Syllabus Adherence:** Do not introduce any concepts or information not explicitly mentioned in the provided syllabus content.
 -   **Uniqueness:** Every question generated must be unique.
 -   **Varied Question Styles:** Use a mix of question formats: definitions, scenarios, "which of the following is true/false", etc. Avoid repetitive phrasing.`;
-
-    try {
+    
+    const apiCall = async () => {
         const response = await ai.models.generateContent({
             model: modelFlash,
             contents: prompt,
@@ -176,11 +193,12 @@ To ensure a fair and comprehensive quiz, you MUST follow this process:
         }).filter((q): q is QuizQuestion => q !== null);
 
         return validatedQuestions;
+    };
 
-    } catch (error) {
-        console.error(`Error generating ${subject} quiz questions:`, error);
+    return withRetry(apiCall).catch(error => {
+        console.error(`Error generating ${subject} quiz questions after retries:`, error);
         throw new Error(`Failed to generate ${subject} quiz questions from Gemini API.`);
-    }
+    });
 };
 
 const certificateDataSchema = {
@@ -226,7 +244,7 @@ Task: Generate a short, positive performance summary for an IGCSE ${subjectTitle
 `;
     }
 
-    try {
+    const apiCall = async () => {
         const response = await ai.models.generateContent({
             model: modelFlash,
             contents: prompt,
@@ -235,11 +253,17 @@ Task: Generate a short, positive performance summary for an IGCSE ${subjectTitle
                 responseSchema: certificateDataSchema,
             },
         });
-        return JSON.parse(response.text) as CertificateData;
-    } catch (error) {
-        console.error("Error getting certificate data:", error);
+        const data = JSON.parse(response.text);
+        if (!data.summary) {
+            throw new Error("API returned invalid certificate data format (missing summary).");
+        }
+        return data as CertificateData;
+    };
+    
+    return withRetry(apiCall).catch(error => {
+        console.error("Error getting certificate data after retries:", error);
         throw new Error("Failed to get certificate data from Gemini API.");
-    }
+    });
 };
 
 const soloImprovementReportSchema = {
@@ -275,7 +299,7 @@ Task: Generate a constructive improvement report for an IGCSE ${subjectTitle} st
 
 Generate a JSON object that strictly follows this structure.`;
 
-    try {
+    const apiCall = async () => {
         const response = await ai.models.generateContent({
             model: modelFlash,
             contents: prompt,
@@ -284,11 +308,17 @@ Generate a JSON object that strictly follows this structure.`;
                 responseSchema: soloImprovementReportSchema,
             },
         });
-        return JSON.parse(response.text) as SoloImprovementReport;
-    } catch (error) {
-        console.error("Error getting solo improvement report:", error);
+        const report = JSON.parse(response.text);
+        if (!report.improvementAreas || !report.motivationalMessage) {
+            throw new Error("API returned invalid report data format.");
+        }
+        return report as SoloImprovementReport;
+    };
+    
+    return withRetry(apiCall).catch(error => {
+        console.error("Error getting solo improvement report after retries:", error);
         throw new Error("Failed to get solo improvement report from Gemini API.");
-    }
+    });
 };
 
 const revisionNotesSchema = {
@@ -347,7 +377,7 @@ export const generateRevisionNotes = async (topic: Topic, subject: 'physics' | '
     7.  All text content can include basic HTML tags for formatting: <strong>, <em>, <sub>, <sup>.
     8.  The output must be structured precisely according to the provided JSON schema.`;
 
-    try {
+    const apiCall = async () => {
         const response = await ai.models.generateContent({
             model: modelFlash,
             contents: prompt,
@@ -357,8 +387,10 @@ export const generateRevisionNotes = async (topic: Topic, subject: 'physics' | '
             },
         });
         return JSON.parse(response.text) as RevisionNote[];
-    } catch (error) {
-        console.error(`Error generating ${subject} revision notes for topic "${topic.name}":`, error);
+    };
+
+    return withRetry(apiCall).catch(error => {
+        console.error(`Error generating ${subject} revision notes for topic "${topic.name}" after retries:`, error);
         throw new Error(`Failed to generate ${subject} revision notes from Gemini API.`);
-    }
+    });
 };
