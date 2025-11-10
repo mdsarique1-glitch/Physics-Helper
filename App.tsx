@@ -27,21 +27,29 @@ const App: React.FC = () => {
     const accuracy = result.totalQuestions > 0 ? (result.correctAnswers / result.totalQuestions) * 100 : 0;
     const hasCertificate = accuracy >= 61 && !result.error;
 
+    // Create a new result object to avoid mutating the parameter
+    const finalResult = { ...result };
+    finalResult.categories = quizConfig.categories;
+    finalResult.subject = quizConfig.subject;
+
     try {
         if (hasCertificate) {
-            const data = await getCertificateData(studentName, result.correctAnswers, result.totalQuestions, quizConfig.categories, quizConfig.subject, result.isGroupChallenge);
-            result.certificateData = data;
-        } else if (!result.error) {
-            const report = await getSoloImprovementReport(studentName, result.correctAnswers, result.totalQuestions, quizConfig.categories, quizConfig.subject);
-            result.improvementReport = report;
+            const data = await getCertificateData(studentName, finalResult.correctAnswers, finalResult.totalQuestions, quizConfig.categories, quizConfig.subject, finalResult.isGroupChallenge);
+            finalResult.certificateData = data;
+        } else if (!finalResult.error) {
+            const report = await getSoloImprovementReport(studentName, finalResult.correctAnswers, finalResult.totalQuestions, quizConfig.categories, quizConfig.subject);
+            finalResult.improvementReport = report;
         }
     } catch (e) {
         console.error("Failed to fetch certificate/report data:", e);
+        if (hasCertificate) {
+            finalResult.certificateData = { summary: "Could not load performance summary due to a network issue, but your score is certified. Congratulations on your achievement!" };
+        } else if (!finalResult.error) {
+             finalResult.improvementReport = { improvementAreas: ["Could not load specific improvement areas due to a network issue."], motivationalMessage: "Every attempt is a step forward. Keep practicing and you'll master it!"};
+        }
     }
     
-    result.categories = quizConfig.categories;
-    result.subject = quizConfig.subject;
-    setQuizResult(result);
+    setQuizResult(finalResult);
     setView(View.CERTIFICATE);
   };
 

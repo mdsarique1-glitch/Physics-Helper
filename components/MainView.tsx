@@ -88,6 +88,8 @@ const MainView: React.FC<{
     const [generatedChallengeCode, setGeneratedChallengeCode] = useState('');
     const [groupQuizConfig, setGroupQuizConfig] = useState<Omit<SoloQuizConfig, 'categories' | 'seed' | 'syllabusLevel' | 'subject'>>({ questionCount: 10, timerEnabled: false, timeLimit: 10 });
     const [challengeTitle, setChallengeTitle] = useState('');
+    const [joinError, setJoinError] = useState('');
+
 
     // Common state
     const [helperMessage, setHelperMessage] = useState('');
@@ -146,8 +148,9 @@ const MainView: React.FC<{
     };
 
     const handleJoinChallenge = () => {
+        setJoinError('');
         if (!studentName.trim() || !joinCode.trim()) {
-            alert("Please enter your name and a challenge code.");
+            setJoinError("Please enter your name and a challenge code.");
             return;
         }
         try {
@@ -155,7 +158,7 @@ const MainView: React.FC<{
             onStartQuiz(studentName, config);
         } catch (error) {
             const message = error instanceof Error ? error.message : "An unknown error occurred.";
-            alert(message);
+            setJoinError(message);
         }
     };
     
@@ -359,6 +362,7 @@ const MainView: React.FC<{
                             <div>
                                 <label className="block font-medium text-gray-700">Challenge Code:</label>
                                 <input type="text" value={joinCode} onChange={e => setJoinCode(e.target.value)} placeholder="Enter code" className="w-full mt-1 p-2 bg-white border border-gray-300 rounded" />
+                                {joinError && <p className="text-red-500 text-sm mt-1">{joinError}</p>}
                             </div>
                              <button onClick={handleJoinChallenge} className="w-full py-3 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700">
                                 Join Challenge

@@ -148,29 +148,32 @@ To ensure a fair and comprehensive quiz, you MUST follow this process:
         const prngForShuffle = seed ? mulberry32(seed + 1) : Math.random;
 
         const validatedQuestions = parsed.map((q: any) => {
-            if (!q.question || !Array.isArray(q.options) || !q.correctAnswer) {
-                return { ...q, options: q.options?.slice(0, 4) || [] };
+            if (!q.question || !Array.isArray(q.options) || q.options.length === 0 || !q.correctAnswer) {
+                console.warn("Received malformed question from API, skipping:", q);
+                return null;
             }
 
-            const options = q.options.slice(0, 4);
-            const correctAnswer = q.correctAnswer;
-
-            if (options.includes(correctAnswer)) {
-                return { ...q, options };
-            }
+            let options = q.options.slice(0, 4);
+            let correctAnswer = q.correctAnswer;
 
             const saneCorrectAnswer = correctAnswer.trim().toLowerCase();
             const matchingOption = options.find((opt: string) => opt.trim().toLowerCase() === saneCorrectAnswer);
+            
             if (matchingOption) {
-                return { ...q, options, correctAnswer: matchingOption };
+                correctAnswer = matchingOption;
+            } else {
+                console.warn(`Correct answer from API ("${correctAnswer}") was not in options. Auto-correcting question options.`, { question: q.question, options: options });
+                options[options.length - 1] = correctAnswer;
             }
             
-            console.warn(`Correct answer from API ("${correctAnswer}") was not in options. Auto-correcting question options.`, { question: q.question, options: options });
-            const newOptions = [...options];
-            newOptions[3] = correctAnswer;
-            
-            return { ...q, options: shuffleArray(newOptions, prngForShuffle), correctAnswer: correctAnswer };
-        });
+            const shuffledOptions = shuffleArray(options, prngForShuffle);
+
+            return { 
+                question: q.question,
+                options: shuffledOptions, 
+                correctAnswer: correctAnswer 
+            };
+        }).filter((q): q is QuizQuestion => q !== null);
 
         return validatedQuestions;
 

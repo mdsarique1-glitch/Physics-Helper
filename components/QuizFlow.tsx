@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, type QuizQuestion, type QuizResult, type SoloQuizConfig } from '../types';
 import { generateQuizQuestions } from '../services/geminiService';
@@ -28,8 +29,8 @@ const QuizView: React.FC<{
     const [isAnswered, setIsAnswered] = useState(false);
     const [timeLeft, setTimeLeft] = useState(config.timeLimit * 60);
     const [loadingMessage, setLoadingMessage] = useState("Generating your personalized quiz...");
+    const [retries, setRetries] = useState(0);
 
-    
     const isCompletedRef = useRef(false);
     
     const completeQuiz = useCallback((finalCorrect: number, finalIncorrect: number) => {
@@ -56,6 +57,7 @@ const QuizView: React.FC<{
 
     useEffect(() => {
         const fetchQuestions = async () => {
+            setLoading(true);
             const allCategories = config.subject === 'biology' ? BIOLOGY_CATEGORIES : PHYSICS_CATEGORIES;
             const selectedCategories = allCategories.filter(c => config.categories.includes(c.name));
 
@@ -72,22 +74,27 @@ const QuizView: React.FC<{
                     throw new Error("Could not generate a full set of quiz questions.");
                 }
                 setQuestions(fetchedQuestions);
-            } catch (err) {
-                const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";
-                setError(`Failed to start the quiz. ${errorMessage}`);
-                if (!isCompletedRef.current) {
-                    isCompletedRef.current = true;
-                    onComplete({ correctAnswers: 0, incorrectAnswers: 0, totalQuestions: 0, error: true, subject: config.subject });
-                }
-            } finally {
                 setLoading(false);
+            } catch (err) {
+                 if (retries < 2) {
+                    console.warn(`Quiz generation failed, retrying... (${retries + 1})`);
+                    setTimeout(() => setRetries(retries + 1), 1000 * (retries + 1)); // a simple backoff
+                } else {
+                    const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";
+                    setError(`Failed to start the quiz after multiple attempts. ${errorMessage}`);
+                    if (!isCompletedRef.current) {
+                        isCompletedRef.current = true;
+                        onComplete({ correctAnswers: 0, incorrectAnswers: 0, totalQuestions: 0, error: true, subject: config.subject });
+                    }
+                    setLoading(false);
+                }
             }
         };
         fetchQuestions();
-    }, [config, onComplete, studentName]);
+    }, [config, onComplete, studentName, retries]);
 
      useEffect(() => {
-        if (!config.timerEnabled || loading) return;
+        if (!config.timerEnabled || loading || questions.length === 0) return;
 
         const timer = setInterval(() => {
             setTimeLeft(t => {
@@ -101,7 +108,7 @@ const QuizView: React.FC<{
             });
         }, 1000);
         return () => clearInterval(timer);
-    }, [config, loading, correctAnswers, incorrectAnswers, completeQuiz]);
+    }, [config, loading, questions, correctAnswers, incorrectAnswers, completeQuiz]);
 
     const handleAnswer = (selectedOption: string) => {
         if (isAnswered || questions.length === 0) return;
