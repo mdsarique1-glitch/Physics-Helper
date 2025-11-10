@@ -1,6 +1,3 @@
-
-
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, type QuizQuestion, type QuizResult, type SoloQuizConfig } from '../types';
 import { generateQuizQuestions } from '../services/geminiService';
@@ -82,16 +79,17 @@ const QuizView: React.FC<{
             const selectedCategories = allCategories.filter(c => config.categories.includes(c.name));
 
             if (selectedCategories.length === 0) {
-                setError("No categories selected for the quiz. Please select different options.");
-                onComplete({ correctAnswers: 0, incorrectAnswers: 0, totalQuestions: 0, error: true, subject: config.subject });
+                const errorMessage = "No categories selected for the quiz. Please select different options.";
+                setError(errorMessage);
+                onComplete({ correctAnswers: 0, incorrectAnswers: 0, totalQuestions: 0, error: true, errorMessage, subject: config.subject });
                 setLoading(false);
                 return;
             }
 
             try {
                 const fetchedQuestions = await generateQuizQuestions(studentName, selectedCategories, config.questionCount, config.syllabusLevel, config.subject, config.seed);
-                if (fetchedQuestions.length < config.questionCount) {
-                    throw new Error("Could not generate a full set of quiz questions.");
+                if (fetchedQuestions.length === 0) {
+                    throw new Error("The AI failed to generate any questions for this topic. This can happen with very specific topic combinations. Please try again with different options.");
                 }
                 setQuestions(fetchedQuestions);
                  if (config.seed) {
@@ -104,10 +102,11 @@ const QuizView: React.FC<{
                 }
             } catch (err) {
                 const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred.";
-                setError(`Failed to start the quiz. ${errorMessage}`);
+                const fullErrorMessage = `Failed to start the quiz. ${errorMessage}`;
+                setError(fullErrorMessage);
                 if (!isCompletedRef.current) {
                     isCompletedRef.current = true;
-                    onComplete({ correctAnswers: 0, incorrectAnswers: 0, totalQuestions: 0, error: true, subject: config.subject });
+                    onComplete({ correctAnswers: 0, incorrectAnswers: 0, totalQuestions: 0, error: true, errorMessage: fullErrorMessage, subject: config.subject });
                 }
             } finally {
                 setLoading(false);
@@ -265,7 +264,13 @@ const CertificateView: React.FC<{
                     </h1>
 
                     <p className="text-gray-600">
-                        for demonstrating outstanding knowledge in IGCSE {subjectTitle}{result.isGroupChallenge ? " during a group challenge." : "."}
+                        for demonstrating outstanding knowledge in IGCSE {subjectTitle}
+                        {result.isGroupChallenge ? (
+                            <>
+                                <span> during the group challenge:</span>
+                                <span className="font-bold block mt-1">"{result.challengeTitle || 'Group Challenge'}"</span>
+                            </>
+                        ) : "."}
                     </p>
                     
                     <div className={`my-6 inline-block px-4 py-2 ${bgColor} ${textColor} rounded-full font-semibold text-sm`}>
@@ -278,6 +283,12 @@ const CertificateView: React.FC<{
                              <p className="text-gray-600 text-sm">{certData?.summary}</p>
                              <h4 className="font-bold text-sm text-gray-700 mt-2">Topics Covered:</h4>
                              <p className="text-gray-600 text-sm">{result.categories?.join(', ')}</p>
+                             {result.isGroupChallenge && result.organizerName && (
+                                <>
+                                    <h4 className="font-bold text-sm text-gray-700 mt-2">Organized by:</h4>
+                                    <p className="text-gray-600 text-sm">{result.organizerName}</p>
+                                </>
+                             )}
                         </div>
                     )}
                     
@@ -367,7 +378,7 @@ const QuizFlow: React.FC<QuizFlowProps> = ({ initialView, studentName, quizConfi
                 return <p>An error occurred displaying the results.</p>;
             }
              if (quizResult.error) {
-                 return <div className="text-center"><p className="text-red-500 text-lg mb-4">We're sorry, but an error occurred while generating your quiz.</p><button onClick={onReset} className="px-6 py-3 bg-indigo-600 text-white rounded-lg">Back to Home</button></div>;
+                 return <div className="text-center"><p className="text-red-500 text-lg mb-4">{quizResult.errorMessage || "We're sorry, but an error occurred while generating your quiz."}</p><button onClick={onReset} className="px-6 py-3 bg-indigo-600 text-white rounded-lg">Back to Home</button></div>;
             }
             return hasCertificate 
                 ? <CertificateView studentName={studentName} result={quizResult} onReset={onReset} />

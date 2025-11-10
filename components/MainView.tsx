@@ -1,6 +1,5 @@
 
 
-
 import React, { useState, useEffect } from 'react';
 import { PHYSICS_CATEGORIES, BIOLOGY_CATEGORIES, PHYSICS_HELPER_MESSAGES } from '../constants';
 import type { SoloQuizConfig } from '../types';
@@ -9,8 +8,8 @@ import QuickRevisionView from './QuickRevisionView';
 
 const decodeChallengeCode = (code: string): SoloQuizConfig => {
     const parts = code.split('-');
-    if (parts.length !== 2 || !parts[0] || !parts[1]) {
-        throw new Error("Invalid challenge code format. It should look like 'ABCD-123'.");
+    if (parts.length < 2 || parts.length > 3 || !parts[0] || !parts[1]) {
+        throw new Error("Invalid challenge code format.");
     }
 
     const seed = parseInt(parts[0], 36);
@@ -19,6 +18,33 @@ const decodeChallengeCode = (code: string): SoloQuizConfig => {
     if (isNaN(seed) || isNaN(packed)) {
         throw new Error("Invalid challenge code: The code is corrupted.");
     }
+    
+    let organizerName: string | undefined;
+    let challengeTitle: string | undefined;
+
+    if (parts.length === 3 && parts[2]) {
+        try {
+            const decodedMetadata = atob(parts[2]);
+            // Try parsing as JSON first (old format)
+            try {
+                const jsonData = JSON.parse(decodedMetadata);
+                organizerName = jsonData.organizer;
+                challengeTitle = jsonData.title;
+            } catch (jsonError) {
+                // If JSON fails, assume pipe-separated format (new format)
+                const metadataParts = decodedMetadata.split('|');
+                if (metadataParts.length === 2) {
+                    organizerName = metadataParts[0];
+                    challengeTitle = metadataParts[1];
+                } else {
+                    console.warn("Could not parse metadata part of the code.");
+                }
+            }
+        } catch (e) {
+            console.warn("Could not decode or parse challenge metadata.", e);
+        }
+    }
+
 
     const subject = (packed & 1) === 1 ? 'biology' : 'physics';
     const ALL_CATEGORIES = subject === 'biology' ? BIOLOGY_CATEGORIES : PHYSICS_CATEGORIES;
@@ -52,7 +78,9 @@ const decodeChallengeCode = (code: string): SoloQuizConfig => {
         timeLimit,
         timerEnabled,
         syllabusLevel,
-        seed
+        seed,
+        organizerName,
+        challengeTitle,
     };
 };
 
@@ -92,6 +120,7 @@ const MainView: React.FC<{
     const [groupQuizConfig, setGroupQuizConfig] = useState<Omit<SoloQuizConfig, 'categories' | 'seed' | 'syllabusLevel' | 'subject'>>({ questionCount: 10, timerEnabled: false, timeLimit: 10 });
     const [challengeTitle, setChallengeTitle] = useState('');
     const [joinError, setJoinError] = useState('');
+    const [copied, setCopied] = useState(false);
 
 
     // Common state
@@ -121,8 +150,16 @@ const MainView: React.FC<{
     };
     
     const handleCreateChallenge = () => {
-        if (!organizerName.trim() || !challengeTitle.trim() || selectedCategories.length === 0) {
+        const organizer = organizerName.trim();
+        const title = challengeTitle.trim();
+    
+        if (!organizer || !title || selectedCategories.length === 0) {
             alert("Please provide your name, a challenge title, and select at least one category.");
+            return;
+        }
+        
+        if (organizer.length > 20 || title.length > 30) {
+            alert("Organizer name must be 20 characters or less, and title must be 30 characters or less to keep the code short.");
             return;
         }
     
@@ -145,7 +182,10 @@ const MainView: React.FC<{
         const categoryBitmask = categoryIndices.reduce((acc, index) => acc | (1 << index), 0);
         packed |= (categoryBitmask << 7);
     
-        const code = `${seed.toString(36).toUpperCase()}-${packed.toString(36).toUpperCase()}`;
+        const metadata = `${organizer}|${title}`;
+        const encodedMetadata = btoa(metadata);
+
+        const code = `${seed.toString(36).toUpperCase()}-${packed.toString(36).toUpperCase()}-${encodedMetadata}`;
         setGeneratedChallengeCode(code);
     };
 
@@ -173,6 +213,17 @@ const MainView: React.FC<{
             alert(message);
         }
     }
+
+    const handleCopyCode = () => {
+        if (!generatedChallengeCode) return;
+        navigator.clipboard.writeText(generatedChallengeCode).then(() => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        }).catch(err => {
+            console.error('Failed to copy code: ', err);
+            alert('Failed to copy code.');
+        });
+    };
 
     const renderContent = () => {
         const ALL_CATEGORIES = subject === 'biology' ? BIOLOGY_CATEGORIES : PHYSICS_CATEGORIES;
@@ -263,8 +314,14 @@ const MainView: React.FC<{
                         <div className="p-8 bg-white rounded-xl shadow-lg border border-gray-200 text-center space-y-4">
                             <h2 className="text-2xl font-bold text-green-700">Challenge Created!</h2>
                             <p className="text-gray-600">Share this code with your friends to start the challenge.</p>
-                            <div className="p-4 bg-gray-100 rounded-lg">
+                            <div className="p-3 bg-gray-100 rounded-lg flex flex-col sm:flex-row items-center justify-center sm:space-x-4 space-y-2 sm:space-y-0">
                                 <p className="font-mono text-xl md:text-2xl font-bold text-indigo-600 break-words">{generatedChallengeCode}</p>
+                                <button 
+                                    onClick={handleCopyCode} 
+                                    className={`px-4 py-2 text-sm font-semibold rounded-lg transition-colors w-24 flex-shrink-0 ${copied ? 'bg-green-500 text-white' : 'bg-indigo-500 text-white hover:bg-indigo-600'}`}
+                                >
+                                    {copied ? 'Copied!' : 'Copy Code'}
+                                </button>
                             </div>
                             <div className="flex flex-col sm:flex-row justify-center gap-4 pt-4">
                                 <button onClick={startChallengeForOrganizer} className="px-6 py-3 bg-indigo-600 text-white font-bold rounded-lg hover:bg-indigo-700">

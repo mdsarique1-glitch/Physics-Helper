@@ -38,6 +38,8 @@ export interface SoloQuizConfig {
     syllabusLevel: 'core' | 'extended';
     subject: 'physics' | 'biology';
     seed?: number;
+    organizerName?: string;
+    challengeTitle?: string;
 }
 
 
@@ -47,11 +49,14 @@ export interface QuizResult {
   totalQuestions: number;
   rank?: number;
   error?: boolean;
+  errorMessage?: string;
   certificateData?: CertificateData;
   improvementReport?: SoloImprovementReport;
   categories?: string[];
   isGroupChallenge?: boolean;
   subject?: 'physics' | 'biology';
+  organizerName?: string;
+  challengeTitle?: string;
 }
 
 export interface CertificateData {

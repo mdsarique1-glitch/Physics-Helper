@@ -1,8 +1,3 @@
-
-
-
-
-
 import { GoogleGenAI, Type } from "@google/genai";
 import type { QuizQuestion, CertificateData, Indicator, Topic, SoloImprovementReport, RevisionNote, Category, SubTopic } from '../types';
 
@@ -127,8 +122,8 @@ export const generateQuizQuestions = async (
     };
 
     const allPoints = getAllSyllabusPoints(categories);
-    if (allPoints.length === 0) {
-        throw new Error("No syllabus points found for the selected categories and syllabus level.");
+    if (allPoints.length < questionCount) {
+        throw new Error(`Not enough syllabus content for a ${questionCount}-question quiz in the selected topics. Please select more topics or a smaller quiz size.`);
     }
 
     const shuffledPoints = shuffleArray(allPoints, prng);

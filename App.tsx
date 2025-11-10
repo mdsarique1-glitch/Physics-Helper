@@ -31,6 +31,9 @@ const App: React.FC = () => {
     const finalResult = { ...result };
     finalResult.categories = quizConfig.categories;
     finalResult.subject = quizConfig.subject;
+    finalResult.organizerName = quizConfig.organizerName;
+    finalResult.challengeTitle = quizConfig.challengeTitle;
+
 
     try {
         if (hasCertificate) {
