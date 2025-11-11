@@ -205,20 +205,22 @@ export const generateQuizQuestions = async (
             const overallIndex = i + indexInBatch;
             const questionSeed = quizSeed + overallIndex; // Ensure deterministic seed for each question
             
-            // KEY CHANGE: Wrap the individual API call in a retry mechanism.
-            // This prevents a single failed request from restarting the entire quiz generation.
+            // Wrap the individual API call in a retry mechanism.
             return withRetry(() => generateSingleQuestion(point, subject, questionSeed));
         });
         
-        try {
-            const batchResults = await Promise.all(batchPromises);
-            generatedQuestions.push(...batchResults);
-        } catch (error) {
-            console.error("A batch of questions failed to generate despite individual retries.", error);
-            // If a batch fails after all retries, the entire quiz generation fails.
-            // This is better than the old system which would have restarted from scratch.
-            throw new Error("The AI model failed to generate a portion of the quiz. Please try again.");
-        }
+        // Use Promise.allSettled to ensure that even if some questions fail to generate,
+        // the entire quiz generation process doesn't stop.
+        const batchResults = await Promise.allSettled(batchPromises);
+
+        batchResults.forEach((result, index) => {
+            if (result.status === 'fulfilled' && result.value) {
+                generatedQuestions.push(result.value);
+            } else {
+                // Log the error for debugging but proceed with the questions that were successful.
+                console.warn(`Failed to generate question for syllabus point: "${batchPoints[index]}"`, result.status === 'rejected' ? result.reason : 'No value returned');
+            }
+        });
     }
     
     // Use a separate deterministic PRNG for shuffling the options to keep it independent of question generation.
@@ -257,8 +259,11 @@ export const generateQuizQuestions = async (
         };
     }).filter((q): q is QuizQuestion => q !== null);
 
-    if (validatedQuestions.length !== questionCount) {
-         throw new Error(`The AI failed to generate the required number of valid questions. Expected ${questionCount}, got ${validatedQuestions.length}.`);
+    // If, after all attempts, no valid questions could be generated, throw an error.
+    // Otherwise, return the questions that were successfully created. This provides a
+    // more resilient user experience, as a slightly shorter quiz is better than no quiz at all.
+    if (validatedQuestions.length === 0 && pointsForQuiz.length > 0) {
+         throw new Error(`The AI model failed to generate any valid questions for the selected topics. This can sometimes happen with very specific or narrow topics. Please try selecting a broader range of topics or try again later.`);
     }
 
     return validatedQuestions;
