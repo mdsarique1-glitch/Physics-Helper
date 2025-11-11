@@ -1,4 +1,3 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 import type { QuizQuestion, CertificateData, Indicator, Topic, SoloImprovementReport, RevisionNote, Category, SubTopic, QuestionExplanation } from '../types';
 
@@ -175,67 +174,73 @@ export const generateQuizQuestions = async (
     // Deterministically select exactly one syllabus point for each question.
     const pointsForQuiz = shuffledPoints.slice(0, questionCount);
 
-    const apiCall = async () => {
-        const BATCH_SIZE = 5;
-        const generatedQuestions: QuizQuestion[] = [];
-        
-        // Process requests in batches to avoid overwhelming the API
-        for (let i = 0; i < pointsForQuiz.length; i += BATCH_SIZE) {
-            const batchPoints = pointsForQuiz.slice(i, i + BATCH_SIZE);
-            const batchPromises = batchPoints.map((point, indexInBatch) => {
-                const overallIndex = i + indexInBatch;
-                const questionSeed = quizSeed + overallIndex; // Ensure deterministic seed for each question
-                return generateSingleQuestion(point, subject, questionSeed);
-            });
+    const BATCH_SIZE = 5;
+    const generatedQuestions: QuizQuestion[] = [];
+    
+    // Process requests in batches to avoid overwhelming the API
+    for (let i = 0; i < pointsForQuiz.length; i += BATCH_SIZE) {
+        const batchPoints = pointsForQuiz.slice(i, i + BATCH_SIZE);
+        const batchPromises = batchPoints.map((point, indexInBatch) => {
+            const overallIndex = i + indexInBatch;
+            const questionSeed = quizSeed + overallIndex; // Ensure deterministic seed for each question
             
+            // KEY CHANGE: Wrap the individual API call in a retry mechanism.
+            // This prevents a single failed request from restarting the entire quiz generation.
+            return withRetry(() => generateSingleQuestion(point, subject, questionSeed));
+        });
+        
+        try {
             const batchResults = await Promise.all(batchPromises);
             generatedQuestions.push(...batchResults);
+        } catch (error) {
+            console.error("A batch of questions failed to generate despite individual retries.", error);
+            // If a batch fails after all retries, the entire quiz generation fails.
+            // This is better than the old system which would have restarted from scratch.
+            throw new Error("The AI model failed to generate a portion of the quiz. Please try again.");
+        }
+    }
+    
+    // Use a separate deterministic PRNG for shuffling the options to keep it independent of question generation.
+    const prngForShuffle = mulberry32(quizSeed + 1);
+
+    const validatedQuestions = generatedQuestions.map((q: any) => {
+        if (!q || !q.question || !Array.isArray(q.options) || q.options.length === 0 || !q.correctAnswer) {
+            console.warn("Received malformed question from API, skipping:", q);
+            return null;
+        }
+
+        let options = q.options.slice(0, 4);
+        let correctAnswer = q.correctAnswer;
+
+        const saneCorrectAnswer = correctAnswer.trim().toLowerCase();
+        const matchingOption = options.find((opt: string) => opt.trim().toLowerCase() === saneCorrectAnswer);
+        
+        if (matchingOption) {
+            correctAnswer = matchingOption;
+        } else {
+            console.warn(`Correct answer from API ("${correctAnswer}") was not in options. Auto-correcting question options.`, { question: q.question, options: options });
+            // Replace the last option to guarantee correctness
+            if (options.length < 4) {
+                options.push(correctAnswer);
+            } else {
+                options[options.length - 1] = correctAnswer;
+            }
         }
         
-        // Use a separate deterministic PRNG for shuffling the options to keep it independent of question generation.
-        const prngForShuffle = mulberry32(quizSeed + 1);
+        const shuffledOptions = shuffleArray(options, prngForShuffle);
 
-        const validatedQuestions = generatedQuestions.map((q: any) => {
-            if (!q || !q.question || !Array.isArray(q.options) || q.options.length === 0 || !q.correctAnswer) {
-                console.warn("Received malformed question from API, skipping:", q);
-                return null;
-            }
+        return { 
+            question: q.question,
+            options: shuffledOptions, 
+            correctAnswer: correctAnswer 
+        };
+    }).filter((q): q is QuizQuestion => q !== null);
 
-            let options = q.options.slice(0, 4);
-            let correctAnswer = q.correctAnswer;
+    if (validatedQuestions.length !== questionCount) {
+         throw new Error(`The AI failed to generate the required number of valid questions. Expected ${questionCount}, got ${validatedQuestions.length}.`);
+    }
 
-            const saneCorrectAnswer = correctAnswer.trim().toLowerCase();
-            const matchingOption = options.find((opt: string) => opt.trim().toLowerCase() === saneCorrectAnswer);
-            
-            if (matchingOption) {
-                correctAnswer = matchingOption;
-            } else {
-                console.warn(`Correct answer from API ("${correctAnswer}") was not in options. Auto-correcting question options.`, { question: q.question, options: options });
-                // Replace the last option to guarantee correctness
-                if (options.length < 4) {
-                    options.push(correctAnswer);
-                } else {
-                    options[options.length - 1] = correctAnswer;
-                }
-            }
-            
-            const shuffledOptions = shuffleArray(options, prngForShuffle);
-
-            return { 
-                question: q.question,
-                options: shuffledOptions, 
-                correctAnswer: correctAnswer 
-            };
-        }).filter((q): q is QuizQuestion => q !== null);
-
-        if (validatedQuestions.length !== questionCount) {
-             throw new Error(`The AI failed to generate the required number of valid questions. Expected ${questionCount}, got ${validatedQuestions.length}.`);
-        }
-
-        return validatedQuestions;
-    };
-
-    return withRetry(apiCall);
+    return validatedQuestions;
 };
 
 const certificateDataSchema = {
