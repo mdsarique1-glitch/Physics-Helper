@@ -10,20 +10,17 @@ const ai = new GoogleGenAI({ apiKey: API_KEY });
 const modelFlash = 'gemini-2.5-flash';
 const modelPro = 'gemini-2.5-pro';
 
-const quizQuestionsSchema = {
-    type: Type.ARRAY,
-    items: {
-        type: Type.OBJECT,
-        properties: {
-            question: { type: Type.STRING },
-            options: { type: Type.ARRAY, items: { type: Type.STRING } },
-            correctAnswer: { 
-                type: Type.STRING,
-                description: "The text of the correct answer. This MUST be an exact match to one of the strings provided in the 'options' array."
-            },
+const singleQuestionSchema = {
+    type: Type.OBJECT,
+    properties: {
+        question: { type: Type.STRING },
+        options: { type: Type.ARRAY, items: { type: Type.STRING } },
+        correctAnswer: { 
+            type: Type.STRING,
+            description: "The text of the correct answer. This MUST be an exact match to one of the strings provided in the 'options' array."
         },
-        required: ['question', 'options', 'correctAnswer']
-    }
+    },
+    required: ['question', 'options', 'correctAnswer']
 };
 
 const parseGeminiJson = <T>(text: string): T => {
@@ -74,12 +71,59 @@ const shuffleArray = <T>(array: T[], prng: () => number = Math.random): T[] => {
     return newArray;
 };
 
+const generateSingleQuestion = async (
+    syllabusPoint: string,
+    subject: 'physics' | 'biology' | 'chemistry',
+    seed: number
+): Promise<QuizQuestion> => {
+    const subjectTitle = subject.charAt(0).toUpperCase() + subject.slice(1);
+    
+    let questionStyleGuidelines = '';
+    if (subject === 'physics') {
+        questionStyleGuidelines = `**Question Style:** The question should test conceptual understanding, definitions, formulas, or SI units related to the syllabus point.`;
+    } else if (subject === 'biology') {
+        questionStyleGuidelines = `**Question Style:** The question should test understanding of definitions, biological processes, structure/function, or conceptual application related to the syllabus point.`;
+    } else { // subject is 'chemistry'
+        questionStyleGuidelines = `**Question Style:** The question should test understanding of definitions, chemical properties, reactions, or foundational concepts related to the syllabus point.`;
+    }
+
+    const prompt = `You are an expert IGCSE ${subjectTitle} tutor. Generate one high-quality multiple-choice question based strictly on the following syllabus point.
+
+**Syllabus Point:**
+"${syllabusPoint}"
+
+**Critical Guidelines for the Question:**
+- The question must exclusively test the concept mentioned in the syllabus point.
+- ${questionStyleGuidelines}
+- **Correct Answer Match:** The value for 'correctAnswer' must be an exact, verbatim copy of one of the strings from the 'options' array.
+- **Plausible Options:** Provide 4 distinct and plausible answer options. Incorrect options (distractors) must be well-crafted to target common student misconceptions.
+- **No Calculations:** The question should test recognition and understanding, not mathematical calculation.`;
+
+    const response = await ai.models.generateContent({
+        model: modelFlash, // Use Flash model for speed on smaller, parallel tasks
+        contents: prompt,
+        config: {
+            systemInstruction: `You are an expert IGCSE ${subjectTitle} tutor specializing in creating high-quality, syllabus-aligned multiple-choice questions.`,
+            responseMimeType: "application/json",
+            responseSchema: singleQuestionSchema,
+            seed: seed,
+        },
+    });
+
+    const parsed = parseGeminiJson<QuizQuestion>(response.text);
+    if (!parsed.question || !Array.isArray(parsed.options) || parsed.options.length === 0 || !parsed.correctAnswer) {
+        console.error("Received malformed single question from API:", parsed);
+        throw new Error("Invalid format for a single quiz question received from API.");
+    }
+    return parsed;
+};
+
 export const generateQuizQuestions = async (
     studentName: string,
     categories: Category[],
     questionCount: number,
     syllabusLevel: 'core' | 'extended',
-    subject: 'physics' | 'biology',
+    subject: 'physics' | 'biology' | 'chemistry',
     seed?: number
 ): Promise<QuizQuestion[]> => {
     // For solo quizzes (no seed provided), create one to ensure variety per session.
@@ -127,74 +171,25 @@ export const generateQuizQuestions = async (
     }
 
     const shuffledPoints = shuffleArray(allPoints, prng);
-    const selectedPoints = shuffledPoints.slice(0, Math.min(shuffledPoints.length, questionCount * 3)); 
-    const syllabusContent = selectedPoints.join('\n');
+    // Deterministically select exactly one syllabus point for each question.
+    const pointsForQuiz = shuffledPoints.slice(0, questionCount);
 
-    const nameForPrompt = seed ? "a group of students" : studentName;
-    const subjectTitle = subject.charAt(0).toUpperCase() + subject.slice(1);
-    
-    let questionStyleGuidelines = '';
-    if (subject === 'physics') {
-        questionStyleGuidelines = `-   **Varied Question Styles:** Create a balanced and comprehensive quiz by using a mix of question formats that cover:
-    -   **Definitions:** Questions that directly test the definition of key terms (e.g., "What is the definition of velocity?").
-    -   **Conceptual Understanding:** Scenarios, "which of the following is true/false", and questions that test the application of principles.
-    -   **Formulas:** Questions that require identifying the correct formula for a given physical law or concept.
-    -   **SI Units:** Questions that test the knowledge of standard SI units for various physical quantities.
-    Ensure there is a healthy mix of all four types throughout the quiz.`;
-    } else { // subject is 'biology'
-        questionStyleGuidelines = `-   **Varied Question Styles:** Create a balanced and comprehensive quiz by using a mix of question formats that cover:
-    -   **Definitions and Important Terms:** Questions that test the definition of key biological terms (e.g., "What is meant by the term 'homeostasis'?").
-    -   **Process Understanding:** Questions that test the understanding of biological processes, their sequence, and their purpose (e.g., "Which of the following correctly describes the process of osmosis?").
-    -   **Structure and Function:** Questions that require identifying biological structures from a description or stating their function (e.g., "What is the primary function of the mitochondria in an animal cell?").
-    -   **Conceptual Application & Comparison:** Questions that present a scenario or ask to compare/contrast different concepts (e.g., "What is a key difference between mitosis and meiosis?").
-    Ensure there is a healthy mix of all four types throughout the quiz.`;
-    }
-
-
-    const prompt = `You are an expert IGCSE ${subjectTitle} tutor. Your task is to generate exactly ${questionCount} high-quality, unique, and engaging multiple-choice quiz questions for ${nameForPrompt}.
-
-**Syllabus Content to use:**
-The questions must be created strictly and exclusively from the detailed IGCSE ${subjectTitle} syllabus points provided below. The syllabus content has been intentionally randomized to ensure unbiased topic selection.
-\`\`\`
-${syllabusContent}
-\`\`\`
-
-**Mandatory Question Generation Process:**
-To ensure a fair and comprehensive quiz, you MUST follow this process:
-1.  **Analyze Syllabus Structure:** First, carefully review all the provided syllabus points to understand the breadth of the material.
-2.  **Plan for Broad Coverage:** Create a mental plan to distribute the ${questionCount} questions as evenly as possible across ALL provided points. Your goal is to achieve maximum coverage. Do not concentrate questions on only the first few points listed.
-3.  **Generate Questions:** Generate each question according to your plan, ensuring each one directly assesses a specific syllabus point.
-
-**Critical Guidelines for Each Question:**
-${questionStyleGuidelines}
--   **Correct Answer Match:** The value for 'correctAnswer' must be an exact, verbatim copy of one of the strings from the 'options' array.
--   **Plausible Options:** Provide 4 distinct and plausible answer options. Incorrect options (distractors) must be well-crafted to target common student misconceptions.
--   **Syllabus Adherence:** Do not introduce any concepts or information not explicitly mentioned in the provided syllabus content.
--   **Uniqueness:** Every question generated must be unique.
--   **No Calculations:** Questions should test recognition and understanding, but should **not** require mathematical calculations to solve.`;
-    
     const apiCall = async () => {
-        const response = await ai.models.generateContent({
-            model: modelPro,
-            contents: prompt,
-            config: {
-                systemInstruction: `You are an expert IGCSE ${subjectTitle} tutor specializing in creating high-quality, syllabus-aligned multiple-choice questions.`,
-                responseMimeType: "application/json",
-                responseSchema: quizQuestionsSchema,
-                thinkingConfig: { thinkingBudget: 32768 },
-                seed: quizSeed,
-            },
+        // Create an array of promises, where each promise resolves to a single generated question.
+        // This allows questions to be generated in parallel.
+        const questionPromises = pointsForQuiz.map((point, index) => {
+            // Use a deterministic seed for each individual question generation.
+            const questionSeed = quizSeed + index;
+            return generateSingleQuestion(point, subject, questionSeed);
         });
-        const parsed = parseGeminiJson<any[]>(response.text);
-        if (!Array.isArray(parsed)) {
-            console.error("Gemini API did not return an array for quiz questions:", parsed);
-            throw new Error("Invalid format for quiz questions received from API.");
-        }
+
+        const generatedQuestions = await Promise.all(questionPromises);
         
+        // Use a separate deterministic PRNG for shuffling the options to keep it independent of question generation.
         const prngForShuffle = mulberry32(quizSeed + 1);
 
-        const validatedQuestions = parsed.map((q: any) => {
-            if (!q.question || !Array.isArray(q.options) || q.options.length === 0 || !q.correctAnswer) {
+        const validatedQuestions = generatedQuestions.map((q: any) => {
+            if (!q || !q.question || !Array.isArray(q.options) || q.options.length === 0 || !q.correctAnswer) {
                 console.warn("Received malformed question from API, skipping:", q);
                 return null;
             }
@@ -209,7 +204,12 @@ ${questionStyleGuidelines}
                 correctAnswer = matchingOption;
             } else {
                 console.warn(`Correct answer from API ("${correctAnswer}") was not in options. Auto-correcting question options.`, { question: q.question, options: options });
-                options[options.length - 1] = correctAnswer;
+                // Replace the last option to guarantee correctness
+                if (options.length < 4) {
+                    options.push(correctAnswer);
+                } else {
+                    options[options.length - 1] = correctAnswer;
+                }
             }
             
             const shuffledOptions = shuffleArray(options, prngForShuffle);
@@ -220,6 +220,10 @@ ${questionStyleGuidelines}
                 correctAnswer: correctAnswer 
             };
         }).filter((q): q is QuizQuestion => q !== null);
+
+        if (validatedQuestions.length !== questionCount) {
+             throw new Error(`The AI failed to generate the required number of valid questions. Expected ${questionCount}, got ${validatedQuestions.length}.`);
+        }
 
         return validatedQuestions;
     };
@@ -235,7 +239,7 @@ const certificateDataSchema = {
     required: ["summary"]
 };
 
-export const getCertificateData = async (studentName: string, correctAnswers: number, totalQuestions: number, topics: string[], subject: 'physics' | 'biology', isGroupChallenge?: boolean): Promise<CertificateData> => {
+export const getCertificateData = async (studentName: string, correctAnswers: number, totalQuestions: number, topics: string[], subject: 'physics' | 'biology' | 'chemistry', isGroupChallenge?: boolean): Promise<CertificateData> => {
     let prompt: string;
     const subjectTitle = subject.charAt(0).toUpperCase() + subject.slice(1);
 
@@ -308,7 +312,7 @@ const soloImprovementReportSchema = {
     required: ["improvementAreas", "motivationalMessage"]
 };
 
-export const getSoloImprovementReport = async (studentName: string, correctAnswers: number, totalQuestions: number, topics: string[], subject: 'physics' | 'biology'): Promise<SoloImprovementReport> => {
+export const getSoloImprovementReport = async (studentName: string, correctAnswers: number, totalQuestions: number, topics: string[], subject: 'physics' | 'biology' | 'chemistry'): Promise<SoloImprovementReport> => {
     const accuracy = ((correctAnswers / totalQuestions) * 100).toFixed(0);
     const subjectTitle = subject.charAt(0).toUpperCase() + subject.slice(1);
     const prompt = `
@@ -382,7 +386,7 @@ const revisionNotesSchema = {
     }
 };
 
-export const generateRevisionNotes = async (topic: Topic, subject: 'physics' | 'biology'): Promise<RevisionNote[]> => {
+export const generateRevisionNotes = async (topic: Topic, subject: 'physics' | 'biology' | 'chemistry'): Promise<RevisionNote[]> => {
     const indicatorsList = topic.indicators?.map(i => i.name).join('; ') || 'N/A';
     const subTopicsList = topic.subTopics?.map(st => `Sub-topic: ${st.name}, Indicators: ${st.indicators.map(i => i.name).join('; ')}`).join('\\n') || 'N/A';
     const subjectTitle = subject.charAt(0).toUpperCase() + subject.slice(1);

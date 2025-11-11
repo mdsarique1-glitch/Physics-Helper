@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, type QuizQuestion, type QuizResult, type SoloQuizConfig } from '../types';
 import { generateQuizQuestions, getFriendlyErrorMessage } from '../services/geminiService';
-import { BIOLOGY_CATEGORIES, PHYSICS_CATEGORIES, LOADING_MESSAGES } from '../constants';
+import { BIOLOGY_CATEGORIES, PHYSICS_CATEGORIES, CHEMISTRY_CATEGORIES, LOADING_MESSAGES } from '../constants';
 import LoadingSpinner from './LoadingSpinner';
 
 const Timer: React.FC<{ seconds: number }> = ({ seconds }) => {
@@ -75,7 +75,7 @@ const QuizView: React.FC<{
                 }
             }
 
-            const allCategories = config.subject === 'biology' ? BIOLOGY_CATEGORIES : PHYSICS_CATEGORIES;
+            const allCategories = config.subject === 'biology' ? BIOLOGY_CATEGORIES : config.subject === 'chemistry' ? CHEMISTRY_CATEGORIES : PHYSICS_CATEGORIES;
             const selectedCategories = allCategories.filter(c => config.categories.includes(c.name));
 
             if (selectedCategories.length === 0) {

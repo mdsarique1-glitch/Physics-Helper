@@ -1,7 +1,7 @@
 
 
 import React, { useState, useEffect } from 'react';
-import { PHYSICS_CATEGORIES, BIOLOGY_CATEGORIES, PHYSICS_HELPER_MESSAGES } from '../constants';
+import { PHYSICS_CATEGORIES, BIOLOGY_CATEGORIES, CHEMISTRY_CATEGORIES, PHYSICS_HELPER_MESSAGES } from '../constants';
 import type { SoloQuizConfig } from '../types';
 import CertificateShowcase from './CertificateShowcase';
 import QuickRevisionView from './QuickRevisionView';
@@ -44,21 +44,21 @@ const decodeChallengeCode = (code: string): SoloQuizConfig => {
             console.warn("Could not decode or parse challenge metadata.", e);
         }
     }
+    
+    const subjectValue = packed & 3;
+    const subject = subjectValue === 1 ? 'biology' : subjectValue === 2 ? 'chemistry' : 'physics';
+    const ALL_CATEGORIES = subject === 'biology' ? BIOLOGY_CATEGORIES : subject === 'chemistry' ? CHEMISTRY_CATEGORIES : PHYSICS_CATEGORIES;
 
-
-    const subject = (packed & 1) === 1 ? 'biology' : 'physics';
-    const ALL_CATEGORIES = subject === 'biology' ? BIOLOGY_CATEGORIES : PHYSICS_CATEGORIES;
-
-    const syllabusLevel = ((packed >> 1) & 1) === 1 ? 'extended' : 'core';
-    const timeValue = (packed >> 2) & 3;
+    const syllabusLevel = ((packed >> 2) & 1) === 1 ? 'extended' : 'core';
+    const timeValue = (packed >> 3) & 3;
     const groupTimeOptions = [0, 5, 10, 15];
     const timeLimit = groupTimeOptions[timeValue] || 0;
     const timerEnabled = timeLimit > 0;
-    const questionValue = (packed >> 4) & 7;
+    const questionValue = (packed >> 5) & 7;
     const questionOptions = [5, 10, 15, 20, 25];
     const questionCount = questionOptions[questionValue] || 10;
     
-    const categoryBitmask = (packed >> 7);
+    const categoryBitmask = (packed >> 8);
     const categoryIndices: number[] = [];
     for (let i = 0; i < ALL_CATEGORIES.length; i++) {
         if ((categoryBitmask >> i) & 1) {
@@ -102,7 +102,7 @@ const GROUP_TIME_OPTIONS_DISPLAY = [5, 10, 15];
 const MainView: React.FC<{ 
     onStartQuiz: (name: string, config: SoloQuizConfig) => void;
 }> = ({ onStartQuiz }) => {
-    const [subject, setSubject] = useState<'physics' | 'biology'>('physics');
+    const [subject, setSubject] = useState<'physics' | 'biology' | 'chemistry'>('physics');
     const [quizMode, setQuizMode] = useState<'solo' | 'group' | 'revision'>('solo');
     
     // Solo & Group state
@@ -130,7 +130,7 @@ const MainView: React.FC<{
         setHelperMessage(PHYSICS_HELPER_MESSAGES[Math.floor(Math.random() * PHYSICS_HELPER_MESSAGES.length)]);
     }, []);
 
-    const handleSubjectChange = (newSubject: 'physics' | 'biology') => {
+    const handleSubjectChange = (newSubject: 'physics' | 'biology' | 'chemistry') => {
         if (subject !== newSubject) {
             setSubject(newSubject);
             setSelectedCategories([]);
@@ -163,24 +163,24 @@ const MainView: React.FC<{
             return;
         }
     
-        const ALL_CATEGORIES = subject === 'biology' ? BIOLOGY_CATEGORIES : PHYSICS_CATEGORIES;
+        const ALL_CATEGORIES = subject === 'biology' ? BIOLOGY_CATEGORIES : subject === 'chemistry' ? CHEMISTRY_CATEGORIES : PHYSICS_CATEGORIES;
         const seed = Math.floor(10000 + Math.random() * 90000);
         const categoryIndices = selectedCategories.map(name =>
             ALL_CATEGORIES.findIndex(cat => cat.name === name)
         ).filter(index => index !== -1);
     
         let packed = 0;
-        const subjectValue = subject === 'biology' ? 1 : 0;
+        const subjectValue = subject === 'biology' ? 1 : subject === 'chemistry' ? 2 : 0;
         packed |= subjectValue;
         const syllabusValue = syllabusLevel === 'extended' ? 1 : 0;
-        packed |= (syllabusValue << 1);
+        packed |= (syllabusValue << 2);
         const timeIndex = GROUP_TIME_OPTIONS_ENCODE.indexOf(groupQuizConfig.timerEnabled ? groupQuizConfig.timeLimit : 0);
-        packed |= ((timeIndex > -1 ? timeIndex : 0) << 2);
+        packed |= ((timeIndex > -1 ? timeIndex : 0) << 3);
         const questionOptions = [5, 10, 15, 20, 25];
         const questionIndex = questionOptions.indexOf(groupQuizConfig.questionCount);
-        packed |= ((questionIndex > -1 ? questionIndex : 0) << 4);
+        packed |= ((questionIndex > -1 ? questionIndex : 0) << 5);
         const categoryBitmask = categoryIndices.reduce((acc, index) => acc | (1 << index), 0);
-        packed |= (categoryBitmask << 7);
+        packed |= (categoryBitmask << 8);
     
         const metadata = `${organizer}|${title}`;
         const encodedMetadata = btoa(metadata);
@@ -229,7 +229,7 @@ const MainView: React.FC<{
     };
 
     const renderContent = () => {
-        const ALL_CATEGORIES = subject === 'biology' ? BIOLOGY_CATEGORIES : PHYSICS_CATEGORIES;
+        const ALL_CATEGORIES = subject === 'biology' ? BIOLOGY_CATEGORIES : subject === 'chemistry' ? CHEMISTRY_CATEGORIES : PHYSICS_CATEGORIES;
         const subjectTitle = subject.charAt(0).toUpperCase() + subject.slice(1);
 
         switch(quizMode) {
@@ -437,7 +437,7 @@ const MainView: React.FC<{
     const navButtonClass = (buttonMode: typeof quizMode) => 
         `px-6 py-3 text-lg font-semibold rounded-lg transition-colors duration-300 ${quizMode === buttonMode ? 'bg-indigo-600 text-white shadow-md' : 'bg-white text-gray-700 hover:bg-gray-100'}`;
     
-    const subjectButtonClass = (buttonSubject: 'physics' | 'biology') => 
+    const subjectButtonClass = (buttonSubject: 'physics' | 'biology' | 'chemistry') => 
         `px-4 py-2 rounded-md font-semibold text-sm transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${subject === buttonSubject ? 'bg-indigo-600 text-white shadow' : 'bg-white text-gray-600 hover:bg-gray-100'}`;
 
     return (
@@ -450,12 +450,13 @@ const MainView: React.FC<{
                                 IGCSE Science Assessment Hub
                             </h2>
                             <p className="mt-2 text-gray-600">
-                                Test your knowledge in Physics or Biology from the 2026-2028 syllabus.
+                                Test your knowledge in Physics, Biology, or Chemistry from the 2026-2028 syllabus.
                             </p>
                         </div>
                         <div className="flex-shrink-0 flex items-center space-x-2 bg-gray-200 p-1 rounded-lg">
                             <button onClick={() => handleSubjectChange('physics')} className={subjectButtonClass('physics')}>Physics</button>
                             <button onClick={() => handleSubjectChange('biology')} className={subjectButtonClass('biology')}>Biology</button>
+                            <button onClick={() => handleSubjectChange('chemistry')} className={subjectButtonClass('chemistry')}>Chemistry</button>
                         </div>
                     </div>
                 </div>
