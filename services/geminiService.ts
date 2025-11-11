@@ -7,6 +7,7 @@ if (!API_KEY) {
   throw new Error("API_KEY environment variable not set");
 }
 
+const ai = new GoogleGenAI({ apiKey: API_KEY });
 const modelFlash = 'gemini-2.5-flash';
 const modelPro = 'gemini-2.5-pro';
 
@@ -34,10 +35,6 @@ const parseGeminiJson = <T>(text: string): T => {
     }
 };
 
-const handleGlobalApiKeyError = () => {
-    window.dispatchEvent(new CustomEvent('apiKeyError'));
-};
-
 const withRetry = async <T>(fn: () => Promise<T>, retries = 2, delay = 500): Promise<T> => {
     let lastError: Error | null = new Error('Retry logic failed without catching an error.');
     for (let i = 0; i <= retries; i++) {
@@ -45,13 +42,6 @@ const withRetry = async <T>(fn: () => Promise<T>, retries = 2, delay = 500): Pro
             return await fn();
         } catch (error) {
             lastError = error as Error;
-            const msg = (lastError.message || '').toLowerCase();
-            if (msg.includes('api key') || msg.includes('requested entity was not found')) {
-                handleGlobalApiKeyError();
-                // Throw an error to stop the component's logic. The UI will be handled by the global event listener.
-                throw new Error("API key is invalid. Please select a new one."); 
-            }
-
             if (i < retries) {
                 console.warn(`API call attempt ${i + 1} of ${retries + 1} failed. Retrying in ${delay * (i + 1)}ms...`, lastError.message);
                 await new Promise(res => setTimeout(res, delay * (i + 1)));
@@ -110,7 +100,6 @@ const generateSingleQuestion = async (
 - **Plausible Options:** Provide 4 distinct and plausible answer options. Incorrect options (distractors) must be well-crafted to target common student misconceptions.
 - **No Calculations:** The question should test recognition and understanding, not mathematical calculation.`;
 
-    const ai = new GoogleGenAI({ apiKey: API_KEY });
     const response = await ai.models.generateContent({
         model: modelFlash, // Use Flash model for speed on smaller, parallel tasks
         contents: prompt,
@@ -293,7 +282,6 @@ Task: Generate a short, positive performance summary for an IGCSE ${subjectTitle
     }
 
     const apiCall = async () => {
-        const ai = new GoogleGenAI({ apiKey: API_KEY });
         const response = await ai.models.generateContent({
             model: modelFlash,
             contents: prompt,
@@ -311,10 +299,6 @@ Task: Generate a short, positive performance summary for an IGCSE ${subjectTitle
     
     return withRetry(apiCall).catch(error => {
         console.error("Error getting certificate data after retries:", error);
-        // If the error is an API key error, it's already handled. Otherwise, throw a generic message.
-        if (error instanceof Error && (error.message.toLowerCase().includes('api key') || error.message.toLowerCase().includes('requested entity was not found'))) {
-             throw error;
-        }
         throw new Error("Failed to get certificate data from Gemini API.");
     });
 };
@@ -353,7 +337,6 @@ Task: Generate a constructive improvement report for an IGCSE ${subjectTitle} st
 Generate a JSON object that strictly follows this structure.`;
 
     const apiCall = async () => {
-        const ai = new GoogleGenAI({ apiKey: API_KEY });
         const response = await ai.models.generateContent({
             model: modelFlash,
             contents: prompt,
@@ -371,9 +354,6 @@ Generate a JSON object that strictly follows this structure.`;
     
     return withRetry(apiCall).catch(error => {
         console.error("Error getting solo improvement report after retries:", error);
-        if (error instanceof Error && (error.message.toLowerCase().includes('api key') || error.message.toLowerCase().includes('requested entity was not found'))) {
-             throw error;
-        }
         throw new Error("Failed to get solo improvement report from Gemini API.");
     });
 };
@@ -411,7 +391,6 @@ Task: Explain a multiple-choice question to an IGCSE student who answered it inc
 `;
 
     const apiCall = async () => {
-        const ai = new GoogleGenAI({ apiKey: API_KEY });
         const response = await ai.models.generateContent({
             model: modelFlash,
             contents: prompt,
@@ -429,9 +408,6 @@ Task: Explain a multiple-choice question to an IGCSE student who answered it inc
 
     return withRetry(apiCall, 1).catch(error => {
         console.error("Error getting question explanation after retries:", error);
-        if (error instanceof Error && (error.message.toLowerCase().includes('api key') || error.message.toLowerCase().includes('requested entity was not found'))) {
-             throw error;
-        }
         throw new Error("Failed to get question explanation from the AI.");
     });
 };
@@ -494,7 +470,6 @@ export const generateRevisionNotes = async (topic: Topic, subject: 'physics' | '
     8.  The output must be structured precisely according to the provided JSON schema.`;
 
     const apiCall = async () => {
-        const ai = new GoogleGenAI({ apiKey: API_KEY });
         const response = await ai.models.generateContent({
             model: modelFlash,
             contents: prompt,
@@ -508,9 +483,6 @@ export const generateRevisionNotes = async (topic: Topic, subject: 'physics' | '
 
     return withRetry(apiCall).catch(error => {
         console.error(`Error generating ${subject} revision notes for topic "${topic.name}" after retries:`, error);
-        if (error instanceof Error && (error.message.toLowerCase().includes('api key') || error.message.toLowerCase().includes('requested entity was not found'))) {
-             throw error;
-        }
         throw new Error(`Failed to generate ${subject} revision notes from Gemini API.`);
     });
 };
