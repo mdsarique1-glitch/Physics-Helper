@@ -2032,16 +2032,11 @@ export const CHEMISTRY_CATEGORIES: Category[] = [
     },
 ];
 
-
-export const PHYSICS_HELPER_MESSAGES = [
-    "Practice makes perfect! Try a solo quiz to sharpen your skills.",
-    "Challenge a friend to a group quiz and see who's the real physics whiz!",
-    "Feeling unsure about a topic? Head to the Quick Revision section for a refresher.",
-    "Every great physicist started with the basics. Keep building your knowledge!",
-    "Don't forget to check both Core and Extended syllabus options for a full workout.",
-    "The universe is governed by the laws of physics. Let's explore them together!",
-    "Stuck on a concept? Generating revision notes can provide a new perspective.",
-    "A journey of a thousand miles begins with a single formula. Let's get started!"
+export const GENERAL_HELPER_MESSAGES = [
+    "Welcome! Dive into Physics, Biology, or Chemistry. Sharpen your skills with a Solo Quiz, challenge friends in a Group Quiz, or use Quick Revision for a speedy review.",
+    "Ready to conquer IGCSE Science? Explore detailed Revision Notes, test your knowledge in a Solo Quiz, or create a Group Challenge for Physics, Biology, or Chemistry!",
+    "Your journey to mastering Physics, Biology, and Chemistry starts here. Try a personalized Solo Quiz, review key topics, or invite friends to a Group Challenge!",
+    "Whether it's the laws of Physics, the secrets of Biology, or the reactions in Chemistry, we've got you covered. Start with a quiz or browse the revision notes!"
 ];
 
 export const MOTIVATIONAL_QUOTES = [
@@ -2055,9 +2050,10 @@ export const MOTIVATIONAL_QUOTES = [
 export const LOADING_MESSAGES = [
     "Calibrating the flux capacitor...",
     "Reticulating splines...",
-    "Consulting with Newton's ghost...",
+    "Consulting with Nobel laureates...",
     "Calculating escape velocity...",
-    "Polishing the reflecting telescope...",
+    "Polishing the test tubes...",
+    "Sequencing the digital DNA of your quiz...",
     "Warming up the Bunsen burner...",
     "Assembling molecules for your questions...",
     "Splitting atoms for a challenging quiz..."

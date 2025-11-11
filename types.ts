@@ -35,8 +35,8 @@ export interface SoloQuizConfig {
     timerEnabled: boolean;
     timeLimit: number; // in minutes
     categories: string[];
-    syllabusLevel: 'core' | 'extended';
     subject: 'physics' | 'biology' | 'chemistry';
+    syllabusLevel: 'core' | 'extended';
     seed?: number;
     organizerName?: string;
     challengeTitle?: string;
@@ -85,6 +85,9 @@ export interface RevisionNote {
     points: RevisionPoint[];
 }
 
+export interface QuestionExplanation {
+    explanation: string;
+}
 
 export enum View {
   MAIN = 'main',

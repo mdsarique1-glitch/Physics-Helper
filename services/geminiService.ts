@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import type { QuizQuestion, CertificateData, Indicator, Topic, SoloImprovementReport, RevisionNote, Category, SubTopic } from '../types';
+import type { QuizQuestion, CertificateData, Indicator, Topic, SoloImprovementReport, RevisionNote, Category, SubTopic, QuestionExplanation } from '../types';
 
 const API_KEY = process.env.API_KEY;
 if (!API_KEY) {
@@ -350,6 +350,61 @@ Generate a JSON object that strictly follows this structure.`;
         throw new Error("Failed to get solo improvement report from Gemini API.");
     });
 };
+
+const explanationSchema = {
+    type: Type.OBJECT,
+    properties: {
+        explanation: { 
+            type: Type.STRING, 
+            description: "A clear, concise explanation for a student. It should first explain why the correct answer is right, and then briefly explain why the user's selected answer is a common misconception, if applicable. Use basic HTML for formatting like <strong> and <em>." 
+        }
+    },
+    required: ["explanation"]
+};
+
+export const generateQuestionExplanation = async (question: QuizQuestion, incorrectAnswer: string): Promise<QuestionExplanation> => {
+    const prompt = `
+Task: Explain a multiple-choice question to an IGCSE student who answered it incorrectly.
+
+**Question Details:**
+- Question: "${question.question}"
+- Options: ${JSON.stringify(question.options)}
+- Correct Answer: "${question.correctAnswer}"
+- Student's Incorrect Answer: "${incorrectAnswer}"
+
+**Instructions:**
+1.  Start by clearly explaining why "${question.correctAnswer}" is the correct answer.
+2.  Then, explain why the student's choice, "${incorrectAnswer}", is incorrect. Address the common misconception if possible.
+3.  Keep the tone encouraging and educational.
+4.  Use simple HTML tags like <strong> for emphasis and <em> for italics where appropriate.
+5.  The entire explanation should be concise, ideally 2-4 sentences.
+
+**Required Output (JSON):**
+- **explanation**: A single string containing the full explanation.
+`;
+
+    const apiCall = async () => {
+        const response = await ai.models.generateContent({
+            model: modelFlash,
+            contents: prompt,
+            config: {
+                responseMimeType: "application/json",
+                responseSchema: explanationSchema,
+            },
+        });
+        const data = parseGeminiJson<QuestionExplanation>(response.text);
+        if (!data.explanation) {
+            throw new Error("API returned invalid explanation data format.");
+        }
+        return data;
+    };
+
+    return withRetry(apiCall, 1).catch(error => {
+        console.error("Error getting question explanation after retries:", error);
+        throw new Error("Failed to get question explanation from the AI.");
+    });
+};
+
 
 const revisionNotesSchema = {
     type: Type.ARRAY,

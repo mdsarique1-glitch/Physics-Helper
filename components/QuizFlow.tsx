@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, type QuizQuestion, type QuizResult, type SoloQuizConfig } from '../types';
-import { generateQuizQuestions, getFriendlyErrorMessage } from '../services/geminiService';
+import { generateQuizQuestions, getFriendlyErrorMessage, generateQuestionExplanation } from '../services/geminiService';
 import { BIOLOGY_CATEGORIES, PHYSICS_CATEGORIES, CHEMISTRY_CATEGORIES, LOADING_MESSAGES } from '../constants';
 import LoadingSpinner from './LoadingSpinner';
 
@@ -23,11 +23,15 @@ const QuizView: React.FC<{
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-    const [correctAnswers, setCorrectAnswers] = useState(0);
-    const [incorrectAnswers, setIncorrectAnswers] = useState(0);
+    const [score, setScore] = useState({ correct: 0, incorrect: 0 });
     const [isAnswered, setIsAnswered] = useState(false);
+    const [selectedOption, setSelectedOption] = useState<string | null>(null);
     const [timeLeft, setTimeLeft] = useState(config.timeLimit * 60);
     const [loadingMessage, setLoadingMessage] = useState("Generating your personalized quiz...");
+    
+    // State for explanations
+    const [explanation, setExplanation] = useState<string | null>(null);
+    const [isExplanationLoading, setIsExplanationLoading] = useState(false);
 
     const isCompletedRef = useRef(false);
     
@@ -122,41 +126,52 @@ const QuizView: React.FC<{
             setTimeLeft(t => {
                 if (t <= 1) {
                     clearInterval(timer);
-                    const unanswered = questions.length - (correctAnswers + incorrectAnswers);
-                    completeQuiz(correctAnswers, incorrectAnswers + unanswered, questions.length);
+                    const unanswered = questions.length - (score.correct + score.incorrect);
+                    completeQuiz(score.correct, score.incorrect + unanswered, questions.length);
                     return 0;
                 }
                 return t - 1;
             });
         }, 1000);
         return () => clearInterval(timer);
-    }, [config.timerEnabled, loading, questions, correctAnswers, incorrectAnswers, completeQuiz]);
+    }, [config.timerEnabled, loading, questions, score, completeQuiz]);
 
-    const handleAnswer = (selectedOption: string) => {
-        if (isAnswered || questions.length === 0) return;
-        
-        const currentQuestion = questions[currentQuestionIndex];
+    const handleAnswer = (option: string) => {
+        if (isAnswered) return;
         setIsAnswered(true);
+        setSelectedOption(option);
+    };
 
-        const isCorrect = selectedOption === currentQuestion.correctAnswer;
-        
-        const updatedCorrect = correctAnswers + (isCorrect ? 1 : 0);
-        const updatedIncorrect = incorrectAnswers + (isCorrect ? 0 : 1);
+    const handleNextQuestion = () => {
+        const isCorrect = selectedOption === questions[currentQuestionIndex].correctAnswer;
+        const newScore = {
+            correct: score.correct + (isCorrect ? 1 : 0),
+            incorrect: score.incorrect + (isCorrect ? 0 : 1),
+        };
+        setScore(newScore);
 
-        if (isCorrect) {
-            setCorrectAnswers(updatedCorrect);
+        if (currentQuestionIndex + 1 >= questions.length) {
+            completeQuiz(newScore.correct, newScore.incorrect, questions.length);
         } else {
-            setIncorrectAnswers(updatedIncorrect);
-        }
-        
-        setTimeout(() => {
+            setCurrentQuestionIndex(currentQuestionIndex + 1);
             setIsAnswered(false);
-            if (currentQuestionIndex + 1 >= questions.length) {
-                completeQuiz(updatedCorrect, updatedIncorrect, questions.length);
-            } else {
-                setCurrentQuestionIndex(i => i + 1);
-            }
-        }, 1500);
+            setSelectedOption(null);
+            setExplanation(null);
+            setIsExplanationLoading(false);
+        }
+    };
+
+    const handleExplain = async () => {
+        if (isExplanationLoading || explanation || !selectedOption) return;
+        setIsExplanationLoading(true);
+        try {
+            const result = await generateQuestionExplanation(questions[currentQuestionIndex], selectedOption);
+            setExplanation(result.explanation);
+        } catch (e) {
+            setExplanation("Could not load explanation at this moment.");
+        } finally {
+            setIsExplanationLoading(false);
+        }
     };
 
     if (loading) return <div className="flex flex-col items-center justify-center h-64"><LoadingSpinner /><p className="mt-4 text-lg text-gray-600 text-center w-3/4">{loadingMessage}</p></div>;
@@ -169,9 +184,9 @@ const QuizView: React.FC<{
     return (
         <div className="max-w-3xl mx-auto p-4 md:p-8 bg-white rounded-2xl shadow-2xl">
             <div className="flex justify-between items-center mb-6">
-                <div className="text-xl font-semibold text-gray-700">Correct: <span className="text-green-500">{correctAnswers}</span></div>
+                <div className="text-xl font-semibold text-gray-700">Correct: <span className="text-green-500">{score.correct}</span></div>
                 {config.timerEnabled && <Timer seconds={timeLeft} />}
-                <div className="text-xl font-semibold text-gray-700">Incorrect: <span className="text-red-500">{incorrectAnswers}</span></div>
+                <div className="text-xl font-semibold text-gray-700">Incorrect: <span className="text-red-500">{score.incorrect}</span></div>
             </div>
 
             <div className="mb-6 flex justify-end items-center">
@@ -185,17 +200,65 @@ const QuizView: React.FC<{
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {currentQuestion.options.map((option) => {
                     const isCorrectOption = option === currentQuestion.correctAnswer;
-                    const buttonClass = isAnswered 
-                        ? (isCorrectOption ? 'bg-green-500 border-green-500 text-white' : 'bg-red-500 border-red-500 text-white')
-                        : 'bg-white border-gray-300 hover:bg-indigo-50 hover:border-indigo-400';
+                    const isSelectedOption = option === selectedOption;
+                    let buttonClass = 'bg-white border-gray-300 hover:bg-indigo-50 hover:border-indigo-400';
+                    if (isAnswered) {
+                         if (isCorrectOption) {
+                            buttonClass = 'bg-green-500 border-green-500 text-white transform scale-105';
+                        } else if (isSelectedOption) {
+                            buttonClass = 'bg-red-500 border-red-500 text-white';
+                        } else {
+                            buttonClass = 'bg-white border-gray-300 opacity-60';
+                        }
+                    }
                     return (
-                        <button key={option} onClick={() => handleAnswer(option)} disabled={isAnswered} className={`p-4 rounded-lg border-2 text-lg text-left transition duration-300 ${buttonClass}`}>
+                        <button key={option} onClick={() => handleAnswer(option)} disabled={isAnswered} className={`p-4 rounded-lg border-2 text-lg text-left transition-all duration-300 ${buttonClass}`}>
                             {option}
                         </button>
                     );
                 })}
             </div>
 
+            {isAnswered && (
+                <div className="mt-6 text-center">
+                    {selectedOption !== currentQuestion.correctAnswer && !explanation && (
+                         <button 
+                            onClick={handleExplain} 
+                            disabled={isExplanationLoading}
+                            className="mb-4 px-4 py-2 bg-amber-100 text-amber-800 font-semibold rounded-lg hover:bg-amber-200 transition flex items-center justify-center mx-auto disabled:opacity-50 disabled:cursor-wait"
+                        >
+                             {isExplanationLoading ? (
+                                <>
+                                    <div className="w-5 h-5 border-2 border-amber-800 border-t-transparent rounded-full animate-spin mr-2"></div>
+                                    <span>Generating...</span>
+                                </>
+                             ) : (
+                                <>
+                                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                                        <path d="M10 2a6 6 0 00-6 6c0 1.887 1.12 3.535 2.75 4.312A5.01 5.01 0 0110 10c1.66 0 3.09.81 4.02 2.016a4.99 4.99 0 01-.32-1.258A4.002 4.002 0 0010 8a1 1 0 01-1-1 1 1 0 00-2 0 3 3 0 013 3 1 1 0 102 0 4.002 4.002 0 00-2.096-3.588 6.002 6.002 0 004.85-2.06A6 6 0 0010 2z"/>
+                                        <path d="M12.243 14.243a1 1 0 01.707.293l3 3a1 1 0 01-1.414 1.414l-3-3a1 1 0 01.707-1.707z"/>
+                                     </svg>
+                                    <span>Explain Answer</span>
+                                </>
+                             )}
+                        </button>
+                    )}
+
+                    {explanation && (
+                        <div className="my-4 p-4 bg-amber-50 border-l-4 border-amber-400 text-amber-900 text-left rounded-r-lg transition-opacity duration-500 animate-fade-in">
+                            <h4 className="font-bold">Explanation</h4>
+                            <div className="mt-2 text-sm" dangerouslySetInnerHTML={{ __html: explanation }} />
+                        </div>
+                    )}
+                    
+                    <button 
+                        onClick={handleNextQuestion} 
+                        className="px-8 py-3 bg-indigo-600 text-white font-bold rounded-lg shadow-md hover:bg-indigo-700 transition"
+                    >
+                        {currentQuestionIndex === questions.length - 1 ? 'Finish Quiz' : 'Next Question'}
+                    </button>
+                </div>
+            )}
         </div>
     );
 };
