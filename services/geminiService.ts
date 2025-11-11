@@ -51,6 +51,23 @@ const withRetry = async <T>(fn: () => Promise<T>, retries = 2, delay = 500): Pro
     throw lastError;
 };
 
+const apiCallWithFallback = async <T>(
+    apiFn: (model: string) => Promise<T>,
+    primaryModel: string = modelFlash,
+    fallbackModel: string = modelPro
+): Promise<T> => {
+    try {
+        return await apiFn(primaryModel);
+    } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        if (errorMessage.includes('[503]') || errorMessage.includes('UNAVAILABLE')) {
+            console.warn(`Primary model '${primaryModel}' is busy. Falling back to '${fallbackModel}'.`);
+            return await apiFn(fallbackModel);
+        }
+        throw error;
+    }
+};
+
 
 // Mulberry32: A simple, seeded pseudo-random number generator.
 const mulberry32 = (seed: number) => {
@@ -99,18 +116,22 @@ const generateSingleQuestion = async (
 - **Plausible Options:** Provide 4 distinct and plausible answer options. Incorrect options (distractors) must be well-crafted to target common student misconceptions.
 - **No Calculations:** The question should test recognition and understanding, not mathematical calculation.`;
 
-    const response = await ai.models.generateContent({
-        model: modelFlash, // Use Flash model for speed on smaller, parallel tasks
-        contents: prompt,
-        config: {
-            systemInstruction: `You are an expert IGCSE ${subjectTitle} tutor specializing in creating high-quality, syllabus-aligned multiple-choice questions.`,
-            responseMimeType: "application/json",
-            responseSchema: singleQuestionSchema,
-            seed: seed,
-        },
-    });
+    const makeApiCall = async (model: string) => {
+        const response = await ai.models.generateContent({
+            model: model,
+            contents: prompt,
+            config: {
+                systemInstruction: `You are an expert IGCSE ${subjectTitle} tutor specializing in creating high-quality, syllabus-aligned multiple-choice questions.`,
+                responseMimeType: "application/json",
+                responseSchema: singleQuestionSchema,
+                seed: seed,
+            },
+        });
+        return parseGeminiJson<QuizQuestion>(response.text);
+    };
 
-    const parsed = parseGeminiJson<QuizQuestion>(response.text);
+    const parsed = await apiCallWithFallback(makeApiCall);
+
     if (!parsed.question || !Array.isArray(parsed.options) || parsed.options.length === 0 || !parsed.correctAnswer) {
         console.error("Received malformed single question from API:", parsed);
         throw new Error("Invalid format for a single quiz question received from API.");
@@ -287,19 +308,22 @@ Task: Generate a short, positive performance summary for an IGCSE ${subjectTitle
     }
 
     const apiCall = async () => {
-        const response = await ai.models.generateContent({
-            model: modelFlash,
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: certificateDataSchema,
-            },
-        });
-        const data = parseGeminiJson<CertificateData>(response.text);
-        if (!data.summary) {
-            throw new Error("API returned invalid certificate data format (missing summary).");
-        }
-        return data;
+        const makeApiCall = async (model: string) => {
+            const response = await ai.models.generateContent({
+                model,
+                contents: prompt,
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: certificateDataSchema,
+                },
+            });
+            const data = parseGeminiJson<CertificateData>(response.text);
+            if (!data.summary) {
+                throw new Error("API returned invalid certificate data format (missing summary).");
+            }
+            return data;
+        };
+        return apiCallWithFallback(makeApiCall);
     };
     
     return withRetry(apiCall).catch(error => {
@@ -342,19 +366,22 @@ Task: Generate a constructive improvement report for an IGCSE ${subjectTitle} st
 Generate a JSON object that strictly follows this structure.`;
 
     const apiCall = async () => {
-        const response = await ai.models.generateContent({
-            model: modelFlash,
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: soloImprovementReportSchema,
-            },
-        });
-        const report = parseGeminiJson<SoloImprovementReport>(response.text);
-        if (!report.improvementAreas || !report.motivationalMessage) {
-            throw new Error("API returned invalid report data format.");
-        }
-        return report;
+        const makeApiCall = async (model: string) => {
+            const response = await ai.models.generateContent({
+                model,
+                contents: prompt,
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: soloImprovementReportSchema,
+                },
+            });
+            const report = parseGeminiJson<SoloImprovementReport>(response.text);
+            if (!report.improvementAreas || !report.motivationalMessage) {
+                throw new Error("API returned invalid report data format.");
+            }
+            return report;
+        };
+        return apiCallWithFallback(makeApiCall);
     };
     
     return withRetry(apiCall).catch(error => {
@@ -396,19 +423,22 @@ Task: Explain a multiple-choice question to an IGCSE student who answered it inc
 `;
 
     const apiCall = async () => {
-        const response = await ai.models.generateContent({
-            model: modelFlash,
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: explanationSchema,
-            },
-        });
-        const data = parseGeminiJson<QuestionExplanation>(response.text);
-        if (!data.explanation) {
-            throw new Error("API returned invalid explanation data format.");
-        }
-        return data;
+        const makeApiCall = async (model: string) => {
+            const response = await ai.models.generateContent({
+                model,
+                contents: prompt,
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: explanationSchema,
+                },
+            });
+            const data = parseGeminiJson<QuestionExplanation>(response.text);
+            if (!data.explanation) {
+                throw new Error("API returned invalid explanation data format.");
+            }
+            return data;
+        };
+        return apiCallWithFallback(makeApiCall);
     };
 
     return withRetry(apiCall, 1).catch(error => {
@@ -475,15 +505,18 @@ export const generateRevisionNotes = async (topic: Topic, subject: 'physics' | '
     8.  The output must be structured precisely according to the provided JSON schema.`;
 
     const apiCall = async () => {
-        const response = await ai.models.generateContent({
-            model: modelFlash,
-            contents: prompt,
-            config: {
-                responseMimeType: "application/json",
-                responseSchema: revisionNotesSchema,
-            },
-        });
-        return parseGeminiJson<RevisionNote[]>(response.text);
+        const makeApiCall = async (model: string) => {
+            const response = await ai.models.generateContent({
+                model,
+                contents: prompt,
+                config: {
+                    responseMimeType: "application/json",
+                    responseSchema: revisionNotesSchema,
+                },
+            });
+            return parseGeminiJson<RevisionNote[]>(response.text);
+        };
+        return apiCallWithFallback(makeApiCall);
     };
 
     return withRetry(apiCall).catch(error => {
