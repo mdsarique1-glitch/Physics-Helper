@@ -175,15 +175,21 @@ export const generateQuizQuestions = async (
     const pointsForQuiz = shuffledPoints.slice(0, questionCount);
 
     const apiCall = async () => {
-        // Create an array of promises, where each promise resolves to a single generated question.
-        // This allows questions to be generated in parallel.
-        const questionPromises = pointsForQuiz.map((point, index) => {
-            // Use a deterministic seed for each individual question generation.
-            const questionSeed = quizSeed + index;
-            return generateSingleQuestion(point, subject, questionSeed);
-        });
-
-        const generatedQuestions = await Promise.all(questionPromises);
+        const BATCH_SIZE = 5;
+        const generatedQuestions: QuizQuestion[] = [];
+        
+        // Process requests in batches to avoid overwhelming the API
+        for (let i = 0; i < pointsForQuiz.length; i += BATCH_SIZE) {
+            const batchPoints = pointsForQuiz.slice(i, i + BATCH_SIZE);
+            const batchPromises = batchPoints.map((point, indexInBatch) => {
+                const overallIndex = i + indexInBatch;
+                const questionSeed = quizSeed + overallIndex; // Ensure deterministic seed for each question
+                return generateSingleQuestion(point, subject, questionSeed);
+            });
+            
+            const batchResults = await Promise.all(batchPromises);
+            generatedQuestions.push(...batchResults);
+        }
         
         // Use a separate deterministic PRNG for shuffling the options to keep it independent of question generation.
         const prngForShuffle = mulberry32(quizSeed + 1);
@@ -483,6 +489,11 @@ export const generateRevisionNotes = async (topic: Topic, subject: 'physics' | '
 export const getFriendlyErrorMessage = (error: unknown): string => {
     if (error instanceof Error) {
         const message = error.message;
+        // Check for specific Gemini API error format
+        if (message.includes('[503]') || message.includes('UNAVAILABLE')) {
+             return "The AI model is currently busy and could not generate the quiz. Please try again in a moment.";
+        }
+        // Fallback for other errors or if the above check is not robust enough
         try {
             const parsed = JSON.parse(message);
             if (parsed.error && parsed.error.message) {
@@ -493,6 +504,9 @@ export const getFriendlyErrorMessage = (error: unknown): string => {
             }
         } catch (e) {
             // Not a valid JSON, return the original message
+             if (message.includes('API key not valid')) {
+                return "The API key is not valid. Please check your configuration.";
+            }
             return message;
         }
     }
