@@ -201,7 +201,7 @@ export const PHYSICS_CATEGORIES: Category[] = [
                             { name: 'Define the moment of a force as moment = force × perpendicular distance from the pivot; recall and use this equation' },
                             { name: 'Apply the principle of moments to situations with one force each side of the pivot, including balancing of a beam' },
                             { name: 'State that, when there is no resultant force and no resultant moment, an object is in equilibrium' },
-                            { name: 'Apply the principle of moments to other situations, including those with more than one force each side of the pivot', isSupplement: true },
+                            { name: 'Apply the principle of moments to other situations, including those with more than one force each side of the pivot, isSupplement: true' },
                             { name: 'Describe an experiment to demonstrate that there is no resultant moment on an object in equilibrium', isSupplement: true }
                         ]
                     },
@@ -2033,9 +2033,9 @@ export const CHEMISTRY_CATEGORIES: Category[] = [
 ];
 
 export const GENERAL_HELPER_MESSAGES = [
-    "Welcome! Dive into Physics, Biology, or Chemistry. Sharpen your skills with a Solo Quiz, challenge friends in a Group Quiz, or use Quick Revision for a speedy review.",
-    "Ready to conquer IGCSE Science? Explore detailed Revision Notes, test your knowledge in a Solo Quiz, or create a Group Challenge for Physics, Biology, or Chemistry!",
-    "Your journey to mastering Physics, Biology, and Chemistry starts here. Try a personalized Solo Quiz, review key topics, or invite friends to a Group Challenge!",
+    "Welcome! Dive into Physics, Biology, or Chemistry. Sharpen your skills with a Solo Quiz or use Quick Revision for a speedy review.",
+    "Ready to conquer IGCSE Science? Explore detailed Revision Notes or test your knowledge in a Solo Quiz for Physics, Biology, or Chemistry!",
+    "Your journey to mastering Physics, Biology, and Chemistry starts here. Try a personalized Solo Quiz or review key topics!",
     "Whether it's the laws of Physics, the secrets of Biology, or the reactions in Chemistry, we've got you covered. Start with a quiz or browse the revision notes!"
 ];
 

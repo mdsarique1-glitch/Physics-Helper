@@ -4,7 +4,6 @@ import { PHYSICS_CATEGORIES, BIOLOGY_CATEGORIES, CHEMISTRY_CATEGORIES, GENERAL_H
 import type { SoloQuizConfig } from '../types';
 import CertificateShowcase from './CertificateShowcase';
 import QuickRevisionView from './QuickRevisionView';
-import GroupQuizFlow from './GroupQuizFlow';
 
 const AssistantMessage: React.FC<{ message: string }> = ({ message }) => (
     <div className="p-6 bg-indigo-50 border border-indigo-200 rounded-2xl shadow-sm">
@@ -22,7 +21,7 @@ const MainView: React.FC<{
     onStartQuiz: (name: string, config: SoloQuizConfig) => void;
 }> = ({ onStartQuiz }) => {
     const [subject, setSubject] = useState<'physics' | 'biology' | 'chemistry'>('physics');
-    const [quizMode, setQuizMode] = useState<'solo' | 'group' | 'revision'>('solo');
+    const [quizMode, setQuizMode] = useState<'solo' | 'revision'>('solo');
     
     // Solo state
     const [studentName, setStudentName] = useState('');
@@ -62,6 +61,7 @@ const MainView: React.FC<{
             case 'revision':
                 return <QuickRevisionView subject={subject} />;
             case 'solo':
+            default:
                 return (
                     <div className="space-y-6">
                          <h2 className="text-3xl font-bold text-gray-800 text-center">Solo {subjectTitle} Quiz Challenge</h2>
@@ -137,8 +137,6 @@ const MainView: React.FC<{
                         </div>
                     </div>
                 );
-            case 'group':
-                return <GroupQuizFlow subject={subject} onStartQuiz={onStartQuiz} />;
         }
     }
 
@@ -170,7 +168,6 @@ const MainView: React.FC<{
                 </div>
                 <div className="flex justify-center gap-2 border-b bg-gray-50 p-2 rounded-b-xl">
                     <button onClick={() => setQuizMode('solo')} className={navButtonClass('solo')}>Solo Quiz</button>
-                    <button onClick={() => setQuizMode('group')} className={navButtonClass('group')}>Group Challenge</button>
                     <button onClick={() => setQuizMode('revision')} className={navButtonClass('revision')}>Quick Revision</button>
                 </div>
                 <div className="p-4 md:p-6">
